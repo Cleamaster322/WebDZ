@@ -67,7 +67,7 @@ class CarData(models.Model):
     consumption = models.DecimalField(max_digits=10, decimal_places=2)
     fuel_type = models.CharField(max_length=50)
     transmission = models.CharField(max_length=50)
-    driver_type = models.CharField(max_length=50)
+    drive_type = models.CharField(max_length=50)
     seats_count = models.IntegerField()
     doors_count = models.IntegerField()
     clearance = models.IntegerField()
@@ -75,6 +75,8 @@ class CarData(models.Model):
 
     class Meta:
         db_table = 'car_data'
+        verbose_name = 'Car Data'
+        verbose_name_plural = 'Car Data'
 
     def __str__(self):
         return f"{self.configuration.name} - {self.fuel_type}"
