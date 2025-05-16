@@ -7,6 +7,11 @@ class BrandSerializer(serializers.ModelSerializer):
         model = Brand
         fields = '__all__'
 
+    def validate_name(self, name):
+        if Brand.objects.filter(name=name).exists():
+            raise serializers.ValidationError('Brand name already exists')
+        return name
+
 class ModelSerializer(serializers.ModelSerializer):
     class Meta:
         model = Model
