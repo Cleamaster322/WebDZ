@@ -1,4 +1,5 @@
 from django.shortcuts import render
+from fontTools.misc.cython import returns
 from rest_framework.generics import ListAPIView
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -54,6 +55,28 @@ class BrandDetailAPIView(APIView):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         except:
             return Response(status=status.HTTP_404_NOT_FOUND)
+
+    # Второй варинт обработки ошибок
+    # def put(self, request, *args, **kwargs):
+    #     try:
+    #         brand = Brand.objects.get(pk=kwargs['pk'])
+    #     except Brand.DoesNotExist:
+    #         return Response(status=status.HTTP_404_NOT_FOUND)
+    #     except Exception as e:
+    #         return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    #
+    #     try:
+    #         serializer = BrandSerializer(brand, data=request.data)
+    #         if serializer.is_valid():
+    #             serializer.save()
+    #             return Response(serializer.data, status=status.HTTP_200_OK)
+    #         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    #     except Exception as e:
+    #         return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+
+
 
     # update not full data brand by id
     def patch(self, request, *args, **kwargs):
