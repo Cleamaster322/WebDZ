@@ -1,10 +1,10 @@
+from django.middleware.csrf import get_token
 from django.shortcuts import render
-from fontTools.misc.cython import returns
 from rest_framework.generics import ListAPIView
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-
+from rest_framework.permissions import IsAuthenticated,IsAdminUser,AllowAny
 from .models import Brand
 from .serializers import BrandSerializer
 
@@ -16,8 +16,9 @@ class TestAPIView(APIView):
         data = request.data
         return Response(data['message'], status=status.HTTP_200_OK)
 
-
+# Добавить пагинацию, фильтрацию, сортровку
 class BrandListAPIView(APIView):
+    permission_classes = [IsAdminUser]
     # get all brands
     def get(self, request, *args, **kwargs):
         brands = Brand.objects.all()
@@ -44,7 +45,6 @@ class BrandDetailAPIView(APIView):
         except:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
-    # update full data brand by id
     def put(self, request, *args, **kwargs):
         try:
             brand = Brand.objects.get(pk=kwargs['pk'])
@@ -53,30 +53,10 @@ class BrandDetailAPIView(APIView):
                 serializer.save()
                 return Response(serializer.data, status=status.HTTP_200_OK)
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        except:
+        except Brand.DoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
-
-    # Второй варинт обработки ошибок
-    # def put(self, request, *args, **kwargs):
-    #     try:
-    #         brand = Brand.objects.get(pk=kwargs['pk'])
-    #     except Brand.DoesNotExist:
-    #         return Response(status=status.HTTP_404_NOT_FOUND)
-    #     except Exception as e:
-    #         return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    #
-    #     try:
-    #         serializer = BrandSerializer(brand, data=request.data)
-    #         if serializer.is_valid():
-    #             serializer.save()
-    #             return Response(serializer.data, status=status.HTTP_200_OK)
-    #         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    #     except Exception as e:
-    #         return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
-
-
+        except Exception as e:
+            return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     # update not full data brand by id
     def patch(self, request, *args, **kwargs):
