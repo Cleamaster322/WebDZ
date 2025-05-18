@@ -1,5 +1,7 @@
+from django.http import JsonResponse
 from django.middleware.csrf import get_token
 from django.shortcuts import render
+from rest_framework.decorators import permission_classes
 from rest_framework.generics import ListAPIView
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -8,18 +10,18 @@ from rest_framework.permissions import IsAuthenticated,IsAdminUser,AllowAny
 from .models import Brand
 from .serializers import BrandSerializer
 
-class TestAPIView(APIView):
-    def get(self, request, *args, **kwargs):
-        return Response("123get", status=status.HTTP_200_OK)
+class CsrfToken(APIView):
+    def get(self,request):
+        token = get_token(request)
+        return JsonResponse({'csrf_token': token})
 
-    def post(self, request, *args, **kwargs):
-        data = request.data
-        return Response(data['message'], status=status.HTTP_200_OK)
+
 
 # Добавить пагинацию, фильтрацию, сортровку
 class BrandListAPIView(APIView):
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAuthenticated]
     # get all brands
+
     def get(self, request, *args, **kwargs):
         brands = Brand.objects.all()
         serializer_class = BrandSerializer(brands, many=True)
