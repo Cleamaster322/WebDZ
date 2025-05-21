@@ -23,7 +23,7 @@ class ApiClient {
 
           console.log(error.response)
 
-          if (error.response?.status === 401 && !originalRequest._retry) {
+          if ((error.response?.status === 401 || error.response?.status === 403) && !originalRequest._retry) {
             if (this.isRefreshint){
               return new Promise((resolve) => {
                 this.failedRequests.push(() => {

@@ -17,6 +17,11 @@ class ModelSerializer(serializers.ModelSerializer):
         model = Model
         fields = '__all__'
 
+    def validate_name(self, name):
+        if Model.objects.filter(name=name).exists():
+            raise serializers.ValidationError('Model name already exists')
+        return name
+
 class GenerationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Generation
