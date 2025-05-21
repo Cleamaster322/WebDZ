@@ -5,6 +5,8 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated,IsAdminUser,AllowAny
+from rest_framework_simplejwt.authentication import JWTAuthentication
+
 from .models import Brand
 from .serializers import BrandSerializer
 from rest_framework.decorators import api_view, permission_classes, authentication_classes
@@ -29,6 +31,13 @@ def test(request):
 def test1(request):
     name = request.data.get('name','default value')
     return Response({'name': name})
+
+@api_view(['GET'])
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsAuthenticated])
+def test2(request):
+    print(request.user)
+    return Response({'test': 123321})
 
 # class CsrfToken(APIView):
 #     def get(self,request):

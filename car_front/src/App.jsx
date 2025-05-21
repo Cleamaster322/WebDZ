@@ -1,16 +1,14 @@
-import { useState} from 'react'
-import './App.css'
+import { useState } from 'react'
 import Test from './Features/Test/Test.jsx'
+import Login from './Features/Login/Login.jsx'
+import TestAuth from './Features/TestAuthToken/TestAuthToken.jsx'
 
 function App() {
-  const [count, setCount] = useState(0)
-
   return (
-   <>
-       <Test/>
-       <Test/>
-       <Test/>
-   </>
+    <>
+      <Login />
+      <TestAuth />
+    </>
   )
 }
 
