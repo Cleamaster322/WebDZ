@@ -16,10 +16,18 @@ function BrandsAndModels() {
   const [generations, setGenerations] = useState([]);
   const [selectedGeneration, setSelectedGeneration] = useState(null);
 
+  const [configurations, setConfigurations] = useState(null);
+  const [selectedConfiguration, setSelectedConfiguration] = useState(null);
+
   const [brandInputValue, setBrandInputValue] = useState("");
+  const [modelInputValue, setModelInputValue] = useState("");
+  const [generationInputValue, setGenerationInputValue] = useState("");
+  const [configurationInputValue, setConfigurationInputValue] = useState("");
+
   const [brandLoading, setBrandLoading] = useState(false);
   const [modelLoading, setModelLoading] = useState(false);
   const [generationLoading, setGenerationLoading] = useState(false);
+  const [configurationLoading, setConfigurationLoading] = useState(false);
 
   // get brands
   useEffect(() => {
@@ -51,21 +59,21 @@ function BrandsAndModels() {
 
   // get model by brand_id
   useEffect(() => {
-    async function fetchModels() {
-      if (!selectedBrand) {
-        setModels([]);
-        return;
-      }
+  if (!selectedBrand) {
+    setModels([]);
+    return;
+  }
 
+  const delayDebounceFn = setTimeout(() => {
+    async function fetchModels() {
       try {
         setModelLoading(true);
 
-        const response = await api.get("/cars/models", {
-          params: {
-            brand_id: selectedBrand.id, //
-            page_size: 100,
-          },
-        });
+        const params = modelInputValue
+          ? { brand_id: selectedBrand.id, name: modelInputValue, page_size: 50 }
+          : { brand_id: selectedBrand.id, page_size: 50 };
+
+        const response = await api.get("/cars/models", { params });
 
         setModels(response.data.results);
       } catch (error) {
@@ -77,10 +85,14 @@ function BrandsAndModels() {
     }
 
     fetchModels();
-  }, [selectedBrand]);
+  }, 300);
+
+  return () => clearTimeout(delayDebounceFn);
+}, [selectedBrand, modelInputValue]);
 
   // --- Fetch generations by model_id ---
   useEffect(() => {
+  const delayDebounceFn = setTimeout(() => {
     async function fetchGenerations() {
       if (!selectedModel) {
         setGenerations([]);
@@ -89,9 +101,13 @@ function BrandsAndModels() {
 
       try {
         setGenerationLoading(true);
-        const response = await api.get("/cars/generations", {
-          params: { model_id: selectedModel.id, page_size: 100 },
-        });
+
+        const params = generationInputValue
+          ? { model_id: selectedModel.id, name: generationInputValue, page_size: 50 }
+          : { model_id: selectedModel.id, page_size: 50 };
+
+        const response = await api.get("/cars/generations", { params });
+
         setGenerations(response.data.results);
       } catch (error) {
         console.error(error);
@@ -102,63 +118,100 @@ function BrandsAndModels() {
     }
 
     fetchGenerations();
-  }, [selectedModel]);
+  }, 300);
+
+  return () => clearTimeout(delayDebounceFn);
+}, [selectedModel, generationInputValue]);
+
+  // --- Fetch configuration by generation_id ---
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(() => {
+      async function fetchConfigurations() {
+        if (!selectedGeneration) {
+          setConfigurations([]);
+          return;
+        }
+
+        try {
+          setConfigurationLoading(true);
+
+          const params = configurationInputValue
+            ? { generation_id: selectedGeneration.id, name: configurationInputValue, page_size: 50 }
+            : { generation_id: selectedGeneration.id, page_size: 50 };
+
+          const response = await api.get("/cars/configurations", { params });
+
+          setConfigurations(response.data.results);
+        } catch (error) {
+          console.error(error);
+          setConfigurations([]);
+        } finally {
+          setConfigurationLoading(false);
+        }
+      }
+
+      fetchConfigurations();
+    }, 300);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [selectedGeneration, configurationInputValue]);
 
   const handleLogout = () => {
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
-    // Если в api есть установка токена — можно её тоже очистить
     api.client.defaults.headers.common['Authorization'] = null;
     // Перейти на логин
     navigate('/');
   };
-
-  return (
+    return (
     <div>
-      <Button
-        variant="outlined"
-        color="error"
-        onClick={handleLogout}
-        sx={{ marginBottom: 2 }}
-      >
+      <Button variant="outlined" color="error" onClick={handleLogout} sx={{ marginBottom: 2 }}>
         Выйти
       </Button>
 
       {/* Brand selection */}
       <Autocomplete
+        value={selectedBrand}
+        inputValue={brandInputValue}
         disablePortal
         options={brands}
         getOptionLabel={(option) => option.name || ""}
         loading={brandLoading}
-        onInputChange={(event, newInputValue) => {
-          setBrandInputValue(newInputValue);
-        }}
+        onInputChange={(event, newInputValue) => setBrandInputValue(newInputValue)}
         onChange={(event, newValue) => {
           setSelectedBrand(newValue);
           setSelectedModel(null);
           setSelectedGeneration(null);
+          setSelectedConfiguration(null);
+
+          setModelInputValue("");
+          setGenerationInputValue("");
+          setConfigurationInputValue("");
         }}
         sx={{ width: 400, marginBottom: 2 }}
-        renderInput={(params) => (
-          <TextField {...params} label="Выберите бренд" />
-        )}
+        renderInput={(params) => <TextField {...params} label="Выберите бренд" />}
       />
 
       {/* Model selection */}
       {selectedBrand && (
         <Autocomplete
+          value={selectedModel}
+          inputValue={modelInputValue}
           disablePortal
           options={models}
           getOptionLabel={(option) => option.name || ""}
           loading={modelLoading}
+          onInputChange={(event, newInputValue) => setModelInputValue(newInputValue)}
           onChange={(event, newValue) => {
             setSelectedModel(newValue);
             setSelectedGeneration(null);
+            setSelectedConfiguration(null);
+
+            setGenerationInputValue("");
+            setConfigurationInputValue("");
           }}
           sx={{ width: 400, marginBottom: 2 }}
-          renderInput={(params) => (
-            <TextField {...params} label="Выберите модель" />
-          )}
+          renderInput={(params) => <TextField {...params} label="Выберите модель" />}
         />
       )}
 
@@ -166,31 +219,53 @@ function BrandsAndModels() {
       {selectedModel && (
         generations.length > 0 ? (
           <Autocomplete
-          disablePortal
-          options={generations}
-          getOptionLabel={(option) => `${option.name} (${option.date_start} - ${option.date_end})` || ""}
-          loading={generationLoading}
-          onChange={(event, newValue) => {
-            setSelectedGeneration(newValue);
-          }}
-          sx={{ width: 400, marginTop: 2 }}
-          renderInput={(params) => (
-            <TextField {...params} label="Выберите поколение" />
-          )}
-        />
-      ) : (
-    <TextField
-      disabled
-      label="Поколение"
-      value="Нет данных"
-      variant="outlined"
-      sx={{ width: 400, marginTop: 2 }}
-    />
-  )
-)}
+            value={selectedGeneration}
+            inputValue={generationInputValue}
+            disablePortal
+            options={generations}
+            getOptionLabel={(option) =>
+              `${option.name} (${option.date_start} - ${option.date_end})` || ""
+            }
+            loading={generationLoading}
+            onInputChange={(event, newInputValue) => setGenerationInputValue(newInputValue)}
+            onChange={(event, newValue) => {
+              setSelectedGeneration(newValue);
+              setSelectedConfiguration(null);
 
+              setConfigurationInputValue("");
+            }}
+            sx={{ width: 400, marginTop: 2 }}
+            renderInput={(params) => <TextField {...params} label="Выберите поколение" />}
+          />
+        ) : (
+          <TextField
+            disabled
+            label="Поколение"
+            value="Нет данных"
+            variant="outlined"
+            sx={{ width: 400, marginTop: 2 }}
+          />
+        )
+      )}
+
+      {/* Configuration selection */}
+      {selectedGeneration && (
+        <Autocomplete
+          value={selectedConfiguration}
+          inputValue={configurationInputValue}
+          disablePortal
+          options={configurations}
+          getOptionLabel={(option) => option.name || ""}
+          loading={configurationLoading}
+          onInputChange={(event, newInputValue) => setConfigurationInputValue(newInputValue)}
+          onChange={(event, newValue) => setSelectedConfiguration(newValue)}
+          sx={{ width: 400, marginTop: 2 }}
+          renderInput={(params) => <TextField {...params} label="Выберите конфигурацию" />}
+        />
+      )}
     </div>
   );
+
 }
 
 export default BrandsAndModels;

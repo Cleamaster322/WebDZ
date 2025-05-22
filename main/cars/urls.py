@@ -31,4 +31,11 @@ urlpatterns = [
     path('generations/<int:pk>/update/', update_generation),
     path('generations/<int:pk>/delete/', delete_generation),
 
+    # --- CONFIGURATIONS ---
+    path('configurations/', get_all_configurations),
+    path('configurations/<int:pk>/', get_configuration),
+    path('configurations/create/', post_configuration),
+    path('configurations/<int:pk>/update/', update_configuration),
+    path('configurations/<int:pk>/delete/', delete_configuration),
+
 ]

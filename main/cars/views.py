@@ -292,6 +292,83 @@ def delete_generation(request, pk):
     except Exception:
         return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+# --- CONFIGURATION FUNCTIONS ---
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_all_configurations(request):
+    try:
+        configurations = Configuration.objects.filter()
+
+        generation_id = request.GET.get('generation_id')
+        if generation_id:
+            configurations = configurations.filter(generation_id=generation_id)
+
+        ordering = request.GET.get('ordering')
+        if ordering:
+            configurations = configurations.order_by(ordering)
+
+        paginator = Pagination()
+        paginated = paginator.paginate_queryset(configurations, request)
+        serializer = ConfigurationSerializer(paginated, many=True)
+        return paginator.get_paginated_response(serializer.data)
+    except Exception:
+        return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_configuration(request, pk):
+    try:
+        configuration = Configuration.objects.filter(pk=pk).first()
+        if not configuration:
+            return Response(status=status.HTTP_404_NOT_FOUND)
 
+        serializer = ConfigurationSerializer(configuration)
+        return Response(serializer.data)
+    except Exception:
+        return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def post_configuration(request):
+    try:
+        serializer = ConfigurationSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    except Exception:
+        return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['PUT', 'PATCH'])
+@permission_classes([IsAuthenticated])
+def update_configuration(request, pk):
+    try:
+        configuration = Configuration.objects.filter(pk=pk).first()
+        if not configuration:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+        partial = request.method == 'PATCH'
+        serializer = ConfigurationSerializer(configuration, data=request.data, partial=partial)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    except Exception:
+        return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def delete_configuration(request, pk):
+    try:
+        configuration = Configuration.objects.filter(pk=pk).first()
+        if not configuration:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+        configuration.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+    except Exception:
+        return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
