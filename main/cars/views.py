@@ -1,12 +1,16 @@
+from django.http import HttpResponse
 from django.middleware.csrf import get_token
 from rest_framework.pagination import PageNumberPagination
 from rest_framework import status
-from rest_framework.permissions import IsAuthenticated,IsAdminUser,AllowAny
+from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
 
 from .models import *
 from .serializers import *
 from rest_framework.decorators import api_view, permission_classes, authentication_classes
 from rest_framework.response import Response
+
+from .word_utils import create_car_word_doc
+
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
@@ -14,16 +18,19 @@ def get_csrf_token(request):
     token = get_token(request)
     return Response({'csrf_token': token})
 
+
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def test(request):
     return Response({'test': 123321})
 
+
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def test1(request):
-    name = request.data.get('name','default value')
+    name = request.data.get('name', 'default value')
     return Response({'name': name})
+
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -36,6 +43,7 @@ class Pagination(PageNumberPagination):
     page_size = 50
     page_size_query_param = 'page_size'
     max_page_size = 100
+
 
 # --- BRAND FUNCTIONS ---
 
@@ -118,8 +126,6 @@ def delete_brand(request, pk):
         return Response(status=status.HTTP_204_NO_CONTENT)
     except Exception:
         return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
 
 
 # --- MODEL FUNCTIONS ---
@@ -209,7 +215,6 @@ def delete_model(request, pk):
         return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-
 # --- GENERATION FUNCTIONS ---
 
 @api_view(['GET'])
@@ -292,6 +297,7 @@ def delete_generation(request, pk):
     except Exception:
         return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
 # --- CONFIGURATION FUNCTIONS ---
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -372,3 +378,100 @@ def delete_configuration(request, pk):
         return Response(status=status.HTTP_204_NO_CONTENT)
     except Exception:
         return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# --- CAR-DATA FUNCTIONS ---
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_all_car_data(request):
+    try:
+        car_data = CarData.objects.filter()
+
+        # фильтрация по configuration_id
+        configuration_id = request.GET.get('configuration_id')
+        if configuration_id:
+            car_data = car_data.filter(configuration_id=configuration_id)
+
+        ordering = request.GET.get('ordering')
+        if ordering:
+            car_data = car_data.order_by(ordering)
+
+        paginator = Pagination()
+        paginated = paginator.paginate_queryset(car_data, request)
+        serializer = CarDataSerializer(paginated, many=True)
+        return paginator.get_paginated_response(serializer.data)
+    except Exception:
+        return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_car_data(request, pk):
+    try:
+        car_data = CarData.objects.get(pk=pk)
+        serializer = CarDataSerializer(car_data)
+        return Response(serializer.data)
+    except CarData.DoesNotExist:
+        return Response(status=status.HTTP_404_NOT_FOUND)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def post_car_data(request):
+    serializer = CarDataSerializer(data=request.data)
+    if serializer.is_valid():
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['PUT'])
+@permission_classes([IsAuthenticated])
+def update_car_data(request, pk):
+    try:
+        car_data = CarData.objects.get(pk=pk)
+    except CarData.DoesNotExist:
+        return Response(status=status.HTTP_404_NOT_FOUND)
+
+    serializer = CarDataSerializer(car_data, data=request.data)
+    if serializer.is_valid():
+        serializer.save()
+        return Response(serializer.data)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def delete_car_data(request, pk):
+    try:
+        car_data = CarData.objects.get(pk=pk)
+        car_data.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+    except CarData.DoesNotExist:
+        return Response(status=status.HTTP_404_NOT_FOUND)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def create_word(request):
+    """
+    Принимает JSON с данными автомобиля, создает Word-файл и возвращает для скачивания.
+    """
+    try:
+        data = request.data  # данные из POST-запроса
+
+        # Создаем Word-документ в памяти
+        word_file = create_car_word_doc(data)
+
+        # Формируем ответ с вложением для скачивания
+        response = HttpResponse(
+            word_file.getvalue(),
+            content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        )
+        filename = f"{data.get('brand', 'car')}_{data.get('model', '')}.docx"
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+
+        return response
+
+    except Exception as e:
+        return Response({"error": str(e)}, status=500)

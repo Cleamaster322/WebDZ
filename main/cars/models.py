@@ -1,5 +1,6 @@
 from django.db import models
 
+
 # Create Brand models
 class Brand(models.Model):
     name = models.CharField(max_length=100)
@@ -11,9 +12,10 @@ class Brand(models.Model):
     def __str__(self):
         return self.name
 
+
 # Create Model models
 class Model(models.Model):
-    brand = models.ForeignKey(Brand, on_delete=models.DO_NOTHING,db_column='brand_id')
+    brand = models.ForeignKey(Brand, on_delete=models.DO_NOTHING, db_column='brand_id')
     name = models.CharField(max_length=100)
     link = models.URLField(max_length=255)
 
@@ -23,9 +25,10 @@ class Model(models.Model):
     def __str__(self):
         return self.name
 
+
 # Create Generation models
 class Generation(models.Model):
-    model = models.ForeignKey(Model, on_delete=models.DO_NOTHING,db_column='model_id')
+    model = models.ForeignKey(Model, on_delete=models.DO_NOTHING, db_column='model_id')
     name = models.CharField(max_length=255)
     link = models.URLField(max_length=255)
     body_code = models.CharField(max_length=100, null=True, blank=True)
@@ -41,9 +44,11 @@ class Generation(models.Model):
 
     def __str__(self):
         return self.name
+
+
 # Create Configuration models
 class Configuration(models.Model):
-    generation = models.ForeignKey(Generation, on_delete=models.DO_NOTHING,db_column='generation_id')
+    generation = models.ForeignKey(Generation, on_delete=models.DO_NOTHING, db_column='generation_id')
     name = models.CharField(max_length=255)
     link = models.URLField(max_length=255)
     engine_name = models.CharField(max_length=100, null=True, blank=True)
@@ -56,9 +61,10 @@ class Configuration(models.Model):
     def __str__(self):
         return self.name
 
+
 # Create CarData models
 class CarData(models.Model):
-    configuration = models.ForeignKey(Configuration, on_delete=models.DO_NOTHING,db_column='configuration_id')
+    configuration = models.ForeignKey(Configuration, on_delete=models.DO_NOTHING, db_column='configuration_id')
     front_tires = models.CharField(max_length=50)
     rear_tires = models.CharField(max_length=50)
     engine_capacity = models.FloatField()

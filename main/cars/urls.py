@@ -38,4 +38,13 @@ urlpatterns = [
     path('configurations/<int:pk>/update/', update_configuration),
     path('configurations/<int:pk>/delete/', delete_configuration),
 
+    # --- CAR DATA ---
+    path('car-data/', get_all_car_data),
+    path('car-data/<int:pk>/', get_car_data),
+    path('car-data/create/', post_car_data),
+    path('car-data/<int:pk>/update/', update_car_data),
+    path('car-data/<int:pk>/delete/', delete_car_data),
+
+    # --- WORD DOCUMENT ---
+    path('create-word/', create_word),
 ]
