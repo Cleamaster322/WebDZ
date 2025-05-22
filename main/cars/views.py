@@ -1,12 +1,7 @@
-from django.http import JsonResponse
 from django.middleware.csrf import get_token
-from rest_framework.authentication import TokenAuthentication
 from rest_framework.pagination import PageNumberPagination
-from rest_framework.views import APIView
-from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated,IsAdminUser,AllowAny
-from rest_framework_simplejwt.authentication import JWTAuthentication
 
 from .models import *
 from .serializers import *
@@ -14,27 +9,23 @@ from rest_framework.decorators import api_view, permission_classes, authenticati
 from rest_framework.response import Response
 
 @api_view(['GET'])
-@authentication_classes([])
 @permission_classes([AllowAny])
 def get_csrf_token(request):
     token = get_token(request)
     return Response({'csrf_token': token})
 
 @api_view(['GET'])
-@authentication_classes([])
 @permission_classes([AllowAny])
 def test(request):
     return Response({'test': 123321})
 
 @api_view(['POST'])
-@authentication_classes([])
 @permission_classes([AllowAny])
 def test1(request):
     name = request.data.get('name','default value')
     return Response({'name': name})
 
 @api_view(['GET'])
-@authentication_classes([JWTAuthentication])
 @permission_classes([IsAuthenticated])
 def test2(request):
     print(request.user)
@@ -46,258 +37,261 @@ class Pagination(PageNumberPagination):
     page_size_query_param = 'page_size'
     max_page_size = 100
 
-# Добавить пагинацию, фильтрацию, сортровку
-class BrandListAPIView(APIView):
-    permission_classes = [IsAuthenticated]
+# --- BRAND FUNCTIONS ---
 
-    def get(self, request, *args, **kwargs):
-        try:
-            brands = Brand.objects.all()
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_all_brands(request):
+    try:
+        brands = Brand.objects.filter()
 
-            # filter by name
-            name = request.GET.get('name')
-            if name:
-                brands = brands.filter(name__icontains=name)
+        name = request.GET.get('name')
+        if name:
+            brands = brands.filter(name__icontains=name)
 
-            # sort
-            ordering = request.GET.get('ordering')
-            if ordering:
-                brands = brands.order_by(ordering)
+        ordering = request.GET.get('ordering')
+        if ordering:
+            brands = brands.order_by(ordering)
 
-            paginator = Pagination()
-            paginated_brands = paginator.paginate_queryset(brands, request)
-            serializer = BrandSerializer(paginated_brands, many=True)
-            return paginator.get_paginated_response(serializer.data)
-        except Exception:
-            return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-    def post(self, request, *args, **kwargs):
-        try:
-            serializer = BrandSerializer(data=request.data)
-            if serializer.is_valid():
-                serializer.save()
-                return Response(serializer.data, status=status.HTTP_201_CREATED)
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        except Exception:
-            return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        paginator = Pagination()
+        paginated = paginator.paginate_queryset(brands, request)
+        serializer = BrandSerializer(paginated, many=True)
+        return paginator.get_paginated_response(serializer.data)
+    except Exception:
+        return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-class BrandDetailAPIView(APIView):
-    def get(self, request, *args, **kwargs):
-        try:
-            brand = Brand.objects.get(pk=kwargs['pk'])
-            serializer_class = BrandSerializer(brand, many=False)
-            return Response(serializer_class.data, status=status.HTTP_200_OK)
-        except Brand.DoesNotExist:
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_brand(request, pk):
+    try:
+        brand = Brand.objects.filter(pk=pk).first()
+        if not brand:
             return Response(status=status.HTTP_404_NOT_FOUND)
-        except Exception:
-            return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    def put(self, request, *args, **kwargs):
-        try:
-            brand = Brand.objects.get(pk=kwargs['pk'])
-            serializer = BrandSerializer(brand, data=request.data)
-            if serializer.is_valid():
-                serializer.save()
-                return Response(serializer.data, status=status.HTTP_200_OK)
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        except Brand.DoesNotExist:
+        serializer = BrandSerializer(brand)
+        return Response(serializer.data)
+    except Exception:
+        return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def post_brand(request):
+    try:
+        serializer = BrandSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    except Exception:
+        return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['PUT', 'PATCH'])
+@permission_classes([IsAuthenticated])
+def update_brand(request, pk):
+    try:
+        brand = Brand.objects.filter(pk=pk).first()
+        if not brand:
             return Response(status=status.HTTP_404_NOT_FOUND)
-        except Exception:
-            return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    def patch(self, request, *args, **kwargs):
-        try:
-            brand = Brand.objects.get(pk=kwargs['pk'])
-            serializer = BrandSerializer(brand, data=request.data, partial=True)
-            if serializer.is_valid():
-                serializer.save()
-                return Response(serializer.data, status=status.HTTP_200_OK)
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        except Brand.DoesNotExist:
+        partial = request.method == 'PATCH'
+        serializer = BrandSerializer(brand, data=request.data, partial=partial)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    except Exception:
+        return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def delete_brand(request, pk):
+    try:
+        brand = Brand.objects.filter(pk=pk).first()
+        if not brand:
             return Response(status=status.HTTP_404_NOT_FOUND)
-        except Exception:
-            return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    def delete(self, request, *args, **kwargs):
-        try:
-            brand = Brand.objects.get(pk=kwargs['pk'])
-            brand.delete()
-            return Response(status=status.HTTP_204_NO_CONTENT)
-        except Brand.DoesNotExist:
+        brand.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+    except Exception:
+        return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+
+
+# --- MODEL FUNCTIONS ---
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_all_models(request):
+    try:
+        models = Model.objects.filter()
+
+        name = request.GET.get('name')
+        if name:
+            models = models.filter(name__icontains=name)
+
+        brand_id = request.GET.get('brand_id')
+        if brand_id:
+            models = models.filter(brand_id=brand_id)
+
+        ordering = request.GET.get('ordering')
+        if ordering:
+            models = models.order_by(ordering)
+
+        paginator = Pagination()
+        paginated = paginator.paginate_queryset(models, request)
+        serializer = ModelSerializer(paginated, many=True)
+        return paginator.get_paginated_response(serializer.data)
+    except Exception:
+        return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_model(request, pk):
+    try:
+        model = Model.objects.filter(pk=pk).first()
+        if not model:
             return Response(status=status.HTTP_404_NOT_FOUND)
-        except Exception:
-            return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        serializer = ModelSerializer(model)
+        return Response(serializer.data)
+    except Exception:
+        return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-class ModelListAPIView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request, *args, **kwargs):
-        try:
-            models_car = Model.objects.all()
-
-            # filter by name
-            name = request.GET.get('name')
-            if name:
-                models_car = models_car.filter(name__icontains=name)
-
-            # filter by brand_id
-            brand_id = request.GET.get('brand_id')
-            if brand_id:
-                models_car = models_car.filter(brand_id=brand_id)
-
-            # sort
-            ordering = request.GET.get('ordering')
-            if ordering:
-                models_car = models_car.order_by(ordering)
-
-            paginator = Pagination()
-            paginated_models = paginator.paginate_queryset(models_car, request)
-            serializer = ModelSerializer(paginated_models, many=True)
-            return paginator.get_paginated_response(serializer.data)
-        except Exception:
-            return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-    def post(self, request, *args, **kwargs):
-        try:
-            serializer = ModelSerializer(data=request.data)
-            if serializer.is_valid():
-                serializer.save()
-                return Response(serializer.data, status=status.HTTP_201_CREATED)
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        except Exception:
-            return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def post_model(request):
+    try:
+        serializer = ModelSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    except Exception:
+        return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-class ModelDetailAPIView(APIView):
-
-    def get(self, request, *args, **kwargs):
-        try:
-            model = Model.objects.get(pk=kwargs['pk'])
-            serializer = ModelSerializer(model, many=False)
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        except Model.DoesNotExist:
+@api_view(['PUT', 'PATCH'])
+@permission_classes([IsAuthenticated])
+def update_model(request, pk):
+    try:
+        model = Model.objects.filter(pk=pk).first()
+        if not model:
             return Response(status=status.HTTP_404_NOT_FOUND)
-        except Exception:
-            return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    def put(self, request, *args, **kwargs):
-        try:
-            model = Model.objects.get(pk=kwargs['pk'])
-            serializer = ModelSerializer(model, data=request.data)
-            if serializer.is_valid():
-                serializer.save()
-                return Response(serializer.data, status=status.HTTP_200_OK)
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        except Model.DoesNotExist:
+        partial = request.method == 'PATCH'
+        serializer = ModelSerializer(model, data=request.data, partial=partial)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    except Exception:
+        return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def delete_model(request, pk):
+    try:
+        model = Model.objects.filter(pk=pk).first()
+        if not model:
             return Response(status=status.HTTP_404_NOT_FOUND)
-        except Exception:
-            return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    def patch(self, request, *args, **kwargs):
-        try:
-            model = Model.objects.get(pk=kwargs['pk'])
-            serializer = ModelSerializer(model, data=request.data, partial=True)
-            if serializer.is_valid():
-                serializer.save()
-                return Response(serializer.data, status=status.HTTP_200_OK)
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        except Model.DoesNotExist:
+        model.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+    except Exception:
+        return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+
+# --- GENERATION FUNCTIONS ---
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_all_generations(request):
+    try:
+        generations = Generation.objects.filter()
+
+        model_id = request.GET.get('model_id')
+        if model_id:
+            generations = generations.filter(model_id=model_id)
+
+        ordering = request.GET.get('ordering')
+        if ordering:
+            generations = generations.order_by(ordering)
+
+        paginator = Pagination()
+        paginated = paginator.paginate_queryset(generations, request)
+        serializer = GenerationSerializer(paginated, many=True)
+        return paginator.get_paginated_response(serializer.data)
+    except Exception:
+        return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_generation(request, pk):
+    try:
+        generation = Generation.objects.filter(pk=pk).first()
+        if not generation:
             return Response(status=status.HTTP_404_NOT_FOUND)
-        except Exception:
-            return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    def delete(self, request, *args, **kwargs):
-        try:
-            model = Model.objects.get(pk=kwargs['pk'])
-            model.delete()
-            return Response(status=status.HTTP_204_NO_CONTENT)
-        except Model.DoesNotExist:
+        serializer = GenerationSerializer(generation)
+        return Response(serializer.data)
+    except Exception:
+        return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def post_generation(request):
+    try:
+        serializer = GenerationSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    except Exception:
+        return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['PUT', 'PATCH'])
+@permission_classes([IsAuthenticated])
+def update_generation(request, pk):
+    try:
+        generation = Generation.objects.filter(pk=pk).first()
+        if not generation:
             return Response(status=status.HTTP_404_NOT_FOUND)
-        except Exception:
-            return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-class GenerationListAPIView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request, *args, **kwargs):
-        try:
-            generations = Generation.objects.all()
-
-            # фильтрация по model_id
-            model_id = request.GET.get('model_id')
-            if model_id:
-                generations = generations.filter(model_id=model_id)
-
-            # сортировка
-            ordering = request.GET.get('ordering')
-            if ordering:
-                generations = generations.order_by(ordering)
-
-            paginator = Pagination()
-            paginated_generations = paginator.paginate_queryset(generations, request)
-            serializer = GenerationSerializer(paginated_generations, many=True)
-            return paginator.get_paginated_response(serializer.data)
-
-        except Exception:
-            return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-    def post(self, request, *args, **kwargs):
-        try:
-            serializer = GenerationSerializer(data=request.data)
-            if serializer.is_valid():
-                serializer.save()
-                return Response(serializer.data, status=status.HTTP_201_CREATED)
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        except Exception:
-            return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        partial = request.method == 'PATCH'
+        serializer = GenerationSerializer(generation, data=request.data, partial=partial)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    except Exception:
+        return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-class GenerationDetailAPIView(APIView):
-
-    def get(self, request, *args, **kwargs):
-        try:
-            generation = Generation.objects.get(pk=kwargs['pk'])
-            serializer = GenerationSerializer(generation)
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        except Generation.DoesNotExist:
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def delete_generation(request, pk):
+    try:
+        generation = Generation.objects.filter(pk=pk).first()
+        if not generation:
             return Response(status=status.HTTP_404_NOT_FOUND)
-        except Exception:
-            return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    def put(self, request, *args, **kwargs):
-        try:
-            generation = Generation.objects.get(pk=kwargs['pk'])
-            serializer = GenerationSerializer(generation, data=request.data)
-            if serializer.is_valid():
-                serializer.save()
-                return Response(serializer.data, status=status.HTTP_200_OK)
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        except Generation.DoesNotExist:
-            return Response(status=status.HTTP_404_NOT_FOUND)
-        except Exception:
-            return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        generation.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+    except Exception:
+        return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    def patch(self, request, *args, **kwargs):
-        try:
-            generation = Generation.objects.get(pk=kwargs['pk'])
-            serializer = GenerationSerializer(generation, data=request.data, partial=True)
-            if serializer.is_valid():
-                serializer.save()
-                return Response(serializer.data, status=status.HTTP_200_OK)
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        except Generation.DoesNotExist:
-            return Response(status=status.HTTP_404_NOT_FOUND)
-        except Exception:
-            return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    def delete(self, request, *args, **kwargs):
-        try:
-            generation = Generation.objects.get(pk=kwargs['pk'])
-            generation.delete()
-            return Response(status=status.HTTP_204_NO_CONTENT)
-        except Generation.DoesNotExist:
-            return Response(status=status.HTTP_404_NOT_FOUND)
-        except Exception:
-            return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+

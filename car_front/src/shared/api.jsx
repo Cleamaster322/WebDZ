@@ -13,6 +13,10 @@ class ApiClient {
       },
     })
 
+    const token = localStorage.getItem('accessToken')
+    if (token) {
+      this.client.defaults.headers.common['Authorization'] = `Bearer ${token}`
+    }
     this.isRefreshint = false
     this.failedRequests = []
 
@@ -21,28 +25,37 @@ class ApiClient {
         async (error) => {
           const originalRequest = error.config
 
-          console.log(error.response)
+          console.log(error.response,12321312)
 
-          if ((error.response?.status === 401 || error.response?.status === 403) && !originalRequest._retry) {
-            if (this.isRefreshint){
-              return new Promise((resolve) => {
-                this.failedRequests.push(() => {
-                  originalRequest._retry = true
+          if (
+            (error.response?.status === 401 || error.response?.status === 403) &&
+            error.response.data?.code === 'token_not_valid' &&
+            !originalRequest._retry
+          ) {
+            if (this.isRefreshint) {
+              return new Promise((resolve, reject) => {
+                this.failedRequests.push((token) => {
+                  originalRequest.headers['Authorization'] = `Bearer ${token}`
                   resolve(this.client(originalRequest))
                 })
               })
             }
+
             this.isRefreshint = true
             originalRequest._retry = true
+
             try{
               const refreshToken = localStorage.getItem('refreshToken')
               const response = await axios.post(`${baseURL}cars/token/refresh/`, {"refresh":refreshToken})
 
               const newAccessToken = response.data.access
               localStorage.setItem('accessToken', newAccessToken)
+              console.log(3213213123123)
               this.client.defaults.headers.common['Authorization'] = `Bearer ${newAccessToken}`
+              originalRequest.headers['Authorization'] = `Bearer ${newAccessToken}`
 
               const retryResponse = await this.client(originalRequest)
+
               this.failedRequests.forEach((callback) => callback())
               this.failedRequests = []
 
@@ -62,7 +75,6 @@ class ApiClient {
     )
 
     this.setCsrfToken()
-    this.setTokenAuth()
 
   }
 
