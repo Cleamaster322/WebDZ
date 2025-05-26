@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Brand, Model, Generation, Configuration, CarData
+from .models import Brand, Model, Generation, Configuration, CarData,Protocol,User
 
 
 # simple serializers
@@ -40,4 +40,15 @@ class ConfigurationSerializer(serializers.ModelSerializer):
 class CarDataSerializer(serializers.ModelSerializer):
     class Meta:
         model = CarData
+        fields = '__all__'
+
+class ProtocolSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Protocol
+        fields = '__all__'
+
+class UserSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = User
         fields = '__all__'

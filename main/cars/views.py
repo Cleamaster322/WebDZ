@@ -1,3 +1,5 @@
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
 from django.http import HttpResponse
 from django.middleware.csrf import get_token
 from rest_framework.pagination import PageNumberPagination
@@ -451,6 +453,71 @@ def delete_car_data(request, pk):
         return Response(status=status.HTTP_404_NOT_FOUND)
 
 
+# --- Protocol FUNCTIONS ---
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_all_protocol(request):
+    try:
+        protocol_data = Protocol.objects.filter()
+
+        # фильтрация по configuration_id
+        user_id = request.GET.get('user_id')
+        if user_id:
+            protocol_data = protocol_data.filter(user_id=user_id)
+
+        paginator = Pagination()
+        paginated = paginator.paginate_queryset(protocol_data, request)
+        serializer = ProtocolSerializer(paginated, many=True)
+        return paginator.get_paginated_response(serializer.data)
+    except Exception:
+        return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_protocol(request, pk):
+    try:
+        protocol_data = Protocol.objects.get(pk=pk)
+        serializer = ProtocolSerializer(protocol_data)
+        return Response(serializer.data)
+    except CarData.DoesNotExist:
+        return Response(status=status.HTTP_404_NOT_FOUND)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def create_protocol(request):
+    data = request.data.copy()
+    data['user'] = request.user.id  # подставляем ID текущего пользователя
+
+    serializer = ProtocolSerializer(data=request.data)
+    if serializer.is_valid():
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    else:
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+# --- USER FUNCTIONS ---
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_all_users(request):
+    try:
+        users = User.objects.all()
+        serializer = UserSerializer(users, many=True)
+        return Response(serializer.data)
+    except Exception:
+        return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_user(request):
+    user = request.user
+    serializer = UserSerializer(user)
+    return Response(serializer.data)
+
+
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def create_word(request):
@@ -462,7 +529,21 @@ def create_word(request):
 
         # Создаем Word-документ в памяти
         word_file = create_car_word_doc(data)
-
+        # --- Отправка уведомления в WebSocket группу ---
+        channel_layer = get_channel_layer()
+        async_to_sync(channel_layer.group_send)(
+            "reports",
+            {
+                "type": "send_report_notification",
+                "data": {
+                    "user": request.user.username,
+                    "date": word_file.created_at.isoformat() if hasattr(word_file, 'created_at') else "",
+                    # если есть дата
+                    "message": f"Отчёт создан пользователем {request.user.username}"
+                }
+            }
+        )
+        # ---------------------------------------------
         # Формируем ответ с вложением для скачивания
         response = HttpResponse(
             word_file.getvalue(),

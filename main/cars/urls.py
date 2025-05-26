@@ -45,6 +45,15 @@ urlpatterns = [
     path('car-data/<int:pk>/update/', update_car_data),
     path('car-data/<int:pk>/delete/', delete_car_data),
 
+    # --- PROTOCOL ---
+    path('protocols/', get_all_protocol),
+    path('protocol/<int:pk>/', get_protocol),
+    path('protocol/create/', create_protocol),
+
+    # --- USER ---
+    path('get-all-users/', get_all_users),
+    path('get-user/', get_user),
+
     # --- WORD DOCUMENT ---
     path('create-word/', create_word),
 ]
