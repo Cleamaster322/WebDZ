@@ -75,7 +75,7 @@ function CarInfo() {
         }
     }, [selectedBrand, selectedModel, selectedGeneration, selectedConfiguration]);
 
-    const handleCreate = () => {
+    const handleCreate = async () => {
         const dataToCreate = {
             brand: brandName,
             model: modelName,
@@ -99,6 +99,13 @@ function CarInfo() {
                 trunk_volume: trunkVolume,
             }
         };
+        const userResponse = await api.get('cars/get-user/');
+        const userID = userResponse.data.id;
+
+        const dataToCreateProtocol = {
+            car: selectedConfiguration.id,
+            user: userID,
+        }
         api.post('cars/create-word/', dataToCreate, {responseType: 'blob'})
             .then((response) => {
                 // Создаем ссылку на скачивание
@@ -111,6 +118,8 @@ function CarInfo() {
                 link.click();
                 link.remove();
                 window.URL.revokeObjectURL(url);
+                api.post('cars/protocol/create/', dataToCreateProtocol);
+
             })
             .catch(err => {
                 console.error('Ошибка создания документа:', err);
