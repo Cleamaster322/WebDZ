@@ -531,19 +531,7 @@ def create_word(request):
         word_file = create_car_word_doc(data)
         # --- Отправка уведомления в WebSocket группу ---
         channel_layer = get_channel_layer()
-        async_to_sync(channel_layer.group_send)(
-            "reports",
-            {
-                "type": "send_report_notification",
-                "data": {
-                    "user": request.user.username,
-                    "date": word_file.created_at.isoformat() if hasattr(word_file, 'created_at') else "",
-                    # если есть дата
-                    "message": f"Отчёт создан пользователем {request.user.username}"
-                }
-            }
-        )
-        # ---------------------------------------------
+
         # Формируем ответ с вложением для скачивания
         response = HttpResponse(
             word_file.getvalue(),
