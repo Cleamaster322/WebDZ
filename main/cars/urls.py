@@ -88,4 +88,5 @@ urlpatterns = [
 
     # --- WORD DOCUMENT ---
     path('create-word/', create_word),
+    path('protocols/<int:protocol_id>/generate-docx/', generate_protocol_docx_file),
 ]

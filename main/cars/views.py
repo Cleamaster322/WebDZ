@@ -32,6 +32,9 @@ from .serializers import (
     ProtocolPhotoSerializer,
 )
 from .pagination import Pagination
+from .models import Protocol
+from .services.test_docx import generate_protocol_docx
+from django.http import FileResponse
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
@@ -892,3 +895,34 @@ def create_word(request):
 
     except Exception as e:
         return Response({"error": str(e)}, status=500)
+
+
+# =========================================================
+# --- PROTOCOL-DOCX FUNCTIONS ---
+# =========================================================
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def generate_protocol_docx_file(request, protocol_id):
+    try:
+        protocol = Protocol.objects.filter(pk=protocol_id).first()
+        if not protocol:
+            return Response(
+                {'error': 'Protocol not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        file_path = generate_protocol_docx(protocol)
+
+        return FileResponse(
+            open(file_path, 'rb'),
+            as_attachment=True,
+            filename=f'protocol_{protocol.id}.docx',
+            content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        )
+
+    except Exception as e:
+        return Response(
+            {'error': str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )

@@ -284,6 +284,30 @@ function ProtocolInspection() {
             });
     };
 
+    const handleGenerateDocx = async () => {
+  try {
+    const response = await api.generateProtocolDocx(id)
+
+    const blob = new Blob(
+      [response.data],
+      {
+        type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      }
+    )
+
+    const url = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `protocol_${id}.docx`
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    window.URL.revokeObjectURL(url)
+  } catch (error) {
+    console.error('Ошибка генерации DOCX:', error)
+  }
+}
+
     const textFieldSx = {
         "& .MuiInputBase-input": {
             color: "black",
@@ -1185,7 +1209,7 @@ function ProtocolInspection() {
                 <Box sx={{ display: "flex", justifyContent: "flex-end", pb: 2 }}>
                     <Button
                         variant="contained"
-                        onClick={handleSave}
+                        onClick={handleGenerateDocx}
                         disabled={saving || loading}
                         sx={{
                             px: 4,

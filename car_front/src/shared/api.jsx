@@ -157,6 +157,15 @@ class ApiClient {
         }
         return this.client.delete(url, config);
     }
+    generateProtocolDocx(protocolId) {
+  return this.client.post(
+    `/cars/protocols/${protocolId}/generate-docx/`,
+    {},
+    {
+      responseType: 'blob',
+    }
+  )
+}
 }
 
 const api = new ApiClient(baseURL);
