@@ -483,20 +483,224 @@ def get_protocol(request, pk):
     except CarData.DoesNotExist:
         return Response(status=status.HTTP_404_NOT_FOUND)
 
-
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def create_protocol(request):
-    data = request.data.copy()
-    data['user'] = request.user.id  # подставляем ID текущего пользователя
+    try:
+        from datetime import date
 
-    serializer = ProtocolSerializer(data=request.data)
-    if serializer.is_valid():
-        serializer.save()
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
-    else:
+        data = request.data.copy()
+        data['user'] = request.user.id
+
+        if not data.get('protocol_number'):
+            data['protocol_number'] = f"TMP-{request.user.id}-{date.today().strftime('%Y%m%d')}"
+
+        if not data.get('protocol_date'):
+            data['protocol_date'] = str(date.today())
+
+        if not data.get('owner_name'):
+            data['owner_name'] = 'Не указано'
+
+        serializer = ProtocolSerializer(data=data)
+        if serializer.is_valid():
+            protocol = serializer.save()
+
+            ProtocolMeasurement.objects.create(protocol=protocol)
+            ProtocolBrake.objects.create(protocol=protocol)
+            ProtocolLight.objects.create(protocol=protocol)
+
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# --- PROTOCOL-MEASUREMENT FUNCTIONS ---
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_protocol_measurement(request, protocol_id):
+    try:
+        measurement = ProtocolMeasurement.objects.filter(protocol_id=protocol_id).first()
+        if not measurement:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+        serializer = ProtocolMeasurementSerializer(measurement)
+        return Response(serializer.data)
+    except Exception:
+        return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def create_protocol_measurement(request, protocol_id):
+    try:
+        protocol = Protocol.objects.filter(pk=protocol_id).first()
+        if not protocol:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+        data = request.data.copy()
+        data['protocol'] = protocol_id
+
+        serializer = ProtocolMeasurementSerializer(data=data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    except Exception:
+        return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
+@api_view(['PUT', 'PATCH'])
+@permission_classes([IsAuthenticated])
+def update_protocol_measurement(request, protocol_id):
+    try:
+        measurement = ProtocolMeasurement.objects.filter(protocol_id=protocol_id).first()
+        if not measurement:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+        data = request.data.copy()
+        data['protocol'] = protocol_id
+
+        partial = request.method == 'PATCH'
+        serializer = ProtocolMeasurementSerializer(measurement, data=data, partial=partial)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    except Exception:
+        return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# --- PROTOCOL-BRAKE FUNCTIONS ---
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_protocol_brake(request, protocol_id):
+    try:
+        brake = ProtocolBrake.objects.filter(protocol_id=protocol_id).first()
+        if not brake:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+        serializer = ProtocolBrakeSerializer(brake)
+        return Response(serializer.data)
+    except Exception:
+        return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def create_protocol_brake(request, protocol_id):
+    try:
+        protocol = Protocol.objects.filter(pk=protocol_id).first()
+        if not protocol:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+        data = request.data.copy()
+        data['protocol'] = protocol_id
+
+        serializer = ProtocolBrakeSerializer(data=data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    except Exception:
+        return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['PUT', 'PATCH'])
+@permission_classes([IsAuthenticated])
+def update_protocol_brake(request, protocol_id):
+    try:
+        brake = ProtocolBrake.objects.filter(protocol_id=protocol_id).first()
+        if not brake:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+        data = request.data.copy()
+        data['protocol'] = protocol_id
+
+        partial = request.method == 'PATCH'
+        serializer = ProtocolBrakeSerializer(brake, data=data, partial=partial)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    except Exception:
+        return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+# --- PROTOCOL-LIGHT FUNCTIONS ---
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_protocol_light(request, protocol_id):
+    try:
+        light = ProtocolLight.objects.filter(protocol_id=protocol_id).first()
+        if not light:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+        serializer = ProtocolLightSerializer(light)
+        return Response(serializer.data)
+    except Exception:
+        return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def create_protocol_light(request, protocol_id):
+    try:
+        protocol = Protocol.objects.filter(pk=protocol_id).first()
+        if not protocol:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+        data = request.data.copy()
+        data['protocol'] = protocol_id
+
+        serializer = ProtocolLightSerializer(data=data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    except Exception:
+        return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['PUT', 'PATCH'])
+@permission_classes([IsAuthenticated])
+def update_protocol_light(request, protocol_id):
+    try:
+        light = ProtocolLight.objects.filter(protocol_id=protocol_id).first()
+        if not light:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+        data = request.data.copy()
+        data['protocol'] = protocol_id
+
+        partial = request.method == 'PATCH'
+        serializer = ProtocolLightSerializer(light, data=data, partial=partial)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    except Exception:
+        return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_full_protocol(request, protocol_id):
+    try:
+        protocol = Protocol.objects.filter(pk=protocol_id).first()
+        if not protocol:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+        measurement = ProtocolMeasurement.objects.filter(protocol_id=protocol_id).first()
+        brake = ProtocolBrake.objects.filter(protocol_id=protocol_id).first()
+        light = ProtocolLight.objects.filter(protocol_id=protocol_id).first()
+
+        return Response({
+            'protocol': ProtocolSerializer(protocol).data,
+            'measurement': ProtocolMeasurementSerializer(measurement).data if measurement else None,
+            'brake': ProtocolBrakeSerializer(brake).data if brake else None,
+            'light': ProtocolLightSerializer(light).data if light else None,
+        })
+    except Exception:
+        return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 # --- USER FUNCTIONS ---
 @api_view(['GET'])

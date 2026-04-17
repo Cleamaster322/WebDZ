@@ -1,28 +1,33 @@
 from rest_framework import serializers
-from .models import Brand, Model, Generation, Configuration, CarData,Protocol,User
+from django.contrib.auth.models import User
+
+from .models import (
+    Brand,
+    Model,
+    Generation,
+    Configuration,
+    CarData,
+    Protocol,
+    ProtocolMeasurement,
+    ProtocolBrake,
+    ProtocolLight,
+)
 
 
-# simple serializers
+# =========================
+# Справочник автомобилей
+# =========================
+
 class BrandSerializer(serializers.ModelSerializer):
     class Meta:
         model = Brand
         fields = '__all__'
-
-    def validate_name(self, name):
-        if Brand.objects.filter(name=name).exists():
-            raise serializers.ValidationError('Brand name already exists')
-        return name
 
 
 class ModelSerializer(serializers.ModelSerializer):
     class Meta:
         model = Model
         fields = '__all__'
-
-    def validate_name(self, name):
-        if Model.objects.filter(name=name).exists():
-            raise serializers.ValidationError('Model name already exists')
-        return name
 
 
 class GenerationSerializer(serializers.ModelSerializer):
@@ -42,13 +47,40 @@ class CarDataSerializer(serializers.ModelSerializer):
         model = CarData
         fields = '__all__'
 
+
+# =========================
+# Протокол
+# =========================
+
 class ProtocolSerializer(serializers.ModelSerializer):
     class Meta:
         model = Protocol
         fields = '__all__'
 
-class UserSerializer(serializers.ModelSerializer):
 
+class ProtocolMeasurementSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProtocolMeasurement
+        fields = '__all__'
+
+
+class ProtocolBrakeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProtocolBrake
+        fields = '__all__'
+
+
+class ProtocolLightSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProtocolLight
+        fields = '__all__'
+
+
+# =========================
+# Пользователь
+# =========================
+
+class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = '__all__'

@@ -47,8 +47,24 @@ urlpatterns = [
 
     # --- PROTOCOL ---
     path('protocols/', get_all_protocol),
-    path('protocol/<int:pk>/', get_protocol),
-    path('protocol/create/', create_protocol),
+    path('protocols/<int:pk>/', get_protocol),
+    path('protocols/create/', create_protocol),
+    path('protocols/<int:protocol_id>/full/', get_full_protocol),
+
+    # --- PROTOCOL MEASUREMENT ---
+    path('protocols/<int:protocol_id>/measurement/', get_protocol_measurement),
+    path('protocols/<int:protocol_id>/measurement/create/', create_protocol_measurement),
+    path('protocols/<int:protocol_id>/measurement/update/', update_protocol_measurement),
+
+    # --- PROTOCOL BRAKE ---
+    path('protocols/<int:protocol_id>/brake/', get_protocol_brake),
+    path('protocols/<int:protocol_id>/brake/create/', create_protocol_brake),
+    path('protocols/<int:protocol_id>/brake/update/', update_protocol_brake),
+
+    # --- PROTOCOL LIGHT ---
+    path('protocols/<int:protocol_id>/light/', get_protocol_light),
+    path('protocols/<int:protocol_id>/light/create/', create_protocol_light),
+    path('protocols/<int:protocol_id>/light/update/', update_protocol_light),
 
     # --- USER ---
     path('get-all-users/', get_all_users),
