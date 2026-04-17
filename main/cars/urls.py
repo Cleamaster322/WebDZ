@@ -45,26 +45,42 @@ urlpatterns = [
     path('car-data/<int:pk>/update/', update_car_data),
     path('car-data/<int:pk>/delete/', delete_car_data),
 
-    # --- PROTOCOL ---
+    # ===============================
+    # PROTOCOLS
+    # ===============================
     path('protocols/', get_all_protocol),
-    path('protocols/<int:pk>/', get_protocol),
     path('protocols/create/', create_protocol),
+    path('protocols/<int:pk>/', get_protocol),
+    path('protocols/<int:pk>/update/', update_protocol),
     path('protocols/<int:protocol_id>/full/', get_full_protocol),
 
-    # --- PROTOCOL MEASUREMENT ---
+    # ===============================
+    # MEASUREMENT
+    # ===============================
     path('protocols/<int:protocol_id>/measurement/', get_protocol_measurement),
     path('protocols/<int:protocol_id>/measurement/create/', create_protocol_measurement),
     path('protocols/<int:protocol_id>/measurement/update/', update_protocol_measurement),
 
-    # --- PROTOCOL BRAKE ---
+    # ===============================
+    # BRAKES
+    # ===============================
     path('protocols/<int:protocol_id>/brake/', get_protocol_brake),
     path('protocols/<int:protocol_id>/brake/create/', create_protocol_brake),
     path('protocols/<int:protocol_id>/brake/update/', update_protocol_brake),
 
-    # --- PROTOCOL LIGHT ---
+    # ===============================
+    # LIGHTS
+    # ===============================
     path('protocols/<int:protocol_id>/light/', get_protocol_light),
     path('protocols/<int:protocol_id>/light/create/', create_protocol_light),
     path('protocols/<int:protocol_id>/light/update/', update_protocol_light),
+
+    # ===============================
+    # PHOTOS
+    # ===============================
+    path('protocols/<int:protocol_id>/photos/', get_protocol_photos),
+    path('protocols/<int:protocol_id>/photos/create/', create_protocol_photo),
+    path('protocol-photos/<int:photo_id>/delete/', delete_protocol_photo),
 
     # --- USER ---
     path('get-all-users/', get_all_users),
