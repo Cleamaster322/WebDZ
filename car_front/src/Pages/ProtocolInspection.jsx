@@ -7,1226 +7,989 @@ import Button from "@mui/material/Button";
 import Typography from "@mui/material/Typography";
 import TextField from "@mui/material/TextField";
 import MenuItem from "@mui/material/MenuItem";
-import FormControlLabel from "@mui/material/FormControlLabel";
-import Checkbox from "@mui/material/Checkbox";
 import Alert from "@mui/material/Alert";
 import Paper from "@mui/material/Paper";
 import Grid from "@mui/material/Grid";
+import Divider from "@mui/material/Divider";
 
 function ProtocolInspection() {
-    const { id } = useParams();
+  const { id } = useParams();
 
-    const [protocol, setProtocol] = useState({
-        appendix_number: "",
-        commercial_name: "",
-        vin: "",
-        tire_marking: "",
-        engine_number: "",
-        registration_number: "",
-        manufacture_year: "",
-        color: "",
-    });
+  const [form, setForm] = useState({
+    appendix_number: "",
+    appendix_date_day: "",
+    appendix_date_month: "",
+    appendix_date_year: "",
 
-    const [measurement, setMeasurement] = useState({
-        wheel_formula: "",
-        mufflers_count: "",
-        seats_count: "",
-        suspension_present: false,
+    ambient_temp_c: "",
+    ambient_humidity_pct: "",
+    atmospheric_pressure_kpa: "",
+    road_ambient_temp_c: "",
+    road_ambient_humidity_pct: "",
 
-        engine_layout: "",
-        cylinder_layout: "",
-        cylinders_count: "",
-        fuel_type: "",
-        turbo_present: false,
-        transmission_type: "",
+    electric_frequency_hz: "",
+    voltage_phase_a_zero: "",
+    voltage_phase_b_zero: "",
+    voltage_phase_c_zero: "",
+    voltage_phase_ab: "",
+    voltage_phase_bc: "",
+    voltage_phase_ac: "",
 
-        tire_depth_fl_mm: "",
-        tire_depth_fr_mm: "",
-        tire_depth_rl_mm: "",
-        tire_depth_rr_mm: "",
+    photos_comment: "",
 
-        bumper_to_body_distance_mm: "",
-        protruding_elements_doors_mm: "",
-        protruding_elements_other_mm: "",
+    brand_name: "",
+    commercial_name: "",
+    vin: "",
+    category: "",
+    body_type: "",
+    tire_marking_front: "",
+    tire_marking_rear: "",
+    tire_season: "",
+    tire_spikes_present: "",
+    manufacture_year: "",
+    color: "",
+    wheel_formula: "",
+    mufflers_count: "",
+    seats_count: "",
+    side_steps_present: "",
 
-        glass_transparency_left_pct: "",
-        glass_transparency_right_pct: "",
-        glass_transparency_windshield_pct: "",
+    engine_model: "",
+    engine_power_kw: "",
+    engine_layout: "",
+    cylinder_layout: "",
+    cylinders_count: "",
+    fuel_type: "",
+    turbo_present: "",
 
-        sun_strip_width_mm: "",
-        steering_backlash_deg: "",
-        speed_by_speedometer_kmh: "",
-        actual_speed_kmh: "",
-        exhaust_noise_db: "",
-        co_min_pct: "",
-        co_max_pct: "",
+    steering_booster_type: "",
+    transmission_type: "",
 
-        light_absorption_1: "",
-        light_absorption_2: "",
-        light_absorption_3: "",
-        light_absorption_4: "",
-        light_absorption_5: "",
-        light_absorption_6: "",
+    service_brake_type: "",
+    parking_brake_type: "",
+    service_brake_control_force_axle1_n: "",
+    service_brake_control_force_axle2_n: "",
+    parking_brake_control_force_n: "",
+    axle_1_brake_difference_pct: "",
+    axle_2_brake_difference_pct: "",
+    service_brake_front_left_kn: "",
+    service_brake_front_right_kn: "",
+    service_brake_rear_left_kn: "",
+    service_brake_rear_right_kn: "",
+    parking_brake_left_kn: "",
+    parking_brake_right_kn: "",
+    stand_axle1_load_kg: "",
+    stand_axle2_load_kg: "",
 
-        vehicle_length_mm: "",
-        vehicle_width_mm: "",
-        vehicle_height_mm: "",
-        vehicle_weight_kg: "",
+    low_beam_count: "",
+    low_beam_color: "",
+    high_beam_count: "",
+    high_beam_color: "",
+    front_fog_count: "",
+    front_fog_color: "",
+    reverse_light_count: "",
+    reverse_light_color: "",
+    turn_signal_count: "",
+    turn_signal_color: "",
+    front_position_light_count: "",
+    front_position_light_color: "",
+    rear_position_light_count: "",
+    rear_position_light_color: "",
+    main_brake_signal_count: "",
+    main_brake_signal_color: "",
+    additional_brake_signal_count: "",
+    additional_brake_signal_color: "",
+    rear_fog_count: "",
+    rear_fog_color: "",
+    plate_light_count: "",
+    plate_light_color: "",
+    daytime_running_light_count: "",
+    daytime_running_light_color: "",
+    parking_light_count: "",
+    parking_light_color: "",
 
-        axle1_load_kg: "",
-        axle2_load_kg: "",
-        stand_axle1_load_kg: "",
-        stand_axle2_load_kg: "",
-    });
+    headlight_type: "",
+    low_beam_upper_point_mm: "",
+    low_beam_lower_point_mm: "",
+    fog_light_upper_point_mm: "",
+    fog_light_lower_point_mm: "",
+    fog_light_left_distance_mm: "",
+    fog_light_right_distance_mm: "",
+    brake_signal_upper_point_mm: "",
+    brake_signal_lower_point_mm: "",
+    brake_signal_left_distance_mm: "",
+    brake_signal_right_distance_mm: "",
+    additional_brake_signal_from_glass_edge_mm: "",
+    additional_brake_signal_from_support_surface_mm: "",
+    additional_brake_signal_optical_center_shift_mm: "",
+    rear_fog_upper_point_mm: "",
+    rear_fog_lower_point_mm: "",
+    headlight_washer_present: "",
+    left_34v_cd: "",
+    left_52h_cd: "",
+    left_high_beam_cd: "",
+    right_34v_cd: "",
+    right_52h_cd: "",
+    right_high_beam_cd: "",
+    turn_signal_frequency_per_min: "",
+    turn_signal_frequency_hz: "",
 
-    const [brake, setBrake] = useState({
-        service_brake_type: "",
-        parking_brake_type: "",
+    tire_depth_fl_mm: "",
+    tire_depth_rl_mm: "",
+    tire_depth_fr_mm: "",
+    tire_depth_rr_mm: "",
+    bumper_ends_bent_to_body: "",
+    bumper_to_body_distance_mm: "",
+    opening_roof_present: "",
+    fuel_leak_prevention_measure: "",
+    protruding_elements_doors_mm: "",
+    protruding_elements_other_mm: "",
+    glass_transparency_right_pct: "",
+    glass_transparency_left_pct: "",
+    glass_transparency_windshield_pct: "",
+    sun_strip_width_mm: "",
+    steering_backlash_deg: "",
+    speed_by_speedometer_kmh: "",
+    actual_speed_kmh: "",
+    exhaust_noise_db: "",
+    co_min_pct: "",
+    co_max_pct: "",
+    light_absorption_1: "",
+    light_absorption_2: "",
+    light_absorption_3: "",
+    light_absorption_4: "",
+    light_absorption_5: "",
+    light_absorption_6: "",
+    vehicle_length_mm: "",
+    vehicle_width_mm: "",
+    vehicle_height_mm: "",
+    vehicle_weight_kg: "",
+    axle1_load_kg: "",
+    axle2_load_kg: "",
+  });
 
-        service_brake_control_force_axle1_n: "",
-        service_brake_control_force_axle2_n: "",
-        parking_brake_control_force_n: "",
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
 
-        axle_1_brake_difference_pct: "",
-        axle_2_brake_difference_pct: "",
+  useEffect(() => {}, [id]);
 
-        service_brake_front_left_kn: "",
-        service_brake_front_right_kn: "",
-        service_brake_rear_left_kn: "",
-        service_brake_rear_right_kn: "",
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setForm((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
 
-        parking_brake_left_kn: "",
-        parking_brake_right_kn: "",
-    });
+  const handleSave = async () => {
+    try {
+      setSaving(true);
+      setSuccessMessage("");
+      setErrorMessage("");
 
-    const [light, setLight] = useState({
-        low_beam_count: "",
-        high_beam_count: "",
-        front_fog_count: "",
-        reverse_light_count: "",
-        turn_signal_count: "",
-        front_position_light_count: "",
-        rear_position_light_count: "",
-        main_brake_signal_count: "",
-        additional_brake_signal_count: "",
-        rear_fog_count: "",
-        plate_light_count: "",
-        daytime_running_light_count: "",
-        parking_light_count: "",
+      console.log("FORM DATA:", form);
+      setSuccessMessage("Форма заполнена. Сохранение в БД подключим следующим шагом.");
+    } catch (error) {
+      console.error(error);
+      setErrorMessage("Ошибка при сохранении");
+    } finally {
+      setSaving(false);
+    }
+  };
 
-        headlight_type: "halogen",
+  const handleGenerateDocx = async () => {
+    try {
+      const response = await api.generateProtocolDocx(id);
 
-        low_beam_upper_point_mm: "",
-        low_beam_lower_point_mm: "",
+      const blob = new Blob([response.data], {
+        type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      });
 
-        fog_light_upper_point_mm: "",
-        fog_light_lower_point_mm: "",
-        fog_light_left_distance_mm: "",
-        fog_light_right_distance_mm: "",
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `protocol_${id}.docx`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Ошибка генерации DOCX:", error);
+      setErrorMessage("Не удалось сформировать DOCX");
+    }
+  };
 
-        brake_signal_upper_point_mm: "",
-        brake_signal_lower_point_mm: "",
-        brake_signal_left_distance_mm: "",
-        brake_signal_right_distance_mm: "",
+  const pageSx = {
+    width: "100%",
+    minHeight: "100vh",
+    backgroundColor: "#f6f6f6",
+    py: 4,
+    px: 3,
+  };
 
-        additional_brake_signal_from_glass_edge_mm: "",
-        additional_brake_signal_from_support_surface_mm: "",
-        additional_brake_signal_optical_center_shift_mm: "",
+  const pageInnerSx = {
+    width: "100%",
+    maxWidth: 1450,
+    mx: "auto",
+    display: "flex",
+    flexDirection: "column",
+    gap: 3,
+  };
 
-        rear_fog_upper_point_mm: "",
-        rear_fog_lower_point_mm: "",
+  const sectionPaperSx = {
+    p: 3,
+    borderRadius: 2,
+    backgroundColor: "white",
+    boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
+  };
 
-        headlight_washer_present: false,
+  const sectionTitleSx = {
+    mb: 3,
+    color: "black",
+    fontWeight: 700,
+  };
 
-        left_34v_cd: "",
-        left_52h_cd: "",
-        left_high_beam_cd: "",
-        right_34v_cd: "",
-        right_52h_cd: "",
-        right_high_beam_cd: "",
+  const subsectionTitleSx = {
+    mb: 2,
+    color: "black",
+    fontWeight: 600,
+  };
 
-        turn_signal_frequency_per_min: "",
-        turn_signal_frequency_hz: "",
-    });
+  const textFieldSx = {
+    "& .MuiInputBase-input": {
+      color: "black",
+      py: 1.8,
+    },
+    "& .MuiInputLabel-root": {
+      color: "black",
+    },
+    "& .MuiInputLabel-root.Mui-focused": {
+      color: "black",
+    },
+    "& .MuiOutlinedInput-root": {
+      minHeight: 56,
+      backgroundColor: "white",
+    },
+    "& .MuiOutlinedInput-notchedOutline": {
+      borderColor: "#bdbdbd",
+    },
+    "& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline": {
+      borderColor: "black",
+    },
+  };
 
-    const [loading, setLoading] = useState(false);
-    const [saving, setSaving] = useState(false);
-    const [successMessage, setSuccessMessage] = useState("");
-    const [errorMessage, setErrorMessage] = useState("");
+  const selectFieldSx = {
+    ...textFieldSx,
+    "& .MuiSelect-select": {
+      display: "flex",
+      alignItems: "center",
+      width: "100%",
+      minHeight: "unset",
+      py: 1.8,
+      boxSizing: "border-box",
+    },
+  };
 
-    useEffect(() => {
-        loadProtocolData();
-    }, [id]);
+  const smallLabelSx = {
+    mb: 1,
+    fontWeight: 500,
+    color: "black",
+  };
 
-    const loadProtocolData = () => {
-        setLoading(true);
-        setErrorMessage("");
+  const renderField = ({
+    label,
+    name,
+    md = 4,
+    placeholder = "",
+    multiline = false,
+    minRows = 1,
+  }) => (
+    <Grid item xs={12} md={md}>
+      <TextField
+        label={label}
+        name={name}
+        value={form[name] ?? ""}
+        onChange={handleChange}
+        fullWidth
+        placeholder={placeholder}
+        multiline={multiline}
+        minRows={minRows}
+        sx={textFieldSx}
+      />
+    </Grid>
+  );
 
-        api.get(`cars/protocols/${id}/full/`)
-            .then((response) => {
-                const data = response.data;
+  const renderSelect = ({
+    label,
+    name,
+    md = 4,
+    options = [],
+  }) => (
+    <Grid item xs={12} md={md}>
+      <TextField
+        select
+        label={label}
+        name={name}
+        value={form[name] ?? ""}
+        onChange={handleChange}
+        fullWidth
+        size="small"
+        sx={selectFieldSx}
+      >
+        {options.map((option) => (
+          <MenuItem key={option.value} value={option.value}>
+            {option.label}
+          </MenuItem>
+        ))}
+      </TextField>
+    </Grid>
+  );
 
-                if (data.protocol) {
-                    setProtocol((prev) => ({
-                        ...prev,
-                        ...data.protocol,
-                    }));
-                }
+  const renderTripleRow = (items, marginBottom = 2) => (
+    <Grid container spacing={2} sx={{ mb: marginBottom }}>
+      {items.map((item) => (
+        <Grid item xs={12} md={4} key={item.name}>
+          <Typography sx={smallLabelSx}>{item.label}</Typography>
+          <TextField
+            name={item.name}
+            value={form[item.name] ?? ""}
+            onChange={handleChange}
+            fullWidth
+            placeholder={item.placeholder ?? ""}
+            sx={textFieldSx}
+          />
+        </Grid>
+      ))}
+    </Grid>
+  );
 
-                if (data.measurement) {
-                    setMeasurement((prev) => ({
-                        ...prev,
-                        ...data.measurement,
-                    }));
-                }
+  const renderLightPair = (title, countName, colorName) => (
+    <Grid container spacing={2} sx={{ mb: 2 }} key={countName}>
+      <Grid item xs={12} md={6}>
+        <TextField
+          label={`${title} — количество`}
+          name={countName}
+          value={form[countName] ?? ""}
+          onChange={handleChange}
+          fullWidth
+          sx={textFieldSx}
+        />
+      </Grid>
+      <Grid item xs={12} md={6}>
+        <TextField
+          label={`${title} — цвет`}
+          name={colorName}
+          value={form[colorName] ?? ""}
+          onChange={handleChange}
+          fullWidth
+          sx={textFieldSx}
+        />
+      </Grid>
+    </Grid>
+  );
 
-                if (data.brake) {
-                    setBrake((prev) => ({
-                        ...prev,
-                        ...data.brake,
-                    }));
-                }
+  return (
+    <Box sx={pageSx}>
+      <Box sx={pageInnerSx}>
+        <Typography variant="h4" sx={{ color: "black", fontWeight: 700 }}>
+          Осмотр автомобиля — Приложение 1-2 — протокол #{id}
+        </Typography>
 
-                if (data.light) {
-                    setLight((prev) => ({
-                        ...prev,
-                        ...data.light,
-                    }));
-                }
-            })
-            .catch((error) => {
-                console.error("Ошибка загрузки протокола:", error);
-                setErrorMessage("Не удалось загрузить данные протокола");
-            })
-            .finally(() => {
-                setLoading(false);
-            });
-    };
+        {loading && <Alert severity="info">Загрузка данных...</Alert>}
+        {successMessage && <Alert severity="success">{successMessage}</Alert>}
+        {errorMessage && <Alert severity="error">{errorMessage}</Alert>}
 
-    const handleProtocolChange = (e) => {
-        const { name, value } = e.target;
-        setProtocol((prev) => ({
-            ...prev,
-            [name]: value,
-        }));
-    };
+        <Paper sx={sectionPaperSx}>
+          <Typography variant="h5" sx={sectionTitleSx}>
+            1. Шапка документа
+          </Typography>
 
-    const handleMeasurementChange = (e) => {
-        const { name, value } = e.target;
-        setMeasurement((prev) => ({
-            ...prev,
-            [name]: value,
-        }));
-    };
+          <Grid container spacing={2}>
+            {renderField({
+              label: "Приложение к технической записи №",
+              name: "appendix_number",
+              md: 6,
+            })}
+            {renderField({ label: "День", name: "appendix_date_day", md: 2 })}
+            {renderField({ label: "Месяц", name: "appendix_date_month", md: 2 })}
+            {renderField({ label: "Год", name: "appendix_date_year", md: 2 })}
+          </Grid>
+        </Paper>
 
-    const handleBrakeChange = (e) => {
-        const { name, value } = e.target;
-        setBrake((prev) => ({
-            ...prev,
-            [name]: value,
-        }));
-    };
+        <Paper sx={sectionPaperSx}>
+          <Typography variant="h5" sx={sectionTitleSx}>
+            2. Условия проведения испытаний
+          </Typography>
 
-    const handleLightChange = (e) => {
-        const { name, value } = e.target;
-        setLight((prev) => ({
-            ...prev,
-            [name]: value,
-        }));
-    };
+          <Typography variant="h6" sx={subsectionTitleSx}>
+            Общие условия
+          </Typography>
+          <Grid container spacing={2} sx={{ mb: 3 }}>
+            {renderField({ label: "Температура окружающей среды, °C", name: "ambient_temp_c" })}
+            {renderField({ label: "Относительная влажность, %", name: "ambient_humidity_pct" })}
+            {renderField({ label: "Атмосферное давление, кПа", name: "atmospheric_pressure_kpa" })}
+          </Grid>
 
-    const handleMeasurementCheckboxChange = (e) => {
-        const { name, checked } = e.target;
-        setMeasurement((prev) => ({
-            ...prev,
-            [name]: checked,
-        }));
-    };
+          <Typography variant="h6" sx={subsectionTitleSx}>
+            Дорожные условия
+          </Typography>
+          <Grid container spacing={2} sx={{ mb: 3 }}>
+            {renderField({ label: "Температура окружающей среды, °C", name: "road_ambient_temp_c", md: 6 })}
+            {renderField({ label: "Относительная влажность, %", name: "road_ambient_humidity_pct", md: 6 })}
+          </Grid>
 
-    const handleLightCheckboxChange = (e) => {
-        const { name, checked } = e.target;
-        setLight((prev) => ({
-            ...prev,
-            [name]: checked,
-        }));
-    };
+          <Typography variant="h6" sx={subsectionTitleSx}>
+            Параметры электрической сети
+          </Typography>
 
-    const normalizePayload = (obj) => {
-        const normalized = { ...obj };
+          <Box sx={{ mb: 3 }}>
+            <Typography sx={smallLabelSx}>Частота электрической сети</Typography>
+            <Grid container spacing={2}>
+              <Grid item xs={12} md={4}>
+                <TextField
+                  name="electric_frequency_hz"
+                  value={form.electric_frequency_hz}
+                  onChange={handleChange}
+                  fullWidth
+                  placeholder="Гц"
+                  sx={textFieldSx}
+                />
+              </Grid>
+            </Grid>
+          </Box>
 
-        Object.keys(normalized).forEach((key) => {
-            if (normalized[key] === "") {
-                normalized[key] = null;
-            }
-        });
+          <Box sx={{ mb: 1 }}>
+            <Typography sx={smallLabelSx}>Напряжение в сети</Typography>
 
-        return normalized;
-    };
+            {renderTripleRow([
+              { label: "Фаза a-ноль", name: "voltage_phase_a_zero", placeholder: "В" },
+              { label: "Фаза b-ноль", name: "voltage_phase_b_zero", placeholder: "В" },
+              { label: "Фаза c-ноль", name: "voltage_phase_c_zero", placeholder: "В" },
+            ])}
 
-    const handleSave = () => {
-        setSaving(true);
-        setSuccessMessage("");
-        setErrorMessage("");
+            {renderTripleRow(
+              [
+                { label: "Фаза a-фаза b", name: "voltage_phase_ab", placeholder: "В" },
+                { label: "Фаза b-фаза c", name: "voltage_phase_bc", placeholder: "В" },
+                { label: "Фаза a-фаза c", name: "voltage_phase_ac", placeholder: "В" },
+              ],
+              0
+            )}
+          </Box>
+        </Paper>
 
-        api.client.patch(`cars/protocols/${id}/update/`, normalizePayload(protocol))
-            .then(() => api.client.patch(`cars/protocols/${id}/measurement/update/`, normalizePayload(measurement)))
-            .then(() => api.client.patch(`cars/protocols/${id}/brake/update/`, normalizePayload(brake)))
-            .then(() => api.client.patch(`cars/protocols/${id}/light/update/`, normalizePayload(light)))
-            .then(() => {
-                setSuccessMessage("Данные осмотра успешно сохранены");
-            })
-            .catch((error) => {
-                console.error("Ошибка сохранения:", error);
-                setErrorMessage("Ошибка при сохранении данных");
-            })
-            .finally(() => {
-                setSaving(false);
-            });
-    };
+        <Paper sx={sectionPaperSx}>
+          <Typography variant="h5" sx={sectionTitleSx}>
+            3. Фото автомобиля
+          </Typography>
 
-    const handleGenerateDocx = async () => {
-  try {
-    const response = await api.generateProtocolDocx(id)
+          <Alert severity="info" sx={{ mb: 2 }}>
+            Позже сюда лучше добавить отдельный upload-блок на 11 фотографий.
+          </Alert>
 
-    const blob = new Blob(
-      [response.data],
-      {
-        type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      }
-    )
+          <Grid container spacing={2}>
+            {renderField({
+              label: "Комментарий / список фото",
+              name: "photos_comment",
+              md: 12,
+              multiline: true,
+              minRows: 3,
+            })}
+          </Grid>
+        </Paper>
 
-    const url = window.URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = `protocol_${id}.docx`
-    document.body.appendChild(link)
-    link.click()
-    link.remove()
-    window.URL.revokeObjectURL(url)
-  } catch (error) {
-    console.error('Ошибка генерации DOCX:', error)
-  }
-}
+        <Paper sx={sectionPaperSx}>
+          <Typography variant="h5" sx={sectionTitleSx}>
+            4. Основные сведения об автомобиле
+          </Typography>
 
-    const textFieldSx = {
-        "& .MuiInputBase-input": {
-            color: "black",
-        },
-        "& .MuiInputLabel-root": {
-            color: "black",
-            whiteSpace: "normal",
-            lineHeight: 1.2,
-            maxWidth: "90%",
-            top: "50%",
-            transform: "translate(14px, -50%)",
-        },
-        "& .MuiInputLabel-shrink": {
-            top: 0,
-            transform: "translate(14px, -9px) scale(0.75)",
-        },
-        "& .MuiOutlinedInput-notchedOutline": {
-            borderColor: "#bdbdbd",
-        },
-        "& .MuiInputLabel-root.Mui-focused": {
-            color: "black",
-        },
-        "& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline": {
-            borderColor: "black",
-        },
-        "& .MuiOutlinedInput-root": {
-            minHeight: 70,
-            alignItems: "center",
-            backgroundColor: "white",
-        },
-    };
+          <Grid container spacing={2} sx={{ mb: 2 }}>
+            {renderField({ label: "Марка", name: "brand_name", md: 3, placeholder: "Kia" })}
+            {renderField({ label: "Коммерческое название", name: "commercial_name", md: 3, placeholder: "Rio" })}
+            {renderField({ label: "VIN (№ кузова/шасси)", name: "vin", md: 3 })}
+            {renderSelect({
+              label: "Категория",
+              name: "category",
+              md: 3,
+              options: [
+                { value: "M1", label: "M1" },
+                { value: "N1", label: "N1" },
+              ],
+            })}
+          </Grid>
 
-    const selectFieldSx = {
-        "& .MuiInputBase-input": {
-            color: "black",
-            paddingTop: "16px",
-            paddingBottom: "16px",
-        },
-        "& .MuiOutlinedInput-notchedOutline": {
-            borderColor: "#bdbdbd",
-        },
-        "& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline": {
-            borderColor: "black",
-        },
-        "& .MuiOutlinedInput-root": {
-            minHeight: 56,
-            backgroundColor: "white",
-        },
-    };
+          <Grid container spacing={2} sx={{ mb: 2 }}>
+            {renderField({ label: "Тип кузова", name: "body_type", md: 4 })}
+            {renderField({
+              label: "Маркировка колес (перед)",
+              name: "tire_marking_front",
+              md: 4,
+              placeholder: "185/65R15",
+            })}
+            {renderField({
+              label: "Маркировка колес (зад)",
+              name: "tire_marking_rear",
+              md: 4,
+              placeholder: "185/65R15",
+            })}
+          </Grid>
 
-    const sectionPaperSx = {
-        p: 3,
-        borderRadius: 2,
-        backgroundColor: "white",
-        boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
-    };
+          <Grid container spacing={2} sx={{ mb: 2 }}>
+            {renderSelect({
+              label: "Сезонность шин",
+              name: "tire_season",
+              md: 4,
+              options: [
+                { value: "summer", label: "Лето" },
+                { value: "winter", label: "Зима" },
+              ],
+            })}
+            {renderSelect({
+              label: "Наличие шипов",
+              name: "tire_spikes_present",
+              md: 4,
+              options: [
+                { value: "yes", label: "Да" },
+                { value: "no", label: "Нет" },
+              ],
+            })}
+            {renderField({ label: "Год выпуска", name: "manufacture_year", md: 4 })}
+          </Grid>
 
-    const fieldLabelSx = {
-        mb: 1,
-        fontSize: 14,
-        fontWeight: 500,
-        color: "black",
-        lineHeight: 1.3,
-    };
+          <Grid container spacing={2} sx={{ mb: 2 }}>
+            {renderField({ label: "Цвет", name: "color", md: 4 })}
+            {renderSelect({
+              label: "Колесная формула",
+              name: "wheel_formula",
+              md: 4,
+              options: [
+                { value: "4x2_front", label: "4x2 передний" },
+                { value: "4x2_rear", label: "4x2 задний" },
+                { value: "4x4", label: "4x4 полный" },
+              ],
+            })}
+            {renderField({ label: "Количество глушителей", name: "mufflers_count", md: 4 })}
+          </Grid>
 
-    return (
-        <Box
+          <Grid container spacing={2}>
+            {renderField({ label: "Количество посадочных мест", name: "seats_count", md: 6 })}
+            {renderSelect({
+              label: "Подножки",
+              name: "side_steps_present",
+              md: 6,
+              options: [
+                { value: "yes", label: "Наличие" },
+                { value: "no", label: "Отсутствие" },
+              ],
+            })}
+          </Grid>
+        </Paper>
+
+        <Paper sx={sectionPaperSx}>
+          <Typography variant="h5" sx={sectionTitleSx}>
+            5. Двигатель, рулевое управление, трансмиссия
+          </Typography>
+
+          <Typography variant="h6" sx={subsectionTitleSx}>
+            Двигатель
+          </Typography>
+          <Grid container spacing={2} sx={{ mb: 3 }}>
+            {renderField({ label: "Модель двигателя", name: "engine_model", md: 6 })}
+            {renderField({ label: "Мощность двигателя, кВт", name: "engine_power_kw", md: 6 })}
+            {renderSelect({
+              label: "Расположение двигателя",
+              name: "engine_layout",
+              md: 4,
+              options: [
+                { value: "transverse", label: "Поперечное" },
+                { value: "longitudinal", label: "Продольное" },
+              ],
+            })}
+            {renderSelect({
+              label: "Расположение цилиндров",
+              name: "cylinder_layout",
+              md: 4,
+              options: [
+                { value: "inline", label: "Рядное" },
+                { value: "opposed", label: "Оппозитное" },
+                { value: "v_shape", label: "V-образное" },
+              ],
+            })}
+            {renderField({ label: "Количество цилиндров", name: "cylinders_count", md: 4 })}
+            {renderSelect({
+              label: "Вид топлива",
+              name: "fuel_type",
+              md: 6,
+              options: [
+                { value: "petrol", label: "Бензин" },
+                { value: "diesel", label: "Дизель" },
+                { value: "hybrid", label: "Гибрид" },
+                { value: "electric", label: "Электро" },
+              ],
+            })}
+            {renderSelect({
+              label: "Турбонаддув",
+              name: "turbo_present",
+              md: 6,
+              options: [
+                { value: "yes", label: "Наличие" },
+                { value: "no", label: "Отсутствие" },
+              ],
+            })}
+          </Grid>
+
+          <Typography variant="h6" sx={subsectionTitleSx}>
+            Рулевое управление
+          </Typography>
+          <Grid container spacing={2} sx={{ mb: 3 }}>
+            {renderSelect({
+              label: "Тип усилителя",
+              name: "steering_booster_type",
+              md: 6,
+              options: [
+                { value: "hydromechanical", label: "гидромеханический" },
+                { value: "electromechanical", label: "электромеханический" },
+              ],
+            })}
+          </Grid>
+
+          <Typography variant="h6" sx={subsectionTitleSx}>
+            Трансмиссия
+          </Typography>
+          <Grid container spacing={2}>
+            {renderSelect({
+              label: "Тип трансмиссии",
+              name: "transmission_type",
+              md: 6,
+              options: [
+                { value: "automatic", label: "Автомат" },
+                { value: "cvt", label: "Вариатор" },
+                { value: "manual", label: "Механика" },
+                { value: "robot", label: "Робот" },
+                { value: "reducer", label: "Редуктор" },
+              ],
+            })}
+          </Grid>
+        </Paper>
+
+        <Paper sx={sectionPaperSx}>
+          <Typography variant="h5" sx={sectionTitleSx}>
+            6. Тормозная система
+          </Typography>
+
+          <Grid container spacing={2} sx={{ mb: 2 }}>
+            {renderSelect({
+              label: "Рабочая тормозная система",
+              name: "service_brake_type",
+              md: 6,
+              options: [
+                { value: "disc_disc", label: "Дисковая/дисковая" },
+                { value: "disc_drum", label: "Дисковая/барабанная" },
+              ],
+            })}
+            {renderSelect({
+              label: "Стояночная тормозная система",
+              name: "parking_brake_type",
+              md: 6,
+              options: [
+                { value: "mechanical_hand", label: "Механический ручной" },
+                { value: "mechanical_pedal", label: "Механический педаль" },
+                { value: "electric", label: "Электрический" },
+              ],
+            })}
+          </Grid>
+
+          <Grid container spacing={2} sx={{ mb: 2 }}>
+            {renderField({
+              label: "Усилие рабочей тормозной системы, ось 1, Н",
+              name: "service_brake_control_force_axle1_n",
+            })}
+            {renderField({
+              label: "Усилие рабочей тормозной системы, ось 2, Н",
+              name: "service_brake_control_force_axle2_n",
+            })}
+            {renderField({
+              label: "Усилие стояночной тормозной системы, Н",
+              name: "parking_brake_control_force_n",
+            })}
+          </Grid>
+
+          <Grid container spacing={2} sx={{ mb: 2 }}>
+            {renderField({
+              label: "Относительная разность тормозных сил, ось 1, %",
+              name: "axle_1_brake_difference_pct",
+              md: 6,
+            })}
+            {renderField({
+              label: "Относительная разность тормозных сил, ось 2, %",
+              name: "axle_2_brake_difference_pct",
+              md: 6,
+            })}
+          </Grid>
+
+          <Grid container spacing={2} sx={{ mb: 2 }}>
+            {renderField({ label: "Переднее левое, кН", name: "service_brake_front_left_kn", md: 3 })}
+            {renderField({ label: "Переднее правое, кН", name: "service_brake_front_right_kn", md: 3 })}
+            {renderField({ label: "Заднее левое, кН", name: "service_brake_rear_left_kn", md: 3 })}
+            {renderField({ label: "Заднее правое, кН", name: "service_brake_rear_right_kn", md: 3 })}
+          </Grid>
+
+          <Grid container spacing={2} sx={{ mb: 2 }}>
+            {renderField({ label: "Стояночная тормозная сила, заднее левое, кН", name: "parking_brake_left_kn", md: 6 })}
+            {renderField({ label: "Стояночная тормозная сила, заднее правое, кН", name: "parking_brake_right_kn", md: 6 })}
+          </Grid>
+
+          <Grid container spacing={2}>
+            {renderField({ label: "Нагрузка на ось (стенд), ось 1, кг", name: "stand_axle1_load_kg", md: 6 })}
+            {renderField({ label: "Нагрузка на ось (стенд), ось 2, кг", name: "stand_axle2_load_kg", md: 6 })}
+          </Grid>
+        </Paper>
+
+        <Paper sx={sectionPaperSx}>
+          <Typography variant="h5" sx={sectionTitleSx}>
+            7. Осветительные приборы
+          </Typography>
+
+          {[
+            ["Фара ближнего света", "low_beam_count", "low_beam_color"],
+            ["Фара дальнего света", "high_beam_count", "high_beam_color"],
+            ["Передняя ПТФ", "front_fog_count", "front_fog_color"],
+            ["Фонарь заднего хода", "reverse_light_count", "reverse_light_color"],
+            ["Указатели поворота", "turn_signal_count", "turn_signal_color"],
+            ["Передний габаритный огонь", "front_position_light_count", "front_position_light_color"],
+            ["Задний габаритный огонь", "rear_position_light_count", "rear_position_light_color"],
+            ["Сигнал торможения основной", "main_brake_signal_count", "main_brake_signal_color"],
+            ["Сигнал торможения дополнительный", "additional_brake_signal_count", "additional_brake_signal_color"],
+            ["Задний ПТФ", "rear_fog_count", "rear_fog_color"],
+            ["Подсветка госномера", "plate_light_count", "plate_light_color"],
+            ["ДХО", "daytime_running_light_count", "daytime_running_light_color"],
+            ["Стояночные огни", "parking_light_count", "parking_light_color"],
+          ].map(([title, countName, colorName]) =>
+            renderLightPair(title, countName, colorName)
+          )}
+
+          <Divider sx={{ my: 3 }} />
+
+          <Grid container spacing={2} sx={{ mb: 2 }}>
+            {renderSelect({
+              label: "Тип фар",
+              name: "headlight_type",
+              md: 4,
+              options: [
+                { value: "halogen", label: "Галоген" },
+                { value: "xenon", label: "Ксенон" },
+                { value: "led", label: "LED" },
+              ],
+            })}
+          </Grid>
+
+          <Grid container spacing={2} sx={{ mb: 2 }}>
+            {renderField({ label: "Фары ближнего света: верхняя точка, мм", name: "low_beam_upper_point_mm", md: 6 })}
+            {renderField({ label: "Фары ближнего света: нижняя точка, мм", name: "low_beam_lower_point_mm", md: 6 })}
+          </Grid>
+
+          <Grid container spacing={2} sx={{ mb: 2 }}>
+            {renderField({ label: "ПТФ: верхняя точка, мм", name: "fog_light_upper_point_mm", md: 6 })}
+            {renderField({ label: "ПТФ: нижняя точка, мм", name: "fog_light_lower_point_mm", md: 6 })}
+            {renderField({ label: "ПТФ: левая по ширине, мм", name: "fog_light_left_distance_mm", md: 6 })}
+            {renderField({ label: "ПТФ: правая по ширине, мм", name: "fog_light_right_distance_mm", md: 6 })}
+          </Grid>
+
+          <Grid container spacing={2} sx={{ mb: 2 }}>
+            {renderField({ label: "Основной сигнал торможения: верхняя точка, мм", name: "brake_signal_upper_point_mm", md: 6 })}
+            {renderField({ label: "Основной сигнал торможения: нижняя точка, мм", name: "brake_signal_lower_point_mm", md: 6 })}
+            {renderField({ label: "Основной сигнал торможения: левая по ширине, мм", name: "brake_signal_left_distance_mm", md: 6 })}
+            {renderField({ label: "Основной сигнал торможения: правая по ширине, мм", name: "brake_signal_right_distance_mm", md: 6 })}
+          </Grid>
+
+          <Grid container spacing={2} sx={{ mb: 2 }}>
+            {renderField({ label: "Доп. сигнал: от нижнего края стекла, мм", name: "additional_brake_signal_from_glass_edge_mm" })}
+            {renderField({ label: "Доп. сигнал: от опорной поверхности, мм", name: "additional_brake_signal_from_support_surface_mm" })}
+            {renderField({ label: "Доп. сигнал: смещение оптического центра, мм", name: "additional_brake_signal_optical_center_shift_mm" })}
+          </Grid>
+
+          <Grid container spacing={2} sx={{ mb: 2 }}>
+            {renderField({ label: "Задние ПТФ: верхняя точка, мм", name: "rear_fog_upper_point_mm", md: 6 })}
+            {renderField({ label: "Задние ПТФ: нижняя точка, мм", name: "rear_fog_lower_point_mm", md: 6 })}
+          </Grid>
+
+          <Grid container spacing={2} sx={{ mb: 2 }}>
+            {renderSelect({
+              label: "Омыватели фар",
+              name: "headlight_washer_present",
+              md: 6,
+              options: [
+                { value: "yes", label: "Наличие" },
+                { value: "no", label: "Отсутствие" },
+              ],
+            })}
+          </Grid>
+
+          <Grid container spacing={2} sx={{ mb: 2 }}>
+            {renderField({ label: "Левая 34В, кд", name: "left_34v_cd", md: 2 })}
+            {renderField({ label: "Левая 52Н, кд", name: "left_52h_cd", md: 2 })}
+            {renderField({ label: "Левая дальний, кд", name: "left_high_beam_cd", md: 2 })}
+            {renderField({ label: "Правая 34В, кд", name: "right_34v_cd", md: 2 })}
+            {renderField({ label: "Правая 52Н, кд", name: "right_52h_cd", md: 2 })}
+            {renderField({ label: "Правая дальний, кд", name: "right_high_beam_cd", md: 2 })}
+          </Grid>
+
+          <Grid container spacing={2}>
+            {renderField({ label: "Частота мерцания, пр./мин.", name: "turn_signal_frequency_per_min", md: 6 })}
+            {renderField({ label: "Частота мерцания, Гц", name: "turn_signal_frequency_hz", md: 6 })}
+          </Grid>
+        </Paper>
+
+        <Paper sx={sectionPaperSx}>
+          <Typography variant="h5" sx={sectionTitleSx}>
+            8. Прочее
+          </Typography>
+
+          <Typography variant="h6" sx={subsectionTitleSx}>
+            Остаточная глубина рисунка протектора
+          </Typography>
+          <Grid container spacing={2} sx={{ mb: 2 }}>
+            {renderField({ label: "Левое переднее, мм", name: "tire_depth_fl_mm", md: 3 })}
+            {renderField({ label: "Левое заднее, мм", name: "tire_depth_rl_mm", md: 3 })}
+            {renderField({ label: "Правое переднее, мм", name: "tire_depth_fr_mm", md: 3 })}
+            {renderField({ label: "Правое заднее, мм", name: "tire_depth_rr_mm", md: 3 })}
+          </Grid>
+
+          <Typography variant="h6" sx={subsectionTitleSx}>
+            Кузов и топливная система
+          </Typography>
+          <Grid container spacing={2} sx={{ mb: 2 }}>
+            {renderSelect({
+              label: "Концы бампера загибаются к кузову",
+              name: "bumper_ends_bent_to_body",
+              md: 6,
+              options: [
+                { value: "yes", label: "Да" },
+                { value: "no", label: "Нет" },
+              ],
+            })}
+            {renderSelect({
+              label: "Открывающаяся крыша",
+              name: "opening_roof_present",
+              md: 6,
+              options: [
+                { value: "yes", label: "Да" },
+                { value: "no", label: "Нет" },
+              ],
+            })}
+            {renderField({
+              label: "Расстояние между краем бампера и кузовом, мм",
+              name: "bumper_to_body_distance_mm",
+              md: 12,
+            })}
+            {renderSelect({
+              label: "Меры по обеспечению утечки паров и топлива из топливного бака",
+              name: "fuel_leak_prevention_measure",
+              md: 12,
+              options: [
+                { value: "fixed_cap", label: "Несъемная крышка" },
+                { value: "structural_elements", label: "Элементы конструкции" },
+                { value: "other_measure", label: "Любая другая мера" },
+              ],
+            })}
+          </Grid>
+
+          <Typography variant="h6" sx={subsectionTitleSx}>
+            Выступающие элементы
+          </Typography>
+          <Grid container spacing={2} sx={{ mb: 2 }}>
+            {renderField({ label: "Ручки дверей, багажника, мм", name: "protruding_elements_doors_mm", md: 6 })}
+            {renderField({ label: "Остальные элементы, мм", name: "protruding_elements_other_mm", md: 6 })}
+          </Grid>
+
+          <Typography variant="h6" sx={subsectionTitleSx}>
+            Светопропускание стекол
+          </Typography>
+          <Grid container spacing={2} sx={{ mb: 2 }}>
+            {renderField({ label: "Правое, %", name: "glass_transparency_right_pct" })}
+            {renderField({ label: "Левое, %", name: "glass_transparency_left_pct" })}
+            {renderField({ label: "Ветровое, %", name: "glass_transparency_windshield_pct" })}
+          </Grid>
+
+          <Typography variant="h6" sx={subsectionTitleSx}>
+            Дополнительные параметры
+          </Typography>
+          <Grid container spacing={2} sx={{ mb: 2 }}>
+            {renderField({ label: "Ширина светозащитной полосы, мм", name: "sun_strip_width_mm", md: 6 })}
+            {renderField({ label: "Суммарный люфт в Р/У, °", name: "steering_backlash_deg", md: 6 })}
+            {renderField({ label: "Скорость по спидометру, км/ч", name: "speed_by_speedometer_kmh", md: 6 })}
+            {renderField({ label: "Фактическая скорость, км/ч", name: "actual_speed_kmh", md: 6 })}
+            {renderField({ label: "Уровень шума отработавших газов, дБа", name: "exhaust_noise_db", md: 4 })}
+            {renderField({ label: "Min обор: CO, %", name: "co_min_pct", md: 4 })}
+            {renderField({ label: "Max обор: CO, %", name: "co_max_pct", md: 4 })}
+          </Grid>
+
+          <Typography variant="h6" sx={subsectionTitleSx}>
+            Коэффициент поглощения света
+          </Typography>
+          <Grid container spacing={2} sx={{ mb: 2 }}>
+            {renderField({ label: "1, м-1", name: "light_absorption_1", md: 2 })}
+            {renderField({ label: "2, м-1", name: "light_absorption_2", md: 2 })}
+            {renderField({ label: "3, м-1", name: "light_absorption_3", md: 2 })}
+            {renderField({ label: "4, м-1", name: "light_absorption_4", md: 2 })}
+            {renderField({ label: "5, м-1", name: "light_absorption_5", md: 2 })}
+            {renderField({ label: "6, м-1", name: "light_absorption_6", md: 2 })}
+          </Grid>
+
+          <Typography variant="h6" sx={subsectionTitleSx}>
+            Габаритные размеры и масса
+          </Typography>
+          <Grid container spacing={2} sx={{ mb: 2 }}>
+            {renderField({ label: "Длина, мм", name: "vehicle_length_mm", md: 3 })}
+            {renderField({ label: "Ширина, мм", name: "vehicle_width_mm", md: 3 })}
+            {renderField({ label: "Высота, мм", name: "vehicle_height_mm", md: 3 })}
+            {renderField({ label: "Масса ТС, кг", name: "vehicle_weight_kg", md: 3 })}
+          </Grid>
+
+          <Typography variant="h6" sx={subsectionTitleSx}>
+            Нагрузка на ось
+          </Typography>
+          <Grid container spacing={2}>
+            {renderField({ label: "Ось 1, кг", name: "axle1_load_kg", md: 6 })}
+            {renderField({ label: "Ось 2, кг", name: "axle2_load_kg", md: 6 })}
+          </Grid>
+        </Paper>
+
+        <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2, pb: 2 }}>
+          <Button
+            variant="outlined"
+            onClick={handleGenerateDocx}
             sx={{
-                width: "100%",
-                minHeight: "100vh",
-                backgroundColor: "white",
-                color: "black",
-                py: 4,
-                px: 3,
+              px: 4,
+              py: 1.2,
+              borderColor: "black",
+              color: "black",
             }}
-        >
-            <Box
-                sx={{
-                    width: "100%",
-                    maxWidth: 1400,
-                    mx: "auto",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 3,
-                }}
-            >
-                <Typography variant="h4" sx={{ color: "black", fontWeight: 700 }}>
-                    Осмотр автомобиля — протокол #{id}
-                </Typography>
-
-                {loading && <Alert severity="info">Загрузка данных...</Alert>}
-                {successMessage && <Alert severity="success">{successMessage}</Alert>}
-                {errorMessage && <Alert severity="error">{errorMessage}</Alert>}
-
-                <Paper sx={sectionPaperSx}>
-                    <Typography variant="h5" sx={{ mb: 3, color: "black", fontWeight: 600 }}>
-                        1. Шапка и основные сведения
-                    </Typography>
-
-                    <Grid container spacing={2} sx={{ mb: 4 }}>
-                        <Grid item xs={12} md={6}>
-                            <TextField
-                                label="Приложение к технической записи №"
-                                name="appendix_number"
-                                value={protocol.appendix_number ?? ""}
-                                onChange={handleProtocolChange}
-                                fullWidth
-                                sx={textFieldSx}
-                            />
-                        </Grid>
-
-                        <Grid item xs={12} md={6}>
-                            <TextField
-                                label="Марка, коммерческое название"
-                                name="commercial_name"
-                                value={protocol.commercial_name ?? ""}
-                                onChange={handleProtocolChange}
-                                fullWidth
-                                sx={textFieldSx}
-                            />
-                        </Grid>
-
-                        <Grid item xs={12}>
-                            <TextField
-                                label="VIN (№ кузова/шасси)"
-                                name="vin"
-                                value={protocol.vin ?? ""}
-                                onChange={handleProtocolChange}
-                                fullWidth
-                                sx={textFieldSx}
-                            />
-                        </Grid>
-
-                        <Grid item xs={12} md={6}>
-                            <TextField
-                                label="Маркировка колес"
-                                name="tire_marking"
-                                value={protocol.tire_marking ?? ""}
-                                onChange={handleProtocolChange}
-                                fullWidth
-                                sx={textFieldSx}
-                                placeholder="Например: 185/65R15"
-                            />
-                        </Grid>
-
-                        <Grid item xs={12} md={3}>
-                            <TextField
-                                label="Год выпуска"
-                                name="manufacture_year"
-                                value={protocol.manufacture_year ?? ""}
-                                onChange={handleProtocolChange}
-                                fullWidth
-                                sx={textFieldSx}
-                            />
-                        </Grid>
-
-                        <Grid item xs={12} md={3}>
-                            <TextField
-                                label="Цвет"
-                                name="color"
-                                value={protocol.color ?? ""}
-                                onChange={handleProtocolChange}
-                                fullWidth
-                                sx={textFieldSx}
-                            />
-                        </Grid>
-                    </Grid>
-
-                    <Typography variant="h6" sx={{ mb: 2, color: "black" }}>
-                        Конструктивные параметры
-                    </Typography>
-
-                    <Grid container spacing={2} sx={{ mb: 4 }}>
-                        <Grid item xs={12} md={4}>
-                            <Typography sx={fieldLabelSx}>Колесная формула</Typography>
-                            <TextField
-                                select
-                                name="wheel_formula"
-                                value={measurement.wheel_formula ?? ""}
-                                onChange={handleMeasurementChange}
-                                fullWidth
-                                size="small"
-                                sx={selectFieldSx}
-                            >
-                                <MenuItem value="4x2_front">4x2 передний</MenuItem>
-                                <MenuItem value="4x2_rear">4x2 задний</MenuItem>
-                                <MenuItem value="4x4">4x4 полный</MenuItem>
-                            </TextField>
-                        </Grid>
-
-                        <Grid item xs={12} md={4}>
-                            <TextField
-                                label="Количество глушителей"
-                                name="mufflers_count"
-                                value={measurement.mufflers_count ?? ""}
-                                onChange={handleMeasurementChange}
-                                fullWidth
-                                sx={textFieldSx}
-                            />
-                        </Grid>
-
-                        <Grid item xs={12} md={4}>
-                            <TextField
-                                label="Количество посадочных мест"
-                                name="seats_count"
-                                value={measurement.seats_count ?? ""}
-                                onChange={handleMeasurementChange}
-                                fullWidth
-                                sx={textFieldSx}
-                            />
-                        </Grid>
-
-                        <Grid item xs={12}>
-                            <FormControlLabel
-                                control={
-                                    <Checkbox
-                                        checked={Boolean(measurement.suspension_present)}
-                                        onChange={handleMeasurementCheckboxChange}
-                                        name="suspension_present"
-                                        sx={{ color: "black" }}
-                                    />
-                                }
-                                label="Подвеска: наличие"
-                                sx={{ color: "black" }}
-                            />
-                        </Grid>
-                    </Grid>
-
-                    <Typography variant="h6" sx={{ mb: 2, color: "black" }}>
-                        Двигатель
-                    </Typography>
-
-                    <Grid container spacing={2} sx={{ mb: 4 }}>
-                        <Grid item xs={12} md={6}>
-                            <Typography sx={fieldLabelSx}>Расположение двигателя</Typography>
-                            <TextField
-                                select
-                                name="engine_layout"
-                                value={measurement.engine_layout ?? ""}
-                                onChange={handleMeasurementChange}
-                                fullWidth
-                                size="small"
-                                sx={selectFieldSx}
-                            >
-                                <MenuItem value="transverse">Поперечное</MenuItem>
-                                <MenuItem value="longitudinal">Продольное</MenuItem>
-                            </TextField>
-                        </Grid>
-
-                        <Grid item xs={12} md={6}>
-                            <Typography sx={fieldLabelSx}>Расположение цилиндров</Typography>
-                            <TextField
-                                select
-                                name="cylinder_layout"
-                                value={measurement.cylinder_layout ?? ""}
-                                onChange={handleMeasurementChange}
-                                fullWidth
-                                size="small"
-                                sx={selectFieldSx}
-                            >
-                                <MenuItem value="inline">Рядное</MenuItem>
-                                <MenuItem value="opposed">Оппозитное</MenuItem>
-                                <MenuItem value="v_shape">V-образное</MenuItem>
-                            </TextField>
-                        </Grid>
-
-                        <Grid item xs={12} md={4}>
-                            <TextField
-                                label="Количество цилиндров"
-                                name="cylinders_count"
-                                value={measurement.cylinders_count ?? ""}
-                                onChange={handleMeasurementChange}
-                                fullWidth
-                                sx={textFieldSx}
-                            />
-                        </Grid>
-
-                        <Grid item xs={12} md={4}>
-                            <Typography sx={fieldLabelSx}>Вид топлива</Typography>
-                            <TextField
-                                select
-                                name="fuel_type"
-                                value={measurement.fuel_type ?? ""}
-                                onChange={handleMeasurementChange}
-                                fullWidth
-                                size="small"
-                                sx={selectFieldSx}
-                            >
-                                <MenuItem value="petrol">Бензин</MenuItem>
-                                <MenuItem value="diesel">Дизель</MenuItem>
-                                <MenuItem value="hybrid">Гибрид</MenuItem>
-                                <MenuItem value="electric">Электро</MenuItem>
-                                <MenuItem value="other">Другое</MenuItem>
-                            </TextField>
-                        </Grid>
-
-                        <Grid item xs={12} md={4}>
-                            <FormControlLabel
-                                control={
-                                    <Checkbox
-                                        checked={Boolean(measurement.turbo_present)}
-                                        onChange={handleMeasurementCheckboxChange}
-                                        name="turbo_present"
-                                        sx={{ color: "black" }}
-                                    />
-                                }
-                                label="Турбонаддув: наличие"
-                                sx={{ color: "black" }}
-                            />
-                        </Grid>
-                    </Grid>
-
-                    <Typography variant="h6" sx={{ mb: 2, color: "black" }}>
-                        Трансмиссия
-                    </Typography>
-
-                    <Grid container spacing={2}>
-                        <Grid item xs={12} md={6}>
-                            <Typography sx={fieldLabelSx}>Тип трансмиссии</Typography>
-                            <TextField
-                                select
-                                name="transmission_type"
-                                value={measurement.transmission_type ?? ""}
-                                onChange={handleMeasurementChange}
-                                fullWidth
-                                size="small"
-                                sx={selectFieldSx}
-                            >
-                                <MenuItem value="automatic">Автомат</MenuItem>
-                                <MenuItem value="cvt">Вариатор</MenuItem>
-                                <MenuItem value="manual">Механика</MenuItem>
-                                <MenuItem value="robot">Робот</MenuItem>
-                                <MenuItem value="reducer">Редуктор</MenuItem>
-                                <MenuItem value="other">Другое</MenuItem>
-                            </TextField>
-                        </Grid>
-                    </Grid>
-                </Paper>
-
-                <Paper sx={sectionPaperSx}>
-                    <Typography variant="h5" sx={{ mb: 3, color: "black", fontWeight: 600 }}>
-                        2. Тормозная система
-                    </Typography>
-
-                    <Grid container spacing={2} sx={{ mb: 4 }}>
-                        <Grid item xs={12} md={6}>
-                            <Typography sx={fieldLabelSx}>Рабочая тормозная система</Typography>
-                            <TextField
-                                select
-                                name="service_brake_type"
-                                value={brake.service_brake_type ?? ""}
-                                onChange={handleBrakeChange}
-                                fullWidth
-                                size="small"
-                                sx={selectFieldSx}
-                            >
-                                <MenuItem value="disc_disc">Дисковая/дисковая</MenuItem>
-                                <MenuItem value="disc_drum">Дисковая/барабанная</MenuItem>
-                                <MenuItem value="other">Другое</MenuItem>
-                            </TextField>
-                        </Grid>
-
-                        <Grid item xs={12} md={6}>
-                            <Typography sx={fieldLabelSx}>Стояночная тормозная система</Typography>
-                            <TextField
-                                select
-                                name="parking_brake_type"
-                                value={brake.parking_brake_type ?? ""}
-                                onChange={handleBrakeChange}
-                                fullWidth
-                                size="small"
-                                sx={selectFieldSx}
-                            >
-                                <MenuItem value="mechanical_hand">Механический ручной</MenuItem>
-                                <MenuItem value="mechanical_pedal">Механический педаль</MenuItem>
-                                <MenuItem value="electric">Электрический</MenuItem>
-                                <MenuItem value="other">Другое</MenuItem>
-                            </TextField>
-                        </Grid>
-                    </Grid>
-
-                    <Typography variant="h6" sx={{ mb: 2, color: "black" }}>
-                        Усилие на органе управления
-                    </Typography>
-
-                    <Grid container spacing={2} sx={{ mb: 4 }}>
-                        <Grid item xs={12} md={4}>
-                            <TextField
-                                label="Рабочая тормозная система: ось 1, Н"
-                                name="service_brake_control_force_axle1_n"
-                                value={brake.service_brake_control_force_axle1_n ?? ""}
-                                onChange={handleBrakeChange}
-                                fullWidth
-                                sx={textFieldSx}
-                            />
-                        </Grid>
-
-                        <Grid item xs={12} md={4}>
-                            <TextField
-                                label="Рабочая тормозная система: ось 2, Н"
-                                name="service_brake_control_force_axle2_n"
-                                value={brake.service_brake_control_force_axle2_n ?? ""}
-                                onChange={handleBrakeChange}
-                                fullWidth
-                                sx={textFieldSx}
-                            />
-                        </Grid>
-
-                        <Grid item xs={12} md={4}>
-                            <TextField
-                                label="Стояночная тормозная система, Н"
-                                name="parking_brake_control_force_n"
-                                value={brake.parking_brake_control_force_n ?? ""}
-                                onChange={handleBrakeChange}
-                                fullWidth
-                                sx={textFieldSx}
-                            />
-                        </Grid>
-                    </Grid>
-
-                    <Typography variant="h6" sx={{ mb: 2, color: "black" }}>
-                        Относительная разность тормозных сил
-                    </Typography>
-
-                    <Grid container spacing={2} sx={{ mb: 4 }}>
-                        <Grid item xs={12} md={6}>
-                            <TextField
-                                label="Ось 1, %"
-                                name="axle_1_brake_difference_pct"
-                                value={brake.axle_1_brake_difference_pct ?? ""}
-                                onChange={handleBrakeChange}
-                                fullWidth
-                                sx={textFieldSx}
-                            />
-                        </Grid>
-
-                        <Grid item xs={12} md={6}>
-                            <TextField
-                                label="Ось 2, %"
-                                name="axle_2_brake_difference_pct"
-                                value={brake.axle_2_brake_difference_pct ?? ""}
-                                onChange={handleBrakeChange}
-                                fullWidth
-                                sx={textFieldSx}
-                            />
-                        </Grid>
-                    </Grid>
-
-                    <Typography variant="h6" sx={{ mb: 2, color: "black" }}>
-                        Удельная тормозная сила рабочей тормозной системы
-                    </Typography>
-
-                    <Grid container spacing={2} sx={{ mb: 4 }}>
-                        <Grid item xs={12} md={6} lg={3}>
-                            <TextField
-                                label="Переднее левое, кН"
-                                name="service_brake_front_left_kn"
-                                value={brake.service_brake_front_left_kn ?? ""}
-                                onChange={handleBrakeChange}
-                                fullWidth
-                                sx={textFieldSx}
-                            />
-                        </Grid>
-
-                        <Grid item xs={12} md={6} lg={3}>
-                            <TextField
-                                label="Переднее правое, кН"
-                                name="service_brake_front_right_kn"
-                                value={brake.service_brake_front_right_kn ?? ""}
-                                onChange={handleBrakeChange}
-                                fullWidth
-                                sx={textFieldSx}
-                            />
-                        </Grid>
-
-                        <Grid item xs={12} md={6} lg={3}>
-                            <TextField
-                                label="Заднее левое, кН"
-                                name="service_brake_rear_left_kn"
-                                value={brake.service_brake_rear_left_kn ?? ""}
-                                onChange={handleBrakeChange}
-                                fullWidth
-                                sx={textFieldSx}
-                            />
-                        </Grid>
-
-                        <Grid item xs={12} md={6} lg={3}>
-                            <TextField
-                                label="Заднее правое, кН"
-                                name="service_brake_rear_right_kn"
-                                value={brake.service_brake_rear_right_kn ?? ""}
-                                onChange={handleBrakeChange}
-                                fullWidth
-                                sx={textFieldSx}
-                            />
-                        </Grid>
-                    </Grid>
-
-                    <Typography variant="h6" sx={{ mb: 2, color: "black" }}>
-                        Удельная тормозная сила стояночной тормозной системы
-                    </Typography>
-
-                    <Grid container spacing={2} sx={{ mb: 4 }}>
-                        <Grid item xs={12} md={6}>
-                            <TextField
-                                label="Заднее левое, кН"
-                                name="parking_brake_left_kn"
-                                value={brake.parking_brake_left_kn ?? ""}
-                                onChange={handleBrakeChange}
-                                fullWidth
-                                sx={textFieldSx}
-                            />
-                        </Grid>
-
-                        <Grid item xs={12} md={6}>
-                            <TextField
-                                label="Заднее правое, кН"
-                                name="parking_brake_right_kn"
-                                value={brake.parking_brake_right_kn ?? ""}
-                                onChange={handleBrakeChange}
-                                fullWidth
-                                sx={textFieldSx}
-                            />
-                        </Grid>
-                    </Grid>
-
-                    <Typography variant="h6" sx={{ mb: 2, color: "black" }}>
-                        Нагрузка на ось (стенд)
-                    </Typography>
-
-                    <Grid container spacing={2}>
-                        <Grid item xs={12} md={6}>
-                            <TextField
-                                label="Ось 1, кг"
-                                name="stand_axle1_load_kg"
-                                value={measurement.stand_axle1_load_kg ?? ""}
-                                onChange={handleMeasurementChange}
-                                fullWidth
-                                sx={textFieldSx}
-                            />
-                        </Grid>
-
-                        <Grid item xs={12} md={6}>
-                            <TextField
-                                label="Ось 2, кг"
-                                name="stand_axle2_load_kg"
-                                value={measurement.stand_axle2_load_kg ?? ""}
-                                onChange={handleMeasurementChange}
-                                fullWidth
-                                sx={textFieldSx}
-                            />
-                        </Grid>
-                    </Grid>
-                </Paper>
-
-                <Paper sx={sectionPaperSx}>
-                    <Typography variant="h5" sx={{ mb: 3, color: "black", fontWeight: 600 }}>
-                        3. Осветительные приборы
-                    </Typography>
-
-                    <Typography variant="h6" sx={{ mb: 2, color: "black" }}>
-                        Внешние световые приборы (количество)
-                    </Typography>
-
-                    <Grid container spacing={2} sx={{ mb: 4 }}>
-                        <Grid item xs={12} md={4} lg={3}>
-                            <TextField label="Фара ближнего света" name="low_beam_count" value={light.low_beam_count ?? ""} onChange={handleLightChange} fullWidth sx={textFieldSx} />
-                        </Grid>
-                        <Grid item xs={12} md={4} lg={3}>
-                            <TextField label="Фара дальнего света" name="high_beam_count" value={light.high_beam_count ?? ""} onChange={handleLightChange} fullWidth sx={textFieldSx} />
-                        </Grid>
-                        <Grid item xs={12} md={4} lg={3}>
-                            <TextField label="Передняя ПТФ" name="front_fog_count" value={light.front_fog_count ?? ""} onChange={handleLightChange} fullWidth sx={textFieldSx} />
-                        </Grid>
-                        <Grid item xs={12} md={4} lg={3}>
-                            <TextField label="Фонарь заднего хода" name="reverse_light_count" value={light.reverse_light_count ?? ""} onChange={handleLightChange} fullWidth sx={textFieldSx} />
-                        </Grid>
-                        <Grid item xs={12} md={4} lg={3}>
-                            <TextField label="Указатели поворота" name="turn_signal_count" value={light.turn_signal_count ?? ""} onChange={handleLightChange} fullWidth sx={textFieldSx} />
-                        </Grid>
-                        <Grid item xs={12} md={4} lg={3}>
-                            <TextField label="Передний габаритный огонь" name="front_position_light_count" value={light.front_position_light_count ?? ""} onChange={handleLightChange} fullWidth sx={textFieldSx} />
-                        </Grid>
-                        <Grid item xs={12} md={4} lg={3}>
-                            <TextField label="Задний габаритный огонь" name="rear_position_light_count" value={light.rear_position_light_count ?? ""} onChange={handleLightChange} fullWidth sx={textFieldSx} />
-                        </Grid>
-                        <Grid item xs={12} md={4} lg={3}>
-                            <TextField label="Сигнал торможения основной" name="main_brake_signal_count" value={light.main_brake_signal_count ?? ""} onChange={handleLightChange} fullWidth sx={textFieldSx} />
-                        </Grid>
-                        <Grid item xs={12} md={4} lg={3}>
-                            <TextField label="Сигнал торможения дополнительный" name="additional_brake_signal_count" value={light.additional_brake_signal_count ?? ""} onChange={handleLightChange} fullWidth sx={textFieldSx} />
-                        </Grid>
-                        <Grid item xs={12} md={4} lg={3}>
-                            <TextField label="Задний ПТФ" name="rear_fog_count" value={light.rear_fog_count ?? ""} onChange={handleLightChange} fullWidth sx={textFieldSx} />
-                        </Grid>
-                        <Grid item xs={12} md={4} lg={3}>
-                            <TextField label="Подсветка госномера" name="plate_light_count" value={light.plate_light_count ?? ""} onChange={handleLightChange} fullWidth sx={textFieldSx} />
-                        </Grid>
-                        <Grid item xs={12} md={4} lg={3}>
-                            <TextField label="ДХО" name="daytime_running_light_count" value={light.daytime_running_light_count ?? ""} onChange={handleLightChange} fullWidth sx={textFieldSx} />
-                        </Grid>
-                        <Grid item xs={12} md={4} lg={3}>
-                            <TextField label="Стояночные огни" name="parking_light_count" value={light.parking_light_count ?? ""} onChange={handleLightChange} fullWidth sx={textFieldSx} />
-                        </Grid>
-                    </Grid>
-
-                    <Typography variant="h6" sx={{ mb: 2, color: "black" }}>
-                        Тип фар
-                    </Typography>
-
-                    <Grid container spacing={2} sx={{ mb: 4 }}>
-                        <Grid item xs={12} md={6}>
-                            <Typography sx={fieldLabelSx}>Тип фар</Typography>
-                            <TextField
-                                select
-                                name="headlight_type"
-                                value={light.headlight_type ?? ""}
-                                onChange={handleLightChange}
-                                fullWidth
-                                size="small"
-                                sx={selectFieldSx}
-                            >
-                                <MenuItem value="halogen">Галоген</MenuItem>
-                                <MenuItem value="xenon">Ксенон</MenuItem>
-                                <MenuItem value="led">LED</MenuItem>
-                                <MenuItem value="other">Другое</MenuItem>
-                            </TextField>
-                        </Grid>
-                    </Grid>
-
-                    <Typography variant="h6" sx={{ mb: 2, color: "black" }}>
-                        Установка фар ближнего света
-                    </Typography>
-
-                    <Grid container spacing={2} sx={{ mb: 4 }}>
-                        <Grid item xs={12} md={6}>
-                            <TextField label="Верхняя точка, мм" name="low_beam_upper_point_mm" value={light.low_beam_upper_point_mm ?? ""} onChange={handleLightChange} fullWidth sx={textFieldSx} />
-                        </Grid>
-                        <Grid item xs={12} md={6}>
-                            <TextField label="Нижняя точка, мм" name="low_beam_lower_point_mm" value={light.low_beam_lower_point_mm ?? ""} onChange={handleLightChange} fullWidth sx={textFieldSx} />
-                        </Grid>
-                    </Grid>
-
-                    <Typography variant="h6" sx={{ mb: 2, color: "black" }}>
-                        Установка ПТФ
-                    </Typography>
-
-                    <Grid container spacing={2} sx={{ mb: 4 }}>
-                        <Grid item xs={12} md={6}>
-                            <TextField label="Верхняя точка, мм" name="fog_light_upper_point_mm" value={light.fog_light_upper_point_mm ?? ""} onChange={handleLightChange} fullWidth sx={textFieldSx} />
-                        </Grid>
-                        <Grid item xs={12} md={6}>
-                            <TextField label="Нижняя точка, мм" name="fog_light_lower_point_mm" value={light.fog_light_lower_point_mm ?? ""} onChange={handleLightChange} fullWidth sx={textFieldSx} />
-                        </Grid>
-                        <Grid item xs={12} md={6}>
-                            <TextField label="Левая, мм" name="fog_light_left_distance_mm" value={light.fog_light_left_distance_mm ?? ""} onChange={handleLightChange} fullWidth sx={textFieldSx} />
-                        </Grid>
-                        <Grid item xs={12} md={6}>
-                            <TextField label="Правая, мм" name="fog_light_right_distance_mm" value={light.fog_light_right_distance_mm ?? ""} onChange={handleLightChange} fullWidth sx={textFieldSx} />
-                        </Grid>
-                    </Grid>
-
-                    <Typography variant="h6" sx={{ mb: 2, color: "black" }}>
-                        Установка основных сигналов торможения
-                    </Typography>
-
-                    <Grid container spacing={2} sx={{ mb: 4 }}>
-                        <Grid item xs={12} md={6}>
-                            <TextField label="Верхняя точка, мм" name="brake_signal_upper_point_mm" value={light.brake_signal_upper_point_mm ?? ""} onChange={handleLightChange} fullWidth sx={textFieldSx} />
-                        </Grid>
-                        <Grid item xs={12} md={6}>
-                            <TextField label="Нижняя точка, мм" name="brake_signal_lower_point_mm" value={light.brake_signal_lower_point_mm ?? ""} onChange={handleLightChange} fullWidth sx={textFieldSx} />
-                        </Grid>
-                        <Grid item xs={12} md={6}>
-                            <TextField label="Левая, мм" name="brake_signal_left_distance_mm" value={light.brake_signal_left_distance_mm ?? ""} onChange={handleLightChange} fullWidth sx={textFieldSx} />
-                        </Grid>
-                        <Grid item xs={12} md={6}>
-                            <TextField label="Правая, мм" name="brake_signal_right_distance_mm" value={light.brake_signal_right_distance_mm ?? ""} onChange={handleLightChange} fullWidth sx={textFieldSx} />
-                        </Grid>
-                    </Grid>
-
-                    <Typography variant="h6" sx={{ mb: 2, color: "black" }}>
-                        Установка дополнительного сигнала торможения
-                    </Typography>
-
-                    <Grid container spacing={2} sx={{ mb: 4 }}>
-                        <Grid item xs={12} md={4}>
-                            <TextField label="От нижнего края покрытия заднего стекла, мм" name="additional_brake_signal_from_glass_edge_mm" value={light.additional_brake_signal_from_glass_edge_mm ?? ""} onChange={handleLightChange} fullWidth sx={textFieldSx} />
-                        </Grid>
-                        <Grid item xs={12} md={4}>
-                            <TextField label="От уровня опорной поверхности, мм" name="additional_brake_signal_from_support_surface_mm" value={light.additional_brake_signal_from_support_surface_mm ?? ""} onChange={handleLightChange} fullWidth sx={textFieldSx} />
-                        </Grid>
-                        <Grid item xs={12} md={4}>
-                            <TextField label="Смещение оптического центра, мм" name="additional_brake_signal_optical_center_shift_mm" value={light.additional_brake_signal_optical_center_shift_mm ?? ""} onChange={handleLightChange} fullWidth sx={textFieldSx} />
-                        </Grid>
-                    </Grid>
-
-                    <Typography variant="h6" sx={{ mb: 2, color: "black" }}>
-                        Установка задних ПТФ
-                    </Typography>
-
-                    <Grid container spacing={2} sx={{ mb: 4 }}>
-                        <Grid item xs={12} md={6}>
-                            <TextField label="Верхняя точка, мм" name="rear_fog_upper_point_mm" value={light.rear_fog_upper_point_mm ?? ""} onChange={handleLightChange} fullWidth sx={textFieldSx} />
-                        </Grid>
-                        <Grid item xs={12} md={6}>
-                            <TextField label="Нижняя точка, мм" name="rear_fog_lower_point_mm" value={light.rear_fog_lower_point_mm ?? ""} onChange={handleLightChange} fullWidth sx={textFieldSx} />
-                        </Grid>
-                    </Grid>
-
-                    <Typography variant="h6" sx={{ mb: 2, color: "black" }}>
-                        Омыватели фар
-                    </Typography>
-
-                    <Box sx={{ mb: 4 }}>
-                        <FormControlLabel
-                            control={
-                                <Checkbox
-                                    checked={Boolean(light.headlight_washer_present)}
-                                    onChange={handleLightCheckboxChange}
-                                    name="headlight_washer_present"
-                                    sx={{ color: "black" }}
-                                />
-                            }
-                            label="Омыватели фар: наличие"
-                            sx={{ color: "black" }}
-                        />
-                    </Box>
-
-                    <Typography variant="h6" sx={{ mb: 2, color: "black" }}>
-                        Сила света фар
-                    </Typography>
-
-                    <Grid container spacing={2} sx={{ mb: 4 }}>
-                        <Grid item xs={12} md={4} lg={2}>
-                            <TextField label="Левая 34V, кд" name="left_34v_cd" value={light.left_34v_cd ?? ""} onChange={handleLightChange} fullWidth sx={textFieldSx} />
-                        </Grid>
-                        <Grid item xs={12} md={4} lg={2}>
-                            <TextField label="Левая 52H, кд" name="left_52h_cd" value={light.left_52h_cd ?? ""} onChange={handleLightChange} fullWidth sx={textFieldSx} />
-                        </Grid>
-                        <Grid item xs={12} md={4} lg={2}>
-                            <TextField label="Левая дальний, кд" name="left_high_beam_cd" value={light.left_high_beam_cd ?? ""} onChange={handleLightChange} fullWidth sx={textFieldSx} />
-                        </Grid>
-                        <Grid item xs={12} md={4} lg={2}>
-                            <TextField label="Правая 34V, кд" name="right_34v_cd" value={light.right_34v_cd ?? ""} onChange={handleLightChange} fullWidth sx={textFieldSx} />
-                        </Grid>
-                        <Grid item xs={12} md={4} lg={2}>
-                            <TextField label="Правая 52H, кд" name="right_52h_cd" value={light.right_52h_cd ?? ""} onChange={handleLightChange} fullWidth sx={textFieldSx} />
-                        </Grid>
-                        <Grid item xs={12} md={4} lg={2}>
-                            <TextField label="Правая дальний, кд" name="right_high_beam_cd" value={light.right_high_beam_cd ?? ""} onChange={handleLightChange} fullWidth sx={textFieldSx} />
-                        </Grid>
-                    </Grid>
-
-                    <Typography variant="h6" sx={{ mb: 2, color: "black" }}>
-                        Частота мерцания указателей поворота
-                    </Typography>
-
-                    <Grid container spacing={2}>
-                        <Grid item xs={12} md={6}>
-                            <TextField label="Пр/мин" name="turn_signal_frequency_per_min" value={light.turn_signal_frequency_per_min ?? ""} onChange={handleLightChange} fullWidth sx={textFieldSx} />
-                        </Grid>
-                        <Grid item xs={12} md={6}>
-                            <TextField label="Гц" name="turn_signal_frequency_hz" value={light.turn_signal_frequency_hz ?? ""} onChange={handleLightChange} fullWidth sx={textFieldSx} />
-                        </Grid>
-                    </Grid>
-                </Paper>
-
-                <Paper sx={sectionPaperSx}>
-                    <Typography variant="h5" sx={{ mb: 3, color: "black", fontWeight: 600 }}>
-                        4. Прочее
-                    </Typography>
-
-                    <Typography variant="h6" sx={{ mb: 2, color: "black" }}>
-                        Остаточная глубина рисунка протектора
-                    </Typography>
-
-                    <Grid container spacing={2} sx={{ mb: 4 }}>
-                        <Grid item xs={12} md={6} lg={3}>
-                            <TextField label="Левое переднее" name="tire_depth_fl_mm" value={measurement.tire_depth_fl_mm ?? ""} onChange={handleMeasurementChange} fullWidth sx={textFieldSx} />
-                        </Grid>
-                        <Grid item xs={12} md={6} lg={3}>
-                            <TextField label="Правое переднее" name="tire_depth_fr_mm" value={measurement.tire_depth_fr_mm ?? ""} onChange={handleMeasurementChange} fullWidth sx={textFieldSx} />
-                        </Grid>
-                        <Grid item xs={12} md={6} lg={3}>
-                            <TextField label="Левое заднее" name="tire_depth_rl_mm" value={measurement.tire_depth_rl_mm ?? ""} onChange={handleMeasurementChange} fullWidth sx={textFieldSx} />
-                        </Grid>
-                        <Grid item xs={12} md={6} lg={3}>
-                            <TextField label="Правое заднее" name="tire_depth_rr_mm" value={measurement.tire_depth_rr_mm ?? ""} onChange={handleMeasurementChange} fullWidth sx={textFieldSx} />
-                        </Grid>
-                    </Grid>
-
-                    <Typography variant="h6" sx={{ mb: 2, color: "black" }}>
-                        Кузов и выступающие элементы
-                    </Typography>
-
-                    <Grid container spacing={2} sx={{ mb: 4 }}>
-                        <Grid item xs={12}>
-                            <TextField label="Расстояние между краем бампера и кузовом, мм" name="bumper_to_body_distance_mm" value={measurement.bumper_to_body_distance_mm ?? ""} onChange={handleMeasurementChange} fullWidth sx={textFieldSx} />
-                        </Grid>
-                        <Grid item xs={12} md={6}>
-                            <TextField label="Ручки дверей, багажника, мм" name="protruding_elements_doors_mm" value={measurement.protruding_elements_doors_mm ?? ""} onChange={handleMeasurementChange} fullWidth sx={textFieldSx} />
-                        </Grid>
-                        <Grid item xs={12} md={6}>
-                            <TextField label="Остальные элементы, мм" name="protruding_elements_other_mm" value={measurement.protruding_elements_other_mm ?? ""} onChange={handleMeasurementChange} fullWidth sx={textFieldSx} />
-                        </Grid>
-                    </Grid>
-
-                    <Typography variant="h6" sx={{ mb: 2, color: "black" }}>
-                        Светопропускание стекол
-                    </Typography>
-
-                    <Grid container spacing={2} sx={{ mb: 4 }}>
-                        <Grid item xs={12} md={4}>
-                            <TextField label="Правое, %" name="glass_transparency_right_pct" value={measurement.glass_transparency_right_pct ?? ""} onChange={handleMeasurementChange} fullWidth sx={textFieldSx} />
-                        </Grid>
-                        <Grid item xs={12} md={4}>
-                            <TextField label="Левое, %" name="glass_transparency_left_pct" value={measurement.glass_transparency_left_pct ?? ""} onChange={handleMeasurementChange} fullWidth sx={textFieldSx} />
-                        </Grid>
-                        <Grid item xs={12} md={4}>
-                            <TextField label="Ветровое, %" name="glass_transparency_windshield_pct" value={measurement.glass_transparency_windshield_pct ?? ""} onChange={handleMeasurementChange} fullWidth sx={textFieldSx} />
-                        </Grid>
-                    </Grid>
-
-                    <Typography variant="h6" sx={{ mb: 2, color: "black" }}>
-                        Прочие параметры
-                    </Typography>
-
-                    <Grid container spacing={2} sx={{ mb: 4 }}>
-                        <Grid item xs={12} md={6}>
-                            <TextField label="Ширина светозащитной полосы, мм" name="sun_strip_width_mm" value={measurement.sun_strip_width_mm ?? ""} onChange={handleMeasurementChange} fullWidth sx={textFieldSx} />
-                        </Grid>
-                        <Grid item xs={12} md={6}>
-                            <TextField label="Суммарный люфт рулевого управления, °" name="steering_backlash_deg" value={measurement.steering_backlash_deg ?? ""} onChange={handleMeasurementChange} fullWidth sx={textFieldSx} />
-                        </Grid>
-                        <Grid item xs={12} md={6}>
-                            <TextField label="Скорость по спидометру, км/ч" name="speed_by_speedometer_kmh" value={measurement.speed_by_speedometer_kmh ?? ""} onChange={handleMeasurementChange} fullWidth sx={textFieldSx} />
-                        </Grid>
-                        <Grid item xs={12} md={6}>
-                            <TextField label="Фактическая скорость, км/ч" name="actual_speed_kmh" value={measurement.actual_speed_kmh ?? ""} onChange={handleMeasurementChange} fullWidth sx={textFieldSx} />
-                        </Grid>
-                        <Grid item xs={12} md={4}>
-                            <TextField label="Уровень шума отработавших газов, дБА" name="exhaust_noise_db" value={measurement.exhaust_noise_db ?? ""} onChange={handleMeasurementChange} fullWidth sx={textFieldSx} />
-                        </Grid>
-                        <Grid item xs={12} md={4}>
-                            <TextField label="Min обор: CO, %" name="co_min_pct" value={measurement.co_min_pct ?? ""} onChange={handleMeasurementChange} fullWidth sx={textFieldSx} />
-                        </Grid>
-                        <Grid item xs={12} md={4}>
-                            <TextField label="Max обор: CO, %" name="co_max_pct" value={measurement.co_max_pct ?? ""} onChange={handleMeasurementChange} fullWidth sx={textFieldSx} />
-                        </Grid>
-                    </Grid>
-
-                    <Typography variant="h6" sx={{ mb: 2, color: "black" }}>
-                        Коэффициент поглощения света
-                    </Typography>
-
-                    <Grid container spacing={2} sx={{ mb: 4 }}>
-                        <Grid item xs={12} md={4} lg={2}><TextField label="1" name="light_absorption_1" value={measurement.light_absorption_1 ?? ""} onChange={handleMeasurementChange} fullWidth sx={textFieldSx} /></Grid>
-                        <Grid item xs={12} md={4} lg={2}><TextField label="2" name="light_absorption_2" value={measurement.light_absorption_2 ?? ""} onChange={handleMeasurementChange} fullWidth sx={textFieldSx} /></Grid>
-                        <Grid item xs={12} md={4} lg={2}><TextField label="3" name="light_absorption_3" value={measurement.light_absorption_3 ?? ""} onChange={handleMeasurementChange} fullWidth sx={textFieldSx} /></Grid>
-                        <Grid item xs={12} md={4} lg={2}><TextField label="4" name="light_absorption_4" value={measurement.light_absorption_4 ?? ""} onChange={handleMeasurementChange} fullWidth sx={textFieldSx} /></Grid>
-                        <Grid item xs={12} md={4} lg={2}><TextField label="5" name="light_absorption_5" value={measurement.light_absorption_5 ?? ""} onChange={handleMeasurementChange} fullWidth sx={textFieldSx} /></Grid>
-                        <Grid item xs={12} md={4} lg={2}><TextField label="6" name="light_absorption_6" value={measurement.light_absorption_6 ?? ""} onChange={handleMeasurementChange} fullWidth sx={textFieldSx} /></Grid>
-                    </Grid>
-
-                    <Typography variant="h6" sx={{ mb: 2, color: "black" }}>
-                        Габаритные размеры ТС
-                    </Typography>
-
-                    <Grid container spacing={2} sx={{ mb: 4 }}>
-                        <Grid item xs={12} md={3}>
-                            <TextField label="Длина, мм" name="vehicle_length_mm" value={measurement.vehicle_length_mm ?? ""} onChange={handleMeasurementChange} fullWidth sx={textFieldSx} />
-                        </Grid>
-                        <Grid item xs={12} md={3}>
-                            <TextField label="Ширина, мм" name="vehicle_width_mm" value={measurement.vehicle_width_mm ?? ""} onChange={handleMeasurementChange} fullWidth sx={textFieldSx} />
-                        </Grid>
-                        <Grid item xs={12} md={3}>
-                            <TextField label="Высота, мм" name="vehicle_height_mm" value={measurement.vehicle_height_mm ?? ""} onChange={handleMeasurementChange} fullWidth sx={textFieldSx} />
-                        </Grid>
-                        <Grid item xs={12} md={3}>
-                            <TextField label="Масса ТС, кг" name="vehicle_weight_kg" value={measurement.vehicle_weight_kg ?? ""} onChange={handleMeasurementChange} fullWidth sx={textFieldSx} />
-                        </Grid>
-                    </Grid>
-
-                    <Typography variant="h6" sx={{ mb: 2, color: "black" }}>
-                        Нагрузка на ось
-                    </Typography>
-
-                    <Grid container spacing={2}>
-                        <Grid item xs={12} md={6}>
-                            <TextField label="Ось 1, кг" name="axle1_load_kg" value={measurement.axle1_load_kg ?? ""} onChange={handleMeasurementChange} fullWidth sx={textFieldSx} />
-                        </Grid>
-                        <Grid item xs={12} md={6}>
-                            <TextField label="Ось 2, кг" name="axle2_load_kg" value={measurement.axle2_load_kg ?? ""} onChange={handleMeasurementChange} fullWidth sx={textFieldSx} />
-                        </Grid>
-                    </Grid>
-                </Paper>
-
-                <Box sx={{ display: "flex", justifyContent: "flex-end", pb: 2 }}>
-                    <Button
-                        variant="contained"
-                        onClick={handleGenerateDocx}
-                        disabled={saving || loading}
-                        sx={{
-                            px: 4,
-                            py: 1.2,
-                            backgroundColor: "black",
-                            color: "white",
-                            "&:hover": {
-                                backgroundColor: "#222",
-                            },
-                        }}
-                    >
-                        {saving ? "Сохранение..." : "Сохранить"}
-                    </Button>
-                </Box>
-            </Box>
+          >
+            Сформировать DOCX
+          </Button>
+
+          <Button
+            variant="contained"
+            onClick={handleSave}
+            disabled={saving || loading}
+            sx={{
+              px: 4,
+              py: 1.2,
+              backgroundColor: "black",
+              color: "white",
+              "&:hover": {
+                backgroundColor: "#222",
+              },
+            }}
+          >
+            {saving ? "Сохранение..." : "Сохранить"}
+          </Button>
         </Box>
-    );
+      </Box>
+    </Box>
+  );
 }
 
 export default ProtocolInspection;
