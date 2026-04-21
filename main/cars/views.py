@@ -1,40 +1,51 @@
-from asgiref.sync import async_to_sync
-from channels.layers import get_channel_layer
-from django.http import HttpResponse
-from django.middleware.csrf import get_token
-from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
-
-from .models import *
-from .serializers import *
-from rest_framework.decorators import api_view, permission_classes, authentication_classes
-from rest_framework.response import Response
-
-from .word_utils import create_car_word_doc
 from datetime import date
 
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.response import Response
+from channels.layers import get_channel_layer
+from django.http import FileResponse, HttpResponse
+from django.middleware.csrf import get_token
 from rest_framework import status
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.response import Response
 
 from .models import (
+    Brand,
+    Model,
+    Generation,
+    Configuration,
+    CarData,
     Protocol,
     ProtocolMeasurement,
     ProtocolBrake,
     ProtocolLight,
     ProtocolPhoto,
+    ProtocolTestCondition,
+    ProtocolRoadCondition,
+    ProtocolPowerSupply,
 )
+from .pagination import Pagination
 from .serializers import (
+    BrandSerializer,
+    ModelSerializer,
+    GenerationSerializer,
+    ConfigurationSerializer,
+    CarDataSerializer,
     ProtocolSerializer,
+    ProtocolCreateSerializer,
     ProtocolMeasurementSerializer,
     ProtocolBrakeSerializer,
     ProtocolLightSerializer,
     ProtocolPhotoSerializer,
+    ProtocolFullSerializer,
+    ProtocolTestConditionSerializer,
+    ProtocolRoadConditionSerializer,
+    ProtocolPowerSupplySerializer,
+    UserSerializer,
 )
-from .pagination import Pagination
-from .models import Protocol
 from .services.test_docx import generate_protocol_docx
-from django.http import FileResponse
+from .word_utils import create_car_word_doc
+from django.contrib.auth.models import User
+
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
@@ -59,27 +70,29 @@ def test1(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def test2(request):
-    print(request.user)
     return Response({'test': 123321})
 
+
+# =========================================================
 # --- BRAND FUNCTIONS ---
+# =========================================================
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_all_brands(request):
     try:
-        brands = Brand.objects.filter()
+        queryset = Brand.objects.all()
 
         name = request.GET.get('name')
         if name:
-            brands = brands.filter(name__icontains=name)
+            queryset = queryset.filter(name__icontains=name)
 
         ordering = request.GET.get('ordering')
         if ordering:
-            brands = brands.order_by(ordering)
+            queryset = queryset.order_by(ordering)
 
         paginator = Pagination()
-        paginated = paginator.paginate_queryset(brands, request)
+        paginated = paginator.paginate_queryset(queryset, request)
         serializer = BrandSerializer(paginated, many=True)
         return paginator.get_paginated_response(serializer.data)
     except Exception:
@@ -121,8 +134,11 @@ def update_brand(request, pk):
         if not brand:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
-        partial = request.method == 'PATCH'
-        serializer = BrandSerializer(brand, data=request.data, partial=partial)
+        serializer = BrandSerializer(
+            brand,
+            data=request.data,
+            partial=(request.method == 'PATCH')
+        )
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
@@ -145,28 +161,30 @@ def delete_brand(request, pk):
         return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
+# =========================================================
 # --- MODEL FUNCTIONS ---
+# =========================================================
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_all_models(request):
     try:
-        models = Model.objects.filter()
+        queryset = Model.objects.all()
 
         name = request.GET.get('name')
         if name:
-            models = models.filter(name__icontains=name)
+            queryset = queryset.filter(name__icontains=name)
 
         brand_id = request.GET.get('brand_id')
         if brand_id:
-            models = models.filter(brand_id=brand_id)
+            queryset = queryset.filter(brand_id=brand_id)
 
         ordering = request.GET.get('ordering')
         if ordering:
-            models = models.order_by(ordering)
+            queryset = queryset.order_by(ordering)
 
         paginator = Pagination()
-        paginated = paginator.paginate_queryset(models, request)
+        paginated = paginator.paginate_queryset(queryset, request)
         serializer = ModelSerializer(paginated, many=True)
         return paginator.get_paginated_response(serializer.data)
     except Exception:
@@ -177,11 +195,11 @@ def get_all_models(request):
 @permission_classes([IsAuthenticated])
 def get_model(request, pk):
     try:
-        model = Model.objects.filter(pk=pk).first()
-        if not model:
+        obj = Model.objects.filter(pk=pk).first()
+        if not obj:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
-        serializer = ModelSerializer(model)
+        serializer = ModelSerializer(obj)
         return Response(serializer.data)
     except Exception:
         return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -204,12 +222,15 @@ def post_model(request):
 @permission_classes([IsAuthenticated])
 def update_model(request, pk):
     try:
-        model = Model.objects.filter(pk=pk).first()
-        if not model:
+        obj = Model.objects.filter(pk=pk).first()
+        if not obj:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
-        partial = request.method == 'PATCH'
-        serializer = ModelSerializer(model, data=request.data, partial=partial)
+        serializer = ModelSerializer(
+            obj,
+            data=request.data,
+            partial=(request.method == 'PATCH')
+        )
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
@@ -222,34 +243,36 @@ def update_model(request, pk):
 @permission_classes([IsAuthenticated])
 def delete_model(request, pk):
     try:
-        model = Model.objects.filter(pk=pk).first()
-        if not model:
+        obj = Model.objects.filter(pk=pk).first()
+        if not obj:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
-        model.delete()
+        obj.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
     except Exception:
         return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
+# =========================================================
 # --- GENERATION FUNCTIONS ---
+# =========================================================
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_all_generations(request):
     try:
-        generations = Generation.objects.filter()
+        queryset = Generation.objects.all()
 
         model_id = request.GET.get('model_id')
         if model_id:
-            generations = generations.filter(model_id=model_id)
+            queryset = queryset.filter(model_id=model_id)
 
         ordering = request.GET.get('ordering')
         if ordering:
-            generations = generations.order_by(ordering)
+            queryset = queryset.order_by(ordering)
 
         paginator = Pagination()
-        paginated = paginator.paginate_queryset(generations, request)
+        paginated = paginator.paginate_queryset(queryset, request)
         serializer = GenerationSerializer(paginated, many=True)
         return paginator.get_paginated_response(serializer.data)
     except Exception:
@@ -260,11 +283,11 @@ def get_all_generations(request):
 @permission_classes([IsAuthenticated])
 def get_generation(request, pk):
     try:
-        generation = Generation.objects.filter(pk=pk).first()
-        if not generation:
+        obj = Generation.objects.filter(pk=pk).first()
+        if not obj:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
-        serializer = GenerationSerializer(generation)
+        serializer = GenerationSerializer(obj)
         return Response(serializer.data)
     except Exception:
         return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -287,12 +310,15 @@ def post_generation(request):
 @permission_classes([IsAuthenticated])
 def update_generation(request, pk):
     try:
-        generation = Generation.objects.filter(pk=pk).first()
-        if not generation:
+        obj = Generation.objects.filter(pk=pk).first()
+        if not obj:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
-        partial = request.method == 'PATCH'
-        serializer = GenerationSerializer(generation, data=request.data, partial=partial)
+        serializer = GenerationSerializer(
+            obj,
+            data=request.data,
+            partial=(request.method == 'PATCH')
+        )
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
@@ -305,33 +331,36 @@ def update_generation(request, pk):
 @permission_classes([IsAuthenticated])
 def delete_generation(request, pk):
     try:
-        generation = Generation.objects.filter(pk=pk).first()
-        if not generation:
+        obj = Generation.objects.filter(pk=pk).first()
+        if not obj:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
-        generation.delete()
+        obj.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
     except Exception:
         return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
+# =========================================================
 # --- CONFIGURATION FUNCTIONS ---
+# =========================================================
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_all_configurations(request):
     try:
-        configurations = Configuration.objects.filter()
+        queryset = Configuration.objects.all()
 
         generation_id = request.GET.get('generation_id')
         if generation_id:
-            configurations = configurations.filter(generation_id=generation_id)
+            queryset = queryset.filter(generation_id=generation_id)
 
         ordering = request.GET.get('ordering')
         if ordering:
-            configurations = configurations.order_by(ordering)
+            queryset = queryset.order_by(ordering)
 
         paginator = Pagination()
-        paginated = paginator.paginate_queryset(configurations, request)
+        paginated = paginator.paginate_queryset(queryset, request)
         serializer = ConfigurationSerializer(paginated, many=True)
         return paginator.get_paginated_response(serializer.data)
     except Exception:
@@ -342,11 +371,11 @@ def get_all_configurations(request):
 @permission_classes([IsAuthenticated])
 def get_configuration(request, pk):
     try:
-        configuration = Configuration.objects.filter(pk=pk).first()
-        if not configuration:
+        obj = Configuration.objects.filter(pk=pk).first()
+        if not obj:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
-        serializer = ConfigurationSerializer(configuration)
+        serializer = ConfigurationSerializer(obj)
         return Response(serializer.data)
     except Exception:
         return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -369,12 +398,15 @@ def post_configuration(request):
 @permission_classes([IsAuthenticated])
 def update_configuration(request, pk):
     try:
-        configuration = Configuration.objects.filter(pk=pk).first()
-        if not configuration:
+        obj = Configuration.objects.filter(pk=pk).first()
+        if not obj:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
-        partial = request.method == 'PATCH'
-        serializer = ConfigurationSerializer(configuration, data=request.data, partial=partial)
+        serializer = ConfigurationSerializer(
+            obj,
+            data=request.data,
+            partial=(request.method == 'PATCH')
+        )
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
@@ -387,34 +419,36 @@ def update_configuration(request, pk):
 @permission_classes([IsAuthenticated])
 def delete_configuration(request, pk):
     try:
-        configuration = Configuration.objects.filter(pk=pk).first()
-        if not configuration:
+        obj = Configuration.objects.filter(pk=pk).first()
+        if not obj:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
-        configuration.delete()
+        obj.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
     except Exception:
         return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
+# =========================================================
 # --- CAR-DATA FUNCTIONS ---
+# =========================================================
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_all_car_data(request):
     try:
-        car_data = CarData.objects.filter()
+        queryset = CarData.objects.all()
 
-        # фильтрация по configuration_id
         configuration_id = request.GET.get('configuration_id')
         if configuration_id:
-            car_data = car_data.filter(configuration_id=configuration_id)
+            queryset = queryset.filter(configuration_id=configuration_id)
 
         ordering = request.GET.get('ordering')
         if ordering:
-            car_data = car_data.order_by(ordering)
+            queryset = queryset.order_by(ordering)
 
         paginator = Pagination()
-        paginated = paginator.paginate_queryset(car_data, request)
+        paginated = paginator.paginate_queryset(queryset, request)
         serializer = CarDataSerializer(paginated, many=True)
         return paginator.get_paginated_response(serializer.data)
     except Exception:
@@ -425,8 +459,8 @@ def get_all_car_data(request):
 @permission_classes([IsAuthenticated])
 def get_car_data(request, pk):
     try:
-        car_data = CarData.objects.get(pk=pk)
-        serializer = CarDataSerializer(car_data)
+        obj = CarData.objects.get(pk=pk)
+        serializer = CarDataSerializer(obj)
         return Response(serializer.data)
     except CarData.DoesNotExist:
         return Response(status=status.HTTP_404_NOT_FOUND)
@@ -442,15 +476,19 @@ def post_car_data(request):
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-@api_view(['PUT'])
+@api_view(['PUT', 'PATCH'])
 @permission_classes([IsAuthenticated])
 def update_car_data(request, pk):
     try:
-        car_data = CarData.objects.get(pk=pk)
+        obj = CarData.objects.get(pk=pk)
     except CarData.DoesNotExist:
         return Response(status=status.HTTP_404_NOT_FOUND)
 
-    serializer = CarDataSerializer(car_data, data=request.data)
+    serializer = CarDataSerializer(
+        obj,
+        data=request.data,
+        partial=(request.method == 'PATCH')
+    )
     if serializer.is_valid():
         serializer.save()
         return Response(serializer.data)
@@ -461,8 +499,8 @@ def update_car_data(request, pk):
 @permission_classes([IsAuthenticated])
 def delete_car_data(request, pk):
     try:
-        car_data = CarData.objects.get(pk=pk)
-        car_data.delete()
+        obj = CarData.objects.get(pk=pk)
+        obj.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
     except CarData.DoesNotExist:
         return Response(status=status.HTTP_404_NOT_FOUND)
@@ -474,24 +512,24 @@ def delete_car_data(request, pk):
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
-def get_all_protocol(request):
+def get_all_protocols(request):
     try:
-        protocol_data = Protocol.objects.all().order_by('-created_at')
+        queryset = Protocol.objects.all().order_by('-created_at')
 
         user_id = request.GET.get('user_id')
         if user_id:
-            protocol_data = protocol_data.filter(user_id=user_id)
+            queryset = queryset.filter(user_id=user_id)
 
         status_value = request.GET.get('status')
         if status_value:
-            protocol_data = protocol_data.filter(status=status_value)
+            queryset = queryset.filter(status=status_value)
 
         car_id = request.GET.get('car_id')
         if car_id:
-            protocol_data = protocol_data.filter(car_id=car_id)
+            queryset = queryset.filter(car_id=car_id)
 
         paginator = Pagination()
-        paginated = paginator.paginate_queryset(protocol_data, request)
+        paginated = paginator.paginate_queryset(queryset, request)
         serializer = ProtocolSerializer(paginated, many=True)
         return paginator.get_paginated_response(serializer.data)
     except Exception as e:
@@ -502,11 +540,11 @@ def get_all_protocol(request):
 @permission_classes([IsAuthenticated])
 def get_protocol(request, pk):
     try:
-        protocol_data = Protocol.objects.filter(pk=pk).first()
-        if not protocol_data:
+        protocol = Protocol.objects.filter(pk=pk).first()
+        if not protocol:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
-        serializer = ProtocolSerializer(protocol_data)
+        serializer = ProtocolSerializer(protocol)
         return Response(serializer.data)
     except Exception as e:
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -534,15 +572,13 @@ def create_protocol(request):
         if not data.get('status'):
             data['status'] = 'draft'
 
-        serializer = ProtocolSerializer(data=data)
+        serializer = ProtocolCreateSerializer(data=data)
         if serializer.is_valid():
             protocol = serializer.save()
-
-            ProtocolMeasurement.objects.create(protocol=protocol)
-            ProtocolBrake.objects.create(protocol=protocol)
-            ProtocolLight.objects.create(protocol=protocol)
-
-            return Response(ProtocolSerializer(protocol).data, status=status.HTTP_201_CREATED)
+            return Response(
+                ProtocolSerializer(protocol).data,
+                status=status.HTTP_201_CREATED
+            )
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     except Exception as e:
@@ -558,9 +594,7 @@ def update_protocol(request, pk):
             return Response(status=status.HTTP_404_NOT_FOUND)
 
         data = request.data.copy()
-
-        if 'user' not in data:
-            data['user'] = protocol.user_id
+        data['user'] = protocol.user_id
 
         partial = request.method == 'PATCH'
         serializer = ProtocolSerializer(protocol, data=data, partial=partial)
@@ -573,6 +607,20 @@ def update_protocol(request, pk):
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def delete_protocol(request, pk):
+    try:
+        protocol = Protocol.objects.filter(pk=pk).first()
+        if not protocol:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+        protocol.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
 # =========================================================
 # --- PROTOCOL-MEASUREMENT FUNCTIONS ---
 # =========================================================
@@ -581,11 +629,11 @@ def update_protocol(request, pk):
 @permission_classes([IsAuthenticated])
 def get_protocol_measurement(request, protocol_id):
     try:
-        measurement = ProtocolMeasurement.objects.filter(protocol_id=protocol_id).first()
-        if not measurement:
+        obj = ProtocolMeasurement.objects.filter(protocol_id=protocol_id).first()
+        if not obj:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
-        serializer = ProtocolMeasurementSerializer(measurement)
+        serializer = ProtocolMeasurementSerializer(obj)
         return Response(serializer.data)
     except Exception as e:
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -623,15 +671,18 @@ def create_protocol_measurement(request, protocol_id):
 @permission_classes([IsAuthenticated])
 def update_protocol_measurement(request, protocol_id):
     try:
-        measurement = ProtocolMeasurement.objects.filter(protocol_id=protocol_id).first()
-        if not measurement:
+        obj = ProtocolMeasurement.objects.filter(protocol_id=protocol_id).first()
+        if not obj:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
         data = request.data.copy()
         data['protocol'] = protocol_id
 
-        partial = request.method == 'PATCH'
-        serializer = ProtocolMeasurementSerializer(measurement, data=data, partial=partial)
+        serializer = ProtocolMeasurementSerializer(
+            obj,
+            data=data,
+            partial=(request.method == 'PATCH')
+        )
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
@@ -649,11 +700,11 @@ def update_protocol_measurement(request, protocol_id):
 @permission_classes([IsAuthenticated])
 def get_protocol_brake(request, protocol_id):
     try:
-        brake = ProtocolBrake.objects.filter(protocol_id=protocol_id).first()
-        if not brake:
+        obj = ProtocolBrake.objects.filter(protocol_id=protocol_id).first()
+        if not obj:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
-        serializer = ProtocolBrakeSerializer(brake)
+        serializer = ProtocolBrakeSerializer(obj)
         return Response(serializer.data)
     except Exception as e:
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -691,15 +742,18 @@ def create_protocol_brake(request, protocol_id):
 @permission_classes([IsAuthenticated])
 def update_protocol_brake(request, protocol_id):
     try:
-        brake = ProtocolBrake.objects.filter(protocol_id=protocol_id).first()
-        if not brake:
+        obj = ProtocolBrake.objects.filter(protocol_id=protocol_id).first()
+        if not obj:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
         data = request.data.copy()
         data['protocol'] = protocol_id
 
-        partial = request.method == 'PATCH'
-        serializer = ProtocolBrakeSerializer(brake, data=data, partial=partial)
+        serializer = ProtocolBrakeSerializer(
+            obj,
+            data=data,
+            partial=(request.method == 'PATCH')
+        )
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
@@ -717,11 +771,11 @@ def update_protocol_brake(request, protocol_id):
 @permission_classes([IsAuthenticated])
 def get_protocol_light(request, protocol_id):
     try:
-        light = ProtocolLight.objects.filter(protocol_id=protocol_id).first()
-        if not light:
+        obj = ProtocolLight.objects.filter(protocol_id=protocol_id).first()
+        if not obj:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
-        serializer = ProtocolLightSerializer(light)
+        serializer = ProtocolLightSerializer(obj)
         return Response(serializer.data)
     except Exception as e:
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -759,15 +813,18 @@ def create_protocol_light(request, protocol_id):
 @permission_classes([IsAuthenticated])
 def update_protocol_light(request, protocol_id):
     try:
-        light = ProtocolLight.objects.filter(protocol_id=protocol_id).first()
-        if not light:
+        obj = ProtocolLight.objects.filter(protocol_id=protocol_id).first()
+        if not obj:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
         data = request.data.copy()
         data['protocol'] = protocol_id
 
-        partial = request.method == 'PATCH'
-        serializer = ProtocolLightSerializer(light, data=data, partial=partial)
+        serializer = ProtocolLightSerializer(
+            obj,
+            data=data,
+            partial=(request.method == 'PATCH')
+        )
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
@@ -789,8 +846,8 @@ def get_protocol_photos(request, protocol_id):
         if not protocol:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
-        photos = ProtocolPhoto.objects.filter(protocol_id=protocol_id).order_by('sort_order', 'id')
-        serializer = ProtocolPhotoSerializer(photos, many=True)
+        queryset = ProtocolPhoto.objects.filter(protocol_id=protocol_id).order_by('sort_order', 'id')
+        serializer = ProtocolPhotoSerializer(queryset, many=True)
         return Response(serializer.data)
     except Exception as e:
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -817,16 +874,254 @@ def create_protocol_photo(request, protocol_id):
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
+@api_view(['PUT', 'PATCH'])
+@permission_classes([IsAuthenticated])
+def update_protocol_photo(request, photo_id):
+    try:
+        obj = ProtocolPhoto.objects.filter(pk=photo_id).first()
+        if not obj:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+        data = request.data.copy()
+        data['protocol'] = obj.protocol_id
+
+        serializer = ProtocolPhotoSerializer(
+            obj,
+            data=data,
+            partial=(request.method == 'PATCH')
+        )
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
 @api_view(['DELETE'])
 @permission_classes([IsAuthenticated])
 def delete_protocol_photo(request, photo_id):
     try:
-        photo = ProtocolPhoto.objects.filter(pk=photo_id).first()
-        if not photo:
+        obj = ProtocolPhoto.objects.filter(pk=photo_id).first()
+        if not obj:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
-        photo.delete()
-        return Response({'message': 'Photo deleted successfully'}, status=status.HTTP_200_OK)
+        obj.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# =========================================================
+# --- PROTOCOL-TEST-CONDITIONS FUNCTIONS ---
+# =========================================================
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_protocol_test_conditions(request, protocol_id):
+    try:
+        obj = ProtocolTestCondition.objects.filter(protocol_id=protocol_id).first()
+        if not obj:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+        serializer = ProtocolTestConditionSerializer(obj)
+        return Response(serializer.data)
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def create_protocol_test_conditions(request, protocol_id):
+    try:
+        protocol = Protocol.objects.filter(pk=protocol_id).first()
+        if not protocol:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+        existing = ProtocolTestCondition.objects.filter(protocol_id=protocol_id).first()
+        if existing:
+            return Response(
+                {'error': 'Test conditions already exist for this protocol'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        data = request.data.copy()
+        data['protocol'] = protocol_id
+
+        serializer = ProtocolTestConditionSerializer(data=data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['PUT', 'PATCH'])
+@permission_classes([IsAuthenticated])
+def update_protocol_test_conditions(request, protocol_id):
+    try:
+        obj = ProtocolTestCondition.objects.filter(protocol_id=protocol_id).first()
+        if not obj:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+        data = request.data.copy()
+        data['protocol'] = protocol_id
+
+        serializer = ProtocolTestConditionSerializer(
+            obj,
+            data=data,
+            partial=(request.method == 'PATCH')
+        )
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# =========================================================
+# --- PROTOCOL-ROAD-CONDITIONS FUNCTIONS ---
+# =========================================================
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_protocol_road_conditions(request, protocol_id):
+    try:
+        obj = ProtocolRoadCondition.objects.filter(protocol_id=protocol_id).first()
+        if not obj:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+        serializer = ProtocolRoadConditionSerializer(obj)
+        return Response(serializer.data)
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def create_protocol_road_conditions(request, protocol_id):
+    try:
+        protocol = Protocol.objects.filter(pk=protocol_id).first()
+        if not protocol:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+        existing = ProtocolRoadCondition.objects.filter(protocol_id=protocol_id).first()
+        if existing:
+            return Response(
+                {'error': 'Road conditions already exist for this protocol'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        data = request.data.copy()
+        data['protocol'] = protocol_id
+
+        serializer = ProtocolRoadConditionSerializer(data=data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['PUT', 'PATCH'])
+@permission_classes([IsAuthenticated])
+def update_protocol_road_conditions(request, protocol_id):
+    try:
+        obj = ProtocolRoadCondition.objects.filter(protocol_id=protocol_id).first()
+        if not obj:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+        data = request.data.copy()
+        data['protocol'] = protocol_id
+
+        serializer = ProtocolRoadConditionSerializer(
+            obj,
+            data=data,
+            partial=(request.method == 'PATCH')
+        )
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# =========================================================
+# --- PROTOCOL-POWER-SUPPLY FUNCTIONS ---
+# =========================================================
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_protocol_power_supply(request, protocol_id):
+    try:
+        obj = ProtocolPowerSupply.objects.filter(protocol_id=protocol_id).first()
+        if not obj:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+        serializer = ProtocolPowerSupplySerializer(obj)
+        return Response(serializer.data)
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def create_protocol_power_supply(request, protocol_id):
+    try:
+        protocol = Protocol.objects.filter(pk=protocol_id).first()
+        if not protocol:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+        existing = ProtocolPowerSupply.objects.filter(protocol_id=protocol_id).first()
+        if existing:
+            return Response(
+                {'error': 'Power supply already exists for this protocol'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        data = request.data.copy()
+        data['protocol'] = protocol_id
+
+        serializer = ProtocolPowerSupplySerializer(data=data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['PUT', 'PATCH'])
+@permission_classes([IsAuthenticated])
+def update_protocol_power_supply(request, protocol_id):
+    try:
+        obj = ProtocolPowerSupply.objects.filter(protocol_id=protocol_id).first()
+        if not obj:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+        data = request.data.copy()
+        data['protocol'] = protocol_id
+
+        serializer = ProtocolPowerSupplySerializer(
+            obj,
+            data=data,
+            partial=(request.method == 'PATCH')
+        )
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     except Exception as e:
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -845,17 +1140,20 @@ def get_full_protocol(request, protocol_id):
 
         serializer = ProtocolFullSerializer(protocol)
         return Response(serializer.data)
-
     except Exception as e:
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
+# =========================================================
 # --- USER FUNCTIONS ---
+# =========================================================
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_all_users(request):
     try:
-        users = User.objects.all()
-        serializer = UserSerializer(users, many=True)
+        queryset = User.objects.all()
+        serializer = UserSerializer(queryset, many=True)
         return Response(serializer.data)
     except Exception:
         return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -864,37 +1162,34 @@ def get_all_users(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_user(request):
-    user = request.user
-    serializer = UserSerializer(user)
+    serializer = UserSerializer(request.user)
     return Response(serializer.data)
 
+
+# =========================================================
+# --- WORD FUNCTIONS ---
+# =========================================================
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def create_word(request):
-    """
-    Принимает JSON с данными автомобиля, создает Word-файл и возвращает для скачивания.
-    """
     try:
-        data = request.data  # данные из POST-запроса
-
-        # Создаем Word-документ в памяти
+        data = request.data
         word_file = create_car_word_doc(data)
-        # --- Отправка уведомления в WebSocket группу ---
-        channel_layer = get_channel_layer()
 
-        # Формируем ответ с вложением для скачивания
+        # если потом понадобится websocket-уведомление — слой уже доступен
+        _channel_layer = get_channel_layer()
+
         response = HttpResponse(
             word_file.getvalue(),
             content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
         )
         filename = f"{data.get('brand', 'car')}_{data.get('model', '')}.docx"
         response['Content-Disposition'] = f'attachment; filename="{filename}"'
-
         return response
 
     except Exception as e:
-        return Response({"error": str(e)}, status=500)
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 # =========================================================
@@ -920,7 +1215,6 @@ def generate_protocol_docx_file(request, protocol_id):
             filename=f'protocol_{protocol.id}.docx',
             content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
         )
-
     except Exception as e:
         return Response(
             {'error': str(e)},

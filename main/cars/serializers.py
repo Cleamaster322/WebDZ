@@ -10,7 +10,11 @@ from .models import (
     Protocol,
     ProtocolMeasurement,
     ProtocolBrake,
-    ProtocolLight, ProtocolPhoto,
+    ProtocolLight,
+    ProtocolPhoto,
+    ProtocolTestCondition,
+    ProtocolRoadCondition,
+    ProtocolPowerSupply,
 )
 
 
@@ -57,82 +61,149 @@ class ProtocolSerializer(serializers.ModelSerializer):
         model = Protocol
         fields = '__all__'
 
+
 class ProtocolMeasurementSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProtocolMeasurement
-        exclude = ['id', 'protocol']
+        fields = '__all__'
+        read_only_fields = ['id']
 
 
 class ProtocolBrakeSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProtocolBrake
-        exclude = ['id', 'protocol']
+        fields = '__all__'
+        read_only_fields = ['id']
 
 
 class ProtocolLightSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProtocolLight
-        exclude = ['id', 'protocol']
+        fields = '__all__'
+        read_only_fields = ['id']
 
 
 class ProtocolPhotoSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProtocolPhoto
-        exclude = ['protocol']
+        fields = '__all__'
+        read_only_fields = ['id', 'created_at']
+
+
+class ProtocolTestConditionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProtocolTestCondition
+        fields = '__all__'
+        read_only_fields = ['id']
+
+
+class ProtocolRoadConditionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProtocolRoadCondition
+        fields = '__all__'
+        read_only_fields = ['id']
+
+
+class ProtocolPowerSupplySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProtocolPowerSupply
+        fields = '__all__'
+        read_only_fields = ['id']
+
+
+# =========================
+# Полный / детальный протокол
+# =========================
 
 class ProtocolDetailSerializer(serializers.ModelSerializer):
     measurement = ProtocolMeasurementSerializer(read_only=True)
     brake = ProtocolBrakeSerializer(read_only=True)
     light = ProtocolLightSerializer(read_only=True)
+    test_conditions = ProtocolTestConditionSerializer(read_only=True)
+    road_conditions = ProtocolRoadConditionSerializer(read_only=True)
+    power_supply = ProtocolPowerSupplySerializer(read_only=True)
     photos = ProtocolPhotoSerializer(many=True, read_only=True)
 
     class Meta:
         model = Protocol
         fields = '__all__'
 
-class ProtocolCreateSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Protocol
-        fields = [
-            'protocol_number',
-            'protocol_date',
-            'status',
-            'user',
-            'car',
-            'owner_type',
-            'owner_name',
-            'owner_address',
-            'owner_document',
-            'owner_phone',
-            'appendix_number',
-            'commercial_name',
-            'vin',
-            'chassis_number',
-            'body_number',
-            'engine_number',
-            'registration_number',
-            'manufacture_year',
-            'color',
-            'inspection_place',
-            'comment',
-        ]
-
-    def create(self, validated_data):
-        protocol = Protocol.objects.create(**validated_data)
-        ProtocolMeasurement.objects.create(protocol=protocol)
-        ProtocolBrake.objects.create(protocol=protocol)
-        ProtocolLight.objects.create(protocol=protocol)
-        return protocol
 
 class ProtocolFullSerializer(serializers.ModelSerializer):
     measurement = ProtocolMeasurementSerializer(read_only=True)
     brake = ProtocolBrakeSerializer(read_only=True)
     light = ProtocolLightSerializer(read_only=True)
+    test_conditions = ProtocolTestConditionSerializer(read_only=True)
+    road_conditions = ProtocolRoadConditionSerializer(read_only=True)
+    power_supply = ProtocolPowerSupplySerializer(read_only=True)
     photos = ProtocolPhotoSerializer(many=True, read_only=True)
 
     class Meta:
         model = Protocol
         fields = '__all__'
+
+
+# =========================
+# Создание протокола
+# =========================
+
+class ProtocolCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Protocol
+        fields = [
+            'id',
+            'protocol_number',
+            'protocol_date',
+            'status',
+            'user',
+            'car',
+
+            'owner_type',
+            'owner_name',
+            'owner_address',
+            'owner_document',
+            'owner_phone',
+
+            'appendix_number',
+            'commercial_name',
+            'brand_name',
+            'vehicle_category',
+            'body_type',
+
+            'vin',
+            'chassis_number',
+            'body_number',
+            'engine_number',
+            'registration_number',
+
+            'wheel_marking_front',
+            'wheel_marking_rear',
+            'tire_season',
+            'has_spikes',
+
+            'manufacture_year',
+            'color',
+            'inspection_place',
+            'comment',
+
+            'created_at',
+            'updated_at',
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
+    def create(self, validated_data):
+        protocol = Protocol.objects.create(**validated_data)
+
+        ProtocolMeasurement.objects.create(protocol=protocol)
+        ProtocolBrake.objects.create(protocol=protocol)
+        ProtocolLight.objects.create(protocol=protocol)
+        ProtocolTestCondition.objects.create(protocol=protocol)
+        ProtocolRoadCondition.objects.create(protocol=protocol)
+        ProtocolPowerSupply.objects.create(protocol=protocol)
+
+        return protocol
+
+
 # =========================
 # Пользователь
 # =========================
