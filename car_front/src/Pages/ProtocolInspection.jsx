@@ -1,18 +1,22 @@
+import { useState } from "react";
+import { useParams } from "react-router-dom";
 import api from "../shared/api.jsx";
-import { useEffect, useState } from "react";
+
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Typography from "@mui/material/Typography";
 import Alert from "@mui/material/Alert";
 
-import ProtocolInspectionHeader from "../Features/ProtocolInspection/ProtocolInspectionHeader";
-import ProtocolInspectionConditions from "../Features/ProtocolInspection/ProtocolInspectionConditions";
-import ProtocolInspectionPhotos from "../Features/ProtocolInspection/ProtocolInspectionPhotos";
-import ProtocolInspectionVehicle from "../Features/ProtocolInspection/ProtocolInspectionVehicle";
-import ProtocolInspectionPowertrain from "../Features/ProtocolInspection/ProtocolInspectionPowertrain";
-import ProtocolInspectionBrakes from "../Features/ProtocolInspection/ProtocolInspectionBrakes";
-import ProtocolInspectionLights from "../Features/ProtocolInspection/ProtocolInspectionLights";
-import ProtocolInspectionMisc from "../Features/ProtocolInspection/ProtocolInspectionMisc";
+import ProtocolInspectionHeader from "../Features/ProtocolInspection/ProtocolInspectionHeader.jsx";
+import ProtocolInspectionConditions from "../Features/ProtocolInspection/ProtocolInspectionConditions.jsx";
+import ProtocolInspectionPhotos from "../Features/ProtocolInspection/ProtocolInspectionPhotos.jsx";
+import ProtocolInspectionVehicle from "../Features/ProtocolInspection/ProtocolInspectionVehicle.jsx";
+import ProtocolInspectionEngine from "../Features/ProtocolInspection/ProtocolInspectionEngine.jsx";
+import ProtocolInspectionSteeringTransmission from "../Features/ProtocolInspection/ProtocolInspectionSteeringTransmission.jsx";
+import ProtocolInspectionBrakes from "../Features/ProtocolInspection/ProtocolInspectionBrakes.jsx";
+import ProtocolInspectionLightsMain from "../Features/ProtocolInspection/ProtocolInspectionLightsMain.jsx";
+import ProtocolInspectionLightsGeometry from "../Features/ProtocolInspection/ProtocolInspectionLightsGeometry.jsx";
+import ProtocolInspectionMisc from "../Features/ProtocolInspection/ProtocolInspectionMisc.jsx";
 
 import {
   pageSx,
@@ -22,11 +26,10 @@ import {
   subsectionTitleSx,
   textFieldSx,
   selectFieldSx,
-  smallLabelSx,
 } from "../Features/ProtocolInspection/protocolInspectionStyles.jsx";
 
 function ProtocolInspection() {
-  const id = window.location.pathname.split("/").filter(Boolean).pop();
+  const { id } = useParams();
 
   const [form, setForm] = useState({
     appendix_number: "",
@@ -39,7 +42,6 @@ function ProtocolInspection() {
     atmospheric_pressure_kpa: "",
     road_ambient_temp_c: "",
     road_ambient_humidity_pct: "",
-
     electric_frequency_hz: "",
     voltage_phase_a_zero: "",
     voltage_phase_b_zero: "",
@@ -119,8 +121,17 @@ function ProtocolInspection() {
     daytime_running_light_color: "",
     parking_light_count: "",
     parking_light_color: "",
-
     headlight_type: "",
+    headlight_washer_present: "",
+    left_34v_cd: "",
+    left_52h_cd: "",
+    left_high_beam_cd: "",
+    right_34v_cd: "",
+    right_52h_cd: "",
+    right_high_beam_cd: "",
+    turn_signal_frequency_per_min: "",
+    turn_signal_frequency_hz: "",
+
     low_beam_upper_point_mm: "",
     low_beam_lower_point_mm: "",
     fog_light_upper_point_mm: "",
@@ -136,15 +147,6 @@ function ProtocolInspection() {
     additional_brake_signal_optical_center_shift_mm: "",
     rear_fog_upper_point_mm: "",
     rear_fog_lower_point_mm: "",
-    headlight_washer_present: "",
-    left_34v_cd: "",
-    left_52h_cd: "",
-    left_high_beam_cd: "",
-    right_34v_cd: "",
-    right_52h_cd: "",
-    right_high_beam_cd: "",
-    turn_signal_frequency_per_min: "",
-    turn_signal_frequency_hz: "",
 
     tire_depth_fl_mm: "",
     tire_depth_rl_mm: "",
@@ -185,8 +187,6 @@ function ProtocolInspection() {
   const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
 
-  useEffect(() => {}, [id]);
-
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({
@@ -201,11 +201,14 @@ function ProtocolInspection() {
       setSuccessMessage("");
       setErrorMessage("");
 
-      console.log("FORM DATA:", form);
-      setSuccessMessage("Форма заполнена. Сохранение в БД подключим следующим шагом.");
+      console.log("Protocol form data:", form);
+
+      setSuccessMessage(
+        "Форма сохранена локально. Следующим шагом подключим сохранение к API."
+      );
     } catch (error) {
-      console.error(error);
-      setErrorMessage("Ошибка при сохранении");
+      console.error("Ошибка сохранения:", error);
+      setErrorMessage("Ошибка при сохранении данных");
     } finally {
       setSaving(false);
     }
@@ -213,6 +216,8 @@ function ProtocolInspection() {
 
   const handleGenerateDocx = async () => {
     try {
+      setErrorMessage("");
+
       const response = await api.generateProtocolDocx(id);
 
       const blob = new Blob([response.data], {
@@ -233,7 +238,7 @@ function ProtocolInspection() {
     }
   };
 
-  const commonProps = {
+  const commonSectionProps = {
     form,
     handleChange,
     textFieldSx,
@@ -241,7 +246,6 @@ function ProtocolInspection() {
     sectionPaperSx,
     sectionTitleSx,
     subsectionTitleSx,
-    smallLabelSx,
   };
 
   return (
@@ -255,16 +259,25 @@ function ProtocolInspection() {
         {successMessage && <Alert severity="success">{successMessage}</Alert>}
         {errorMessage && <Alert severity="error">{errorMessage}</Alert>}
 
-        <ProtocolInspectionHeader {...commonProps} />
-        <ProtocolInspectionConditions {...commonProps} />
-        <ProtocolInspectionPhotos {...commonProps} />
-        <ProtocolInspectionVehicle {...commonProps} />
-        <ProtocolInspectionPowertrain {...commonProps} />
-        <ProtocolInspectionBrakes {...commonProps} />
-        <ProtocolInspectionLights {...commonProps} />
-        <ProtocolInspectionMisc {...commonProps} />
+        <ProtocolInspectionHeader {...commonSectionProps} />
+        <ProtocolInspectionConditions {...commonSectionProps} />
+        <ProtocolInspectionPhotos {...commonSectionProps} />
+        <ProtocolInspectionVehicle {...commonSectionProps} />
+        <ProtocolInspectionEngine {...commonSectionProps} />
+        <ProtocolInspectionSteeringTransmission {...commonSectionProps} />
+        <ProtocolInspectionBrakes {...commonSectionProps} />
+        <ProtocolInspectionLightsMain {...commonSectionProps} />
+        <ProtocolInspectionLightsGeometry {...commonSectionProps} />
+        <ProtocolInspectionMisc {...commonSectionProps} />
 
-        <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2, pb: 2 }}>
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "flex-end",
+            gap: 2,
+            pb: 2,
+          }}
+        >
           <Button
             variant="outlined"
             onClick={handleGenerateDocx}

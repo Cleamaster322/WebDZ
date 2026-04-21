@@ -1,10 +1,7 @@
-
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 import Grid from "@mui/material/Grid";
-import Box from "@mui/material/Box";
-import TextField from "@mui/material/TextField";
-import { renderField, renderTripleRow } from "./protocolInspectionHelpers.jsx";
+import { renderField } from "./protocolInspectionHelpers.jsx";
 
 function ProtocolInspectionConditions({
   form,
@@ -13,7 +10,6 @@ function ProtocolInspectionConditions({
   sectionPaperSx,
   sectionTitleSx,
   subsectionTitleSx,
-  smallLabelSx,
 }) {
   return (
     <Paper sx={sectionPaperSx}>
@@ -22,15 +18,16 @@ function ProtocolInspectionConditions({
       </Typography>
 
       <Typography variant="h6" sx={subsectionTitleSx}>
-        Общие условия
+        Условия проведения испытаний
       </Typography>
       <Grid container spacing={2} sx={{ mb: 3 }}>
         {renderField({
           form,
           handleChange,
           textFieldSx,
-          label: "Температура окружающей среды, °C",
+          label: "Температура окружающей среды, °С",
           name: "ambient_temp_c",
+          md: 4,
         })}
         {renderField({
           form,
@@ -38,6 +35,7 @@ function ProtocolInspectionConditions({
           textFieldSx,
           label: "Относительная влажность, %",
           name: "ambient_humidity_pct",
+          md: 4,
         })}
         {renderField({
           form,
@@ -45,18 +43,19 @@ function ProtocolInspectionConditions({
           textFieldSx,
           label: "Атмосферное давление, кПа",
           name: "atmospheric_pressure_kpa",
+          md: 4,
         })}
       </Grid>
 
       <Typography variant="h6" sx={subsectionTitleSx}>
-        Дорожные условия
+        Условия проведения испытаний в дорожных условиях
       </Typography>
       <Grid container spacing={2} sx={{ mb: 3 }}>
         {renderField({
           form,
           handleChange,
           textFieldSx,
-          label: "Температура окружающей среды, °C",
+          label: "Температура окружающей среды, °С",
           name: "road_ambient_temp_c",
           md: 6,
         })}
@@ -74,50 +73,70 @@ function ProtocolInspectionConditions({
         Параметры электрической сети
       </Typography>
 
-      <Box sx={{ mb: 3 }}>
-        <Typography sx={smallLabelSx}>Частота электрической сети</Typography>
-        <Grid container spacing={2}>
-          <Grid item xs={12} md={4}>
-            <TextField
-              name="electric_frequency_hz"
-              value={form.electric_frequency_hz}
-              onChange={handleChange}
-              fullWidth
-              placeholder="Гц"
-              sx={textFieldSx}
-            />
-          </Grid>
-        </Grid>
-      </Box>
-
-      <Box sx={{ mb: 1 }}>
-        <Typography sx={smallLabelSx}>Напряжение в сети</Typography>
-
-        {renderTripleRow({
+      <Grid container spacing={2} sx={{ mb: 2 }}>
+        {renderField({
           form,
           handleChange,
           textFieldSx,
-          smallLabelSx,
-          items: [
-            { label: "Фаза a-ноль", name: "voltage_phase_a_zero", placeholder: "В" },
-            { label: "Фаза b-ноль", name: "voltage_phase_b_zero", placeholder: "В" },
-            { label: "Фаза c-ноль", name: "voltage_phase_c_zero", placeholder: "В" },
-          ],
+          label: "Частота электрической сети, Гц",
+          name: "electric_frequency_hz",
+          md: 4,
         })}
+      </Grid>
 
-        {renderTripleRow({
+      <Grid container spacing={2} sx={{ mb: 2 }}>
+        {renderField({
           form,
           handleChange,
           textFieldSx,
-          smallLabelSx,
-          items: [
-            { label: "Фаза a-фаза b", name: "voltage_phase_ab", placeholder: "В" },
-            { label: "Фаза b-фаза c", name: "voltage_phase_bc", placeholder: "В" },
-            { label: "Фаза a-фаза c", name: "voltage_phase_ac", placeholder: "В" },
-          ],
-          marginBottom: 0,
+          label: "Фаза а-ноль, В",
+          name: "voltage_phase_a_zero",
+          md: 4,
         })}
-      </Box>
+        {renderField({
+          form,
+          handleChange,
+          textFieldSx,
+          label: "Фаза b-ноль, В",
+          name: "voltage_phase_b_zero",
+          md: 4,
+        })}
+        {renderField({
+          form,
+          handleChange,
+          textFieldSx,
+          label: "Фаза c-ноль, В",
+          name: "voltage_phase_c_zero",
+          md: 4,
+        })}
+      </Grid>
+
+      <Grid container spacing={2}>
+        {renderField({
+          form,
+          handleChange,
+          textFieldSx,
+          label: "Фаза a-фаза b, В",
+          name: "voltage_phase_ab",
+          md: 4,
+        })}
+        {renderField({
+          form,
+          handleChange,
+          textFieldSx,
+          label: "Фаза b-фаза c, В",
+          name: "voltage_phase_bc",
+          md: 4,
+        })}
+        {renderField({
+          form,
+          handleChange,
+          textFieldSx,
+          label: "Фаза a-фаза c, В",
+          name: "voltage_phase_ac",
+          md: 4,
+        })}
+      </Grid>
     </Paper>
   );
 }

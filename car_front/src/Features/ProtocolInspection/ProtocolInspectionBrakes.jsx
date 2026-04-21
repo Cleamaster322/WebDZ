@@ -10,14 +10,18 @@ function ProtocolInspectionBrakes({
   selectFieldSx,
   sectionPaperSx,
   sectionTitleSx,
+  subsectionTitleSx,
 }) {
   return (
     <Paper sx={sectionPaperSx}>
       <Typography variant="h5" sx={sectionTitleSx}>
-        6. Тормозная система
+        7. Тормозная система
       </Typography>
 
-      <Grid container spacing={2} sx={{ mb: 2 }}>
+      <Typography variant="h6" sx={subsectionTitleSx}>
+        Типы систем
+      </Typography>
+      <Grid container spacing={2} sx={{ mb: 3 }}>
         {renderSelect({
           form,
           handleChange,
@@ -45,36 +49,45 @@ function ProtocolInspectionBrakes({
         })}
       </Grid>
 
-      <Grid container spacing={2} sx={{ mb: 2 }}>
+      <Typography variant="h6" sx={subsectionTitleSx}>
+        Усилие на органе управления
+      </Typography>
+      <Grid container spacing={2} sx={{ mb: 3 }}>
         {renderField({
           form,
           handleChange,
           textFieldSx,
-          label: "Усилие рабочей тормозной системы, ось 1, Н",
+          label: "Рабочая тормозная система — ось 1, Н",
           name: "service_brake_control_force_axle1_n",
+          md: 4,
         })}
         {renderField({
           form,
           handleChange,
           textFieldSx,
-          label: "Усилие рабочей тормозной системы, ось 2, Н",
+          label: "Рабочая тормозная система — ось 2, Н",
           name: "service_brake_control_force_axle2_n",
+          md: 4,
         })}
         {renderField({
           form,
           handleChange,
           textFieldSx,
-          label: "Усилие стояночной тормозной системы, Н",
+          label: "Стояночная тормозная система, Н",
           name: "parking_brake_control_force_n",
+          md: 4,
         })}
       </Grid>
 
-      <Grid container spacing={2} sx={{ mb: 2 }}>
+      <Typography variant="h6" sx={subsectionTitleSx}>
+        Относительная разность тормозных сил
+      </Typography>
+      <Grid container spacing={2} sx={{ mb: 3 }}>
         {renderField({
           form,
           handleChange,
           textFieldSx,
-          label: "Относительная разность тормозных сил, ось 1, %",
+          label: "Ось 1, %",
           name: "axle_1_brake_difference_pct",
           md: 6,
         })}
@@ -82,13 +95,16 @@ function ProtocolInspectionBrakes({
           form,
           handleChange,
           textFieldSx,
-          label: "Относительная разность тормозных сил, ось 2, %",
+          label: "Ось 2, %",
           name: "axle_2_brake_difference_pct",
           md: 6,
         })}
       </Grid>
 
-      <Grid container spacing={2} sx={{ mb: 2 }}>
+      <Typography variant="h6" sx={subsectionTitleSx}>
+        Удельная тормозная сила рабочей тормозной системы
+      </Typography>
+      <Grid container spacing={2} sx={{ mb: 3 }}>
         {renderField({
           form,
           handleChange,
@@ -123,12 +139,15 @@ function ProtocolInspectionBrakes({
         })}
       </Grid>
 
-      <Grid container spacing={2} sx={{ mb: 2 }}>
+      <Typography variant="h6" sx={subsectionTitleSx}>
+        Удельная тормозная сила стояночной тормозной системы
+      </Typography>
+      <Grid container spacing={2} sx={{ mb: 3 }}>
         {renderField({
           form,
           handleChange,
           textFieldSx,
-          label: "Стояночная тормозная сила, заднее левое, кН",
+          label: "Заднее левое, кН",
           name: "parking_brake_left_kn",
           md: 6,
         })}
@@ -136,18 +155,21 @@ function ProtocolInspectionBrakes({
           form,
           handleChange,
           textFieldSx,
-          label: "Стояночная тормозная сила, заднее правое, кН",
+          label: "Заднее правое, кН",
           name: "parking_brake_right_kn",
           md: 6,
         })}
       </Grid>
 
+      <Typography variant="h6" sx={subsectionTitleSx}>
+        Нагрузка на ось (стенд)
+      </Typography>
       <Grid container spacing={2}>
         {renderField({
           form,
           handleChange,
           textFieldSx,
-          label: "Нагрузка на ось (стенд), ось 1, кг",
+          label: "Ось 1, кг",
           name: "stand_axle1_load_kg",
           md: 6,
         })}
@@ -155,7 +177,7 @@ function ProtocolInspectionBrakes({
           form,
           handleChange,
           textFieldSx,
-          label: "Нагрузка на ось (стенд), ось 2, кг",
+          label: "Ось 2, кг",
           name: "stand_axle2_load_kg",
           md: 6,
         })}

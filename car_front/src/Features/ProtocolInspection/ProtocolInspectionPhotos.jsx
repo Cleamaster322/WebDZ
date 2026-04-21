@@ -1,8 +1,7 @@
-
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
-import Alert from "@mui/material/Alert";
 import Grid from "@mui/material/Grid";
+import Alert from "@mui/material/Alert";
 import { renderField } from "./protocolInspectionHelpers.jsx";
 
 function ProtocolInspectionPhotos({
@@ -11,6 +10,7 @@ function ProtocolInspectionPhotos({
   textFieldSx,
   sectionPaperSx,
   sectionTitleSx,
+  subsectionTitleSx,
 }) {
   return (
     <Paper sx={sectionPaperSx}>
@@ -18,20 +18,25 @@ function ProtocolInspectionPhotos({
         3. Фото автомобиля
       </Typography>
 
-      <Alert severity="info" sx={{ mb: 2 }}>
-        Позже сюда лучше добавить отдельный upload-блок на 11 фотографий.
+      <Alert severity="info" sx={{ mb: 3 }}>
+        Фото: с 4-х сторон, номер кузова (VIN), шильдик, бирка размера колес,
+        общий пробег транспортного средства, фото испытаний.
       </Alert>
+
+      <Typography variant="h6" sx={subsectionTitleSx}>
+        Описание и комментарии по фото
+      </Typography>
 
       <Grid container spacing={2}>
         {renderField({
           form,
           handleChange,
           textFieldSx,
-          label: "Комментарий / список фото",
+          label: "Комментарий по фотографиям",
           name: "photos_comment",
           md: 12,
           multiline: true,
-          minRows: 3,
+          minRows: 4,
         })}
       </Grid>
     </Paper>

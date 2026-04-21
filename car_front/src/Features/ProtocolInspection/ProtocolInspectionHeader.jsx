@@ -25,6 +25,7 @@ function ProtocolInspectionHeader({
           name: "appendix_number",
           md: 6,
         })}
+
         {renderField({
           form,
           handleChange,
@@ -33,6 +34,7 @@ function ProtocolInspectionHeader({
           name: "appendix_date_day",
           md: 2,
         })}
+
         {renderField({
           form,
           handleChange,
@@ -41,6 +43,7 @@ function ProtocolInspectionHeader({
           name: "appendix_date_month",
           md: 2,
         })}
+
         {renderField({
           form,
           handleChange,

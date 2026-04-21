@@ -1,4 +1,3 @@
-
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 import Grid from "@mui/material/Grid";
@@ -11,11 +10,16 @@ function ProtocolInspectionVehicle({
   selectFieldSx,
   sectionPaperSx,
   sectionTitleSx,
+  subsectionTitleSx,
 }) {
   return (
     <Paper sx={sectionPaperSx}>
       <Typography variant="h5" sx={sectionTitleSx}>
         4. Основные сведения об автомобиле
+      </Typography>
+
+      <Typography variant="h6" sx={subsectionTitleSx}>
+        Идентификация и общие сведения
       </Typography>
 
       <Grid container spacing={2} sx={{ mb: 2 }}>
@@ -140,18 +144,22 @@ function ProtocolInspectionVehicle({
           name: "wheel_formula",
           md: 4,
           options: [
-            { value: "4x2_front", label: "4x2 передний" },
-            { value: "4x2_rear", label: "4x2 задний" },
-            { value: "4x4", label: "4x4 полный" },
+            { value: "4x2_front", label: "4х2 передний" },
+            { value: "4x2_rear", label: "4х2 задний" },
+            { value: "4x4", label: "4х4 полный" },
           ],
         })}
-        {renderField({
+        {renderSelect({
           form,
           handleChange,
-          textFieldSx,
+          selectFieldSx,
           label: "Количество глушителей",
           name: "mufflers_count",
           md: 4,
+          options: [
+            { value: "1", label: "1" },
+            { value: "2", label: "2" },
+          ],
         })}
       </Grid>
 
@@ -163,6 +171,7 @@ function ProtocolInspectionVehicle({
           label: "Количество посадочных мест",
           name: "seats_count",
           md: 6,
+          placeholder: "2/3 или 2/2/3",
         })}
         {renderSelect({
           form,
