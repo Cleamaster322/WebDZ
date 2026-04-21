@@ -36,12 +36,10 @@ class ApiClient {
                 if (isTokenError && !originalRequest._retry) {
                     if (this.isRefreshing) {
                         return new Promise((resolve, reject) => {
-                            this.failedRequests.push({
-                                resolve,
-                                reject,
-                            });
+                            this.failedRequests.push({resolve, reject});
                         })
                             .then((newAccessToken) => {
+                                originalRequest.headers = originalRequest.headers || {};
                                 originalRequest.headers["Authorization"] = `Bearer ${newAccessToken}`;
                                 return this.client(originalRequest);
                             })
@@ -59,14 +57,22 @@ class ApiClient {
                     }
 
                     return axios
-                        .post(`${baseURL}cars/token/refresh/`, {
+                        .post(`${baseURL}/cars/token/refresh/`, {
                             refresh: refreshToken,
                         })
                         .then((response) => {
                             const newAccessToken = response.data.access;
+                            const newRefreshToken = response.data.refresh;
 
                             localStorage.setItem("accessToken", newAccessToken);
+
+                            if (newRefreshToken) {
+                                localStorage.setItem("refreshToken", newRefreshToken);
+                            }
+
                             this.client.defaults.headers.common["Authorization"] = `Bearer ${newAccessToken}`;
+
+                            originalRequest.headers = originalRequest.headers || {};
                             originalRequest.headers["Authorization"] = `Bearer ${newAccessToken}`;
 
                             this.failedRequests.forEach((request) => {
@@ -83,7 +89,6 @@ class ApiClient {
                             this.failedRequests = [];
 
                             this.logout();
-
                             return Promise.reject(refreshError);
                         })
                         .finally(() => {
@@ -107,8 +112,8 @@ class ApiClient {
     async setCsrfToken() {
         try {
             const response = await this.client.get("/cars/get_csrf_token/");
-            if (response.data.csrfToken) {
-                this.client.defaults.headers.common["X-CSRFToken"] = response.data.csrfToken;
+            if (response.data.csrf_token) {
+                this.client.defaults.headers.common["X-CSRFToken"] = response.data.csrf_token;
             }
         } catch (error) {
             console.log("Failed on get csrf", error);
@@ -120,6 +125,8 @@ class ApiClient {
             const token = localStorage.getItem("accessToken");
             if (token) {
                 this.client.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+            } else {
+                delete this.client.defaults.headers.common["Authorization"];
             }
         } catch (error) {
             console.error("Error on auth set token", error);
@@ -157,15 +164,16 @@ class ApiClient {
         }
         return this.client.delete(url, config);
     }
+
     generateProtocolDocx(protocolId) {
-  return this.client.post(
-    `/cars/protocols/${protocolId}/generate-docx/`,
-    {},
-    {
-      responseType: 'blob',
+        return this.client.post(
+            `/cars/protocols/${protocolId}/generate-docx/`,
+            {},
+            {
+                responseType: "blob",
+            }
+        );
     }
-  )
-}
 }
 
 const api = new ApiClient(baseURL);

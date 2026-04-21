@@ -17,7 +17,7 @@ function Login() {
         const accessToken = localStorage.getItem("accessToken");
         const refreshToken = localStorage.getItem("refreshToken");
 
-        if (accessToken || refreshToken) {
+        if (accessToken && refreshToken) {
             api.get("/cars/brands/")
                 .then(() => {
                     navigate("/home");
