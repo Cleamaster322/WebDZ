@@ -1,0 +1,9 @@
+TEST GENERATION FILE
+brand_id=16
+model_id=139
+generation_id=2
+model_name=Q5
+generation_name=Audi Q5 (FY)
+date_start=09.2016
+date_end=12.2020
+link=https://www.drom.ru/catalog/audi/q5/g_2016_7569/

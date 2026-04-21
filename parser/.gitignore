@@ -1,0 +1,9 @@
+venv/
+.env
+*.pyc
+__pycache__/
+*.log
+chromedriver.log
+.DS_Store'
+.idea
+Parser.zip

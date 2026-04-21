@@ -1,0 +1,9 @@
+TEST GENERATION FILE
+brand_id=16
+model_id=139
+generation_id=4
+model_name=Q5
+generation_name=Audi Q5 (8R)
+date_start=04.2008
+date_end=08.2012
+link=https://www.drom.ru/catalog/audi/q5/g_2008_1262/
