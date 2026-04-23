@@ -18,15 +18,17 @@ from db.configuration_crud import get_all_configurations
 logger = setup_logger(__name__)
 
 
-def run_brands(limit=None, brand_name=None, model_name=None):
-    logger.info(f"Запуск этапа brands (limit={limit})")
+def run_brands(limit=None, brand_name=None, model_name=None, generation_id=None):
+    logger.info(
+        f"Запуск этапа brands (limit={limit}, brand={brand_name}, model={model_name}, generation_id={generation_id})"
+    )
     BP.parse_brands(limit=limit)
     logger.info("Этап brands завершен")
 
 
-def run_models(limit=None, brand_name=None, model_name=None):
+def run_models(limit=None, brand_name=None, model_name=None, generation_id=None):
     logger.info(
-        f"Запуск этапа models (limit={limit}, brand={brand_name}, model={model_name})"
+        f"Запуск этапа models (limit={limit}, brand={brand_name}, model={model_name}, generation_id={generation_id})"
     )
 
     brands = get_all_brands()
@@ -37,7 +39,7 @@ def run_models(limit=None, brand_name=None, model_name=None):
     if brand_name:
         brands = [
             b for b in brands
-            if b["name"].lower() == brand_name.lower()
+            if b.get("name", "").lower() == brand_name.lower()
         ]
 
     if limit is not None:
@@ -54,9 +56,9 @@ def run_models(limit=None, brand_name=None, model_name=None):
     logger.info("Этап models завершен")
 
 
-def run_generations(limit=None, brand_name=None, model_name=None):
+def run_generations(limit=None, brand_name=None, model_name=None, generation_id=None):
     logger.info(
-        f"Запуск этапа generations (limit={limit}, brand={brand_name}, model={model_name})"
+        f"Запуск этапа generations (limit={limit}, brand={brand_name}, model={model_name}, generation_id={generation_id})"
     )
 
     models = get_all_models()
@@ -67,13 +69,13 @@ def run_generations(limit=None, brand_name=None, model_name=None):
     if brand_name:
         models = [
             m for m in models
-            if m["brand_name"].lower() == brand_name.lower()
+            if m.get("brand_name", "").lower() == brand_name.lower()
         ]
 
     if model_name:
         models = [
             m for m in models
-            if m["name"].lower() == model_name.lower()
+            if m.get("name", "").lower() == model_name.lower()
         ]
 
     if limit is not None:
@@ -89,9 +91,9 @@ def run_generations(limit=None, brand_name=None, model_name=None):
     logger.info("Этап generations завершен")
 
 
-def run_configurations(limit=None, brand_name=None, model_name=None):
+def run_configurations(limit=None, brand_name=None, model_name=None, generation_id=None):
     logger.info(
-        f"Запуск этапа configurations (limit={limit}, brand={brand_name}, model={model_name})"
+        f"Запуск этапа configurations (limit={limit}, brand={brand_name}, model={model_name}, generation_id={generation_id})"
     )
 
     generations = get_all_generations()
@@ -99,16 +101,40 @@ def run_configurations(limit=None, brand_name=None, model_name=None):
         logger.warning("В таблице generations нет данных")
         return
 
+    if brand_name:
+        generations = [
+            g for g in generations
+            if g.get("brand_name", "").lower() == brand_name.lower()
+        ]
+
+    if model_name:
+        generations = [
+            g for g in generations
+            if g.get("model_name", "").lower() == model_name.lower()
+        ]
+
+    if generation_id is not None:
+        generations = [
+            g for g in generations
+            if g.get("id") == generation_id
+        ]
+
     if limit is not None:
         generations = generations[:limit]
 
-    CP.parse_configurations(generations)
+    if not generations:
+        logger.warning("После фильтрации не осталось поколений")
+        return
+
+    with BrowserDriver() as browser:
+        CP.parse_configurations(generations, browser)
+
     logger.info("Этап configurations завершен")
 
 
-def run_cars(limit=None, brand_name=None, model_name=None):
+def run_cars(limit=None, brand_name=None, model_name=None, generation_id=None):
     logger.info(
-        f"Запуск этапа cars (limit={limit}, brand={brand_name}, model={model_name})"
+        f"Запуск этапа cars (limit={limit}, brand={brand_name}, model={model_name}, generation_id={generation_id})"
     )
 
     configs = get_all_configurations()
@@ -116,8 +142,18 @@ def run_cars(limit=None, brand_name=None, model_name=None):
         logger.warning("В таблице configurations нет данных")
         return
 
+    if generation_id is not None:
+        configs = [
+            c for c in configs
+            if c.get("generation_id") == generation_id
+        ]
+
     if limit is not None:
         configs = configs[:limit]
+
+    if not configs:
+        logger.warning("После фильтрации не осталось комплектаций")
+        return
 
     CarP.parse_cars(configs)
     logger.info("Этап cars завершен")
@@ -165,17 +201,25 @@ def main() -> None:
         help="Фильтр по модели",
     )
 
+    parser.add_argument(
+        "--generation-id",
+        type=int,
+        required=False,
+        help="Фильтр по ID поколения",
+    )
+
     args = parser.parse_args()
 
     try:
         logger.info(
-            f"Выбран этап: {args.stage}, limit={args.limit}, brand={args.brand}, model={args.model}"
+            f"Выбран этап: {args.stage}, limit={args.limit}, brand={args.brand}, model={args.model}, generation_id={args.generation_id}"
         )
 
         STAGES[args.stage](
             limit=args.limit,
             brand_name=args.brand,
             model_name=args.model,
+            generation_id=args.generation_id,
         )
 
     except Exception as e:

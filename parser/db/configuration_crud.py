@@ -7,20 +7,26 @@ logger = setup_logger(__name__)
 
 def add_configuration(generation_id, configuration):
     """Добавление новой комплектации в таблицу configurations, если она ещё не существует."""
-    if configuration_exists(
-        generation_id,
-        configuration["name"],
-        configuration["date_start"],
-        configuration["date_end"],
-        configuration["engine_name"],
-    ):
+    name = configuration.get("name", "")
+    link = configuration.get("link", "")
+    date_start = configuration.get("date_start", "")
+    date_end = configuration.get("date_end", "")
+    engine_name = configuration.get("engine_name", "")
+
+    if not link:
         logger.warning(
-            "Комплектация уже существует: generation_id=%s, name=%s, date_start=%s, date_end=%s, engine_name=%s",
+            "Нельзя сохранить комплектацию без ссылки: generation_id=%s, name=%s",
             generation_id,
-            configuration["name"],
-            configuration["date_start"],
-            configuration["date_end"],
-            configuration["engine_name"],
+            name,
+        )
+        return
+
+    if configuration_exists(generation_id, link):
+        logger.warning(
+            "Комплектация уже существует: generation_id=%s, link=%s, name=%s",
+            generation_id,
+            link,
+            name,
         )
         return
 
@@ -37,64 +43,61 @@ def add_configuration(generation_id, configuration):
 
     params = (
         generation_id,
-        configuration["name"],
-        configuration["link"],
-        configuration["date_start"],
-        configuration["date_end"],
-        configuration["engine_name"],
+        name,
+        link,
+        date_start,
+        date_end,
+        engine_name,
     )
 
     try:
         db.execute_query(query, params)
         logger.info(
-            "Комплектация успешно добавлена: generation_id=%s, name=%s",
+            "Комплектация успешно добавлена: generation_id=%s, name=%s, link=%s",
             generation_id,
-            configuration["name"],
+            name,
+            link,
         )
     except Exception as e:
         logger.error(
-            "Ошибка при добавлении комплектации: generation_id=%s, name=%s, error=%s",
+            "Ошибка при добавлении комплектации: generation_id=%s, name=%s, link=%s, error=%s",
             generation_id,
-            configuration.get("name"),
+            name,
+            link,
             e,
             exc_info=True,
         )
 
-
-def configuration_exists(generation_id, name, date_start, date_end, engine_name):
-    """Проверка, существует ли комплектация для данного поколения."""
+def configuration_exists(generation_id, link):
+    """Проверка, существует ли комплектация для данного поколения по ссылке."""
     query = """
         SELECT id
         FROM configurations
         WHERE generation_id = %s
-          AND name = %s
-          AND date_start = %s
-          AND date_end = %s
-          AND engine_name = %s
+          AND link = %s
     """
-    params = (generation_id, name, date_start, date_end, engine_name)
+    params = (generation_id, link)
 
     try:
         result = db.fetch_all(query, params)
         exists = len(result) > 0
 
         logger.debug(
-            "Проверка существования комплектации: generation_id=%s, name=%s, exists=%s",
+            "Проверка существования комплектации: generation_id=%s, link=%s, exists=%s",
             generation_id,
-            name,
+            link,
             exists,
         )
         return exists
     except Exception as e:
         logger.error(
-            "Ошибка при проверке существования комплектации: generation_id=%s, name=%s, error=%s",
+            "Ошибка при проверке существования комплектации: generation_id=%s, link=%s, error=%s",
             generation_id,
-            name,
+            link,
             e,
             exc_info=True,
         )
         raise
-
 
 def get_configuration_by_name(generation_id, name):
     """Получение комплектации по имени и ID поколения."""
