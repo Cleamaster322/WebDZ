@@ -42,6 +42,10 @@ class Database:
             raise ConnectionError("Не удалось установить соединение с MySQL")
 
     def execute_query(self, query, params=None):
+        """
+        Выполняет INSERT / UPDATE / DELETE.
+        Возвращает lastrowid для INSERT, иначе 0 или id последней операции драйвера.
+        """
         cursor = None
         try:
             self.ensure_connection()
@@ -52,13 +56,17 @@ class Database:
             cursor.execute(query, params or ())
             self.connection.commit()
 
-            logger.debug("Запрос выполнен успешно")
+            lastrowid = cursor.lastrowid
+            logger.debug(f"Запрос выполнен успешно, lastrowid={lastrowid}")
+
+            return lastrowid
 
         except (Error, ConnectionError) as e:
             logger.error(
                 f"Ошибка выполнения запроса: {query} | {e}",
                 exc_info=True
             )
+            raise
         finally:
             if cursor:
                 cursor.close()
@@ -83,8 +91,7 @@ class Database:
                 f"Ошибка получения данных: {query} | {e}",
                 exc_info=True
             )
-            return []
-
+            raise
         finally:
             if cursor:
                 cursor.close()

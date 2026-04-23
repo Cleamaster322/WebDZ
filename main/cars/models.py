@@ -37,6 +37,7 @@ class Generation(models.Model):
     name = models.CharField(max_length=255)
     link = models.URLField(max_length=255)
     body_code = models.CharField(max_length=100, null=True, blank=True)
+    region = models.CharField(max_length=50, null=True, blank=True)
     body_type = models.CharField(max_length=100, null=True, blank=True)
     is_hybrid = models.BooleanField(default=False)
     generation_num = models.IntegerField()
