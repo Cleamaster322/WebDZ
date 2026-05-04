@@ -1,5 +1,20 @@
 import axios from "axios";
-import {baseURL} from "./config.jsx";
+import { baseURL } from "./config.jsx";
+
+async function getErrorData(error) {
+    const data = error.response?.data;
+
+    if (data instanceof Blob && data.type?.includes("application/json")) {
+        try {
+            const text = await data.text();
+            return JSON.parse(text);
+        } catch {
+            return data;
+        }
+    }
+
+    return data;
+}
 
 class ApiClient {
     constructor(baseUrl) {
@@ -22,21 +37,23 @@ class ApiClient {
 
         this.client.interceptors.response.use(
             (response) => response,
-            (error) => {
+            async (error) => {
                 const originalRequest = error.config;
 
                 if (!error.response) {
                     return Promise.reject(error);
                 }
 
+                const errorData = await getErrorData(error);
+
                 const isTokenError =
                     (error.response.status === 401 || error.response.status === 403) &&
-                    error.response.data?.code === "token_not_valid";
+                    errorData?.code === "token_not_valid";
 
                 if (isTokenError && !originalRequest._retry) {
                     if (this.isRefreshing) {
                         return new Promise((resolve, reject) => {
-                            this.failedRequests.push({resolve, reject});
+                            this.failedRequests.push({ resolve, reject });
                         })
                             .then((newAccessToken) => {
                                 originalRequest.headers = originalRequest.headers || {};

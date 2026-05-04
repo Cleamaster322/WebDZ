@@ -310,7 +310,9 @@ class ProtocolMeasurement(models.Model):
     speed_by_speedometer_kmh = models.DecimalField(max_digits=8, decimal_places=2, blank=True, null=True)
     actual_speed_kmh = models.DecimalField(max_digits=8, decimal_places=2, blank=True, null=True)
 
-    exhaust_noise_db = models.DecimalField(max_digits=8, decimal_places=2, blank=True, null=True)
+    exhaust_noise_constant_db = models.DecimalField(max_digits=8,decimal_places=2,blank=True,null=True)
+    exhaust_noise_deceleration_db = models.DecimalField(max_digits=8,decimal_places=2,blank=True,null=True)
+
     co_min_pct = models.DecimalField(max_digits=8, decimal_places=3, blank=True, null=True)
     co_max_pct = models.DecimalField(max_digits=8, decimal_places=3, blank=True, null=True)
 
@@ -457,9 +459,12 @@ class ProtocolLight(models.Model):
     brake_signal_left_distance_mm = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     brake_signal_right_distance_mm = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
 
-    additional_brake_signal_from_glass_edge_mm = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
-    additional_brake_signal_from_support_surface_mm = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
-    additional_brake_signal_optical_center_shift_mm = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    additional_brake_signal_from_glass_edge_mm = models.DecimalField(max_digits=10, decimal_places=2, blank=True,
+                                                                     null=True)
+    additional_brake_signal_from_support_surface_mm = models.DecimalField(max_digits=10, decimal_places=2, blank=True,
+                                                                          null=True)
+    additional_brake_signal_optical_center_shift_mm = models.DecimalField(max_digits=10, decimal_places=2, blank=True,
+                                                                          null=True)
 
     rear_fog_upper_point_mm = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     rear_fog_lower_point_mm = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)

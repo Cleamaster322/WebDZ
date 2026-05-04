@@ -211,9 +211,18 @@ function ProtocolInspectionMisc({
                     form,
                     handleChange,
                     textFieldSx,
-                    label: "Уровень шума отработавших газов, дБа",
-                    name: "exhaust_noise_db",
-                    md: 4,
+                    label: "Шум при постоянной целевой частоте, дБА",
+                    name: "exhaust_noise_constant_db",
+                    md: 6,
+                })}
+
+                {renderField({
+                    form,
+                    handleChange,
+                    textFieldSx,
+                    label: "Шум в режиме замедления, дБА",
+                    name: "exhaust_noise_deceleration_db",
+                    md: 6,
                 })}
                 {renderField({
                     form,

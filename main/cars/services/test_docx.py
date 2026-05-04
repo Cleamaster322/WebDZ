@@ -1,22 +1,25 @@
 from pathlib import Path
-from docxtpl import DocxTemplate
+
+from django.conf import settings
+
+from .protocol_docx import build_protocol_docx_context, render_protocol_docx
 
 
 def generate_protocol_docx(protocol):
-    base_dir = Path(__file__).resolve().parent.parent
-    template_path = base_dir / "templates" / "protocol_template.docx"
-    output_dir = base_dir / "generated"
+    template_path = Path(settings.BASE_DIR) / "cars" / "templates" / "protocol_template.docx"
+
+    if not template_path.exists():
+        raise FileNotFoundError(f"Не найден шаблон протокола: {template_path}")
+
+    output_dir = Path(settings.MEDIA_ROOT) / "generated_protocols"
     output_dir.mkdir(parents=True, exist_ok=True)
 
     output_path = output_dir / f"protocol_{protocol.id}.docx"
 
-    doc = DocxTemplate(str(template_path))
+    context = build_protocol_docx_context(protocol)
 
-    context = {
-        "protocol_number": protocol.protocol_number or "",
-    }
-
-    doc.render(context)
-    doc.save(str(output_path))
-
-    return output_path
+    return render_protocol_docx(
+        template_path=template_path,
+        output_path=output_path,
+        context=context,
+    )
