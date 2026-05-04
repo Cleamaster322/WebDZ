@@ -32,3 +32,4 @@ def write_parser_error(error_type: str, data: dict) -> None:
             f.write(json.dumps(record, ensure_ascii=False) + "\n")
     except Exception as e:
         print(f"[ERROR_WRITER] Не удалось записать ошибку в файл: {e}")
+        

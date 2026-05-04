@@ -44,6 +44,7 @@ class Generation(models.Model):
     restyling_num = models.IntegerField()
     date_start = models.CharField(max_length=11)
     date_end = models.CharField(max_length=11)
+    image_path = models.URLField(max_length=500, null=True, blank=True)
 
     class Meta:
         db_table = 'generations'
@@ -71,19 +72,35 @@ class Configuration(models.Model):
 class CarData(models.Model):
     id = models.AutoField(primary_key=True)
     configuration = models.ForeignKey(Configuration, on_delete=models.DO_NOTHING, db_column='configuration_id')
-    front_tires = models.CharField(max_length=50)
-    rear_tires = models.CharField(max_length=50)
-    engine_capacity = models.FloatField()
-    engine_power_hp = models.IntegerField()
-    engine_power_kw = models.IntegerField()
-    consumption = models.DecimalField(max_digits=10, decimal_places=2)
-    fuel_type = models.CharField(max_length=50)
-    transmission = models.CharField(max_length=50)
-    drive_type = models.CharField(max_length=50)
-    seats_count = models.IntegerField()
-    doors_count = models.IntegerField()
-    clearance = models.IntegerField()
-    trunk_volume = models.IntegerField()
+
+    configuration_name = models.CharField(max_length=255, null=True, blank=True)
+    manufacture_year = models.IntegerField(null=True, blank=True)
+
+    front_tires = models.CharField(max_length=50, null=True, blank=True)
+    rear_tires = models.CharField(max_length=50, null=True, blank=True)
+
+    fuel_type = models.CharField(max_length=50, null=True, blank=True)
+    transmission = models.CharField(max_length=50, null=True, blank=True)
+    drive_type = models.CharField(max_length=50, null=True, blank=True)
+
+    seats_count = models.CharField(max_length=50, null=True, blank=True)
+    clearance = models.IntegerField(null=True, blank=True)
+    body_type = models.CharField(max_length=255, null=True, blank=True)
+
+    vehicle_weight_kg = models.IntegerField(null=True, blank=True)
+
+    engine_model = models.CharField(max_length=255, null=True, blank=True)
+    engine_power_kw = models.IntegerField(null=True, blank=True)
+    cylinder_layout = models.CharField(max_length=50, null=True, blank=True)
+    cylinders_count = models.IntegerField(null=True, blank=True)
+    turbo_present = models.BooleanField(null=True, blank=True)
+
+    front_brakes = models.CharField(max_length=255, null=True, blank=True)
+    rear_brakes = models.CharField(max_length=255, null=True, blank=True)
+
+    vehicle_length_mm = models.IntegerField(null=True, blank=True)
+    vehicle_width_mm = models.IntegerField(null=True, blank=True)
+    vehicle_height_mm = models.IntegerField(null=True, blank=True)
 
     class Meta:
         db_table = 'car_data'
@@ -123,8 +140,8 @@ class Protocol(models.Model):
     ]
 
     id = models.BigAutoField(primary_key=True)
-    protocol_number = models.CharField(max_length=100, unique=True)
-    protocol_date = models.DateField()
+    protocol_number = models.CharField(max_length=100, unique=True, null=True, blank=True)
+    protocol_date = models.DateField(null=True, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
 
     user = models.ForeignKey(
@@ -143,7 +160,7 @@ class Protocol(models.Model):
     )
 
     owner_type = models.CharField(max_length=20, choices=OWNER_TYPE_CHOICES, default='individual')
-    owner_name = models.CharField(max_length=255)
+    owner_name = models.CharField(max_length=255, null=True, blank=True)
     owner_address = models.CharField(max_length=500, blank=True, null=True)
     owner_document = models.CharField(max_length=255, blank=True, null=True)
     owner_phone = models.CharField(max_length=50, blank=True, null=True)

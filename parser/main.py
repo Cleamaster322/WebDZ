@@ -132,7 +132,7 @@ def run_configurations(limit=None, brand_name=None, model_name=None, generation_
     logger.info("Этап configurations завершен")
 
 
-def run_cars(limit=None, brand_name=None, model_name=None, generation_id=None):
+def run_cars(limit=None, brand_name=None, model_name=None, generation_id=None, configuration_id=None):
     logger.info(
         f"Запуск этапа cars (limit={limit}, brand={brand_name}, model={model_name}, generation_id={generation_id})"
     )
@@ -142,10 +142,28 @@ def run_cars(limit=None, brand_name=None, model_name=None, generation_id=None):
         logger.warning("В таблице configurations нет данных")
         return
 
+    if brand_name:
+        configs = [
+            c for c in configs
+            if c.get("brand_name", "").lower() == brand_name.lower()
+        ]
+
+    if model_name:
+        configs = [
+            c for c in configs
+            if c.get("model_name", "").lower() == model_name.lower()
+        ]
+
     if generation_id is not None:
         configs = [
             c for c in configs
             if c.get("generation_id") == generation_id
+        ]
+
+    if configuration_id is not None:
+        configs = [
+            c for c in configs
+            if c.get("id") == configuration_id
         ]
 
     if limit is not None:
@@ -157,7 +175,6 @@ def run_cars(limit=None, brand_name=None, model_name=None, generation_id=None):
 
     CarP.parse_cars(configs)
     logger.info("Этап cars завершен")
-
 
 STAGES = {
     "brands": run_brands,
@@ -207,6 +224,12 @@ def main() -> None:
         required=False,
         help="Фильтр по ID поколения",
     )
+    parser.add_argument(
+        "--configuration-id",
+        type=int,
+        required=False,
+        help="Фильтр по ID комплектации",
+    )
 
     args = parser.parse_args()
 
@@ -220,6 +243,7 @@ def main() -> None:
             brand_name=args.brand,
             model_name=args.model,
             generation_id=args.generation_id,
+            configuration_id=args.configuration_id,
         )
 
     except Exception as e:

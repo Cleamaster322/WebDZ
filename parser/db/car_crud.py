@@ -10,45 +10,61 @@ def add_car(configuration_id, car_data):
     logger.info(f"Попытка добавить car_data для configuration_id={configuration_id}")
 
     if car_exists(configuration_id):
-        logger.warning(
-            f"car_data уже существует для configuration_id={configuration_id}"
+        logger.info(
+            f"car_data уже существует для configuration_id={configuration_id}, выполняем обновление"
         )
-        return
+        return update_car(configuration_id, car_data)
 
     query = """
         INSERT INTO car_data (
             configuration_id,
+            configuration_name,
+            manufacture_year,
             front_tires,
             rear_tires,
-            engine_capacity,
-            engine_power_hp,
-            engine_power_kw,
-            consumption,
             fuel_type,
             transmission,
             drive_type,
             seats_count,
-            doors_count,
             clearance,
-            trunk_volume
-        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            body_type,
+            vehicle_weight_kg,
+            engine_model,
+            engine_power_kw,
+            cylinder_layout,
+            cylinders_count,
+            turbo_present,
+            front_brakes,
+            rear_brakes,
+            vehicle_length_mm,
+            vehicle_width_mm,
+            vehicle_height_mm
+        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
     """
 
     params = (
         configuration_id,
+        car_data.get("configuration_name"),
+        car_data.get("manufacture_year"),
         car_data.get("front_tires"),
         car_data.get("rear_tires"),
-        car_data.get("engine_capacity"),
-        car_data.get("engine_power_hp"),
-        car_data.get("engine_power_kw"),
-        car_data.get("consumption"),
         car_data.get("fuel_type"),
         car_data.get("transmission"),
         car_data.get("drive_type"),
-        car_data.get("seats"),
-        car_data.get("doors"),
-        car_data.get("clearance"),
-        car_data.get("trunk_volume"),
+        car_data.get("seats_count"),
+        car_data.get("clearance_mm"),
+        car_data.get("body_type"),
+        car_data.get("vehicle_weight_kg"),
+        car_data.get("engine_model"),
+        car_data.get("engine_power_kw"),
+        car_data.get("cylinder_layout"),
+        car_data.get("cylinders_count"),
+        car_data.get("turbo_present"),
+        car_data.get("front_brakes"),
+        car_data.get("rear_brakes"),
+        car_data.get("vehicle_length_mm"),
+        car_data.get("vehicle_width_mm"),
+        car_data.get("vehicle_height_mm"),
     )
 
     try:
@@ -56,11 +72,78 @@ def add_car(configuration_id, car_data):
         logger.info(
             f"car_data успешно добавлена для configuration_id={configuration_id}"
         )
+        return True
     except Exception as e:
         logger.error(
             f"Ошибка при добавлении car_data для configuration_id={configuration_id}: {e}",
             exc_info=True,
         )
+        return False
+
+def update_car(configuration_id, car_data):
+    """Обновление car_data для существующей комплектации."""
+    query = """
+        UPDATE car_data
+        SET
+            configuration_name = %s,
+            manufacture_year = %s,
+            front_tires = %s,
+            rear_tires = %s,
+            fuel_type = %s,
+            transmission = %s,
+            drive_type = %s,
+            seats_count = %s,
+            clearance = %s,
+            body_type = %s,
+            vehicle_weight_kg = %s,
+            engine_model = %s,
+            engine_power_kw = %s,
+            cylinder_layout = %s,
+            cylinders_count = %s,
+            turbo_present = %s,
+            front_brakes = %s,
+            rear_brakes = %s,
+            vehicle_length_mm = %s,
+            vehicle_width_mm = %s,
+            vehicle_height_mm = %s
+        WHERE configuration_id = %s
+    """
+
+    params = (
+        car_data.get("configuration_name"),
+        car_data.get("manufacture_year"),
+        car_data.get("front_tires"),
+        car_data.get("rear_tires"),
+        car_data.get("fuel_type"),
+        car_data.get("transmission"),
+        car_data.get("drive_type"),
+        car_data.get("seats_count"),
+        car_data.get("clearance_mm"),
+        car_data.get("body_type"),
+        car_data.get("vehicle_weight_kg"),
+        car_data.get("engine_model"),
+        car_data.get("engine_power_kw"),
+        car_data.get("cylinder_layout"),
+        car_data.get("cylinders_count"),
+        car_data.get("turbo_present"),
+        car_data.get("front_brakes"),
+        car_data.get("rear_brakes"),
+        car_data.get("vehicle_length_mm"),
+        car_data.get("vehicle_width_mm"),
+        car_data.get("vehicle_height_mm"),
+        configuration_id,
+    )
+
+    try:
+        db.execute_query(query, params)
+        logger.info(f"car_data успешно обновлена для configuration_id={configuration_id}")
+        return True
+    except Exception as e:
+        logger.error(
+            f"Ошибка при обновлении car_data для configuration_id={configuration_id}: {e}",
+            exc_info=True,
+        )
+        return False
 
 
 def car_exists(configuration_id):
@@ -90,10 +173,30 @@ def car_exists(configuration_id):
 def get_cars_by_configuration(configuration_id):
     """Получение car_data по ID комплектации."""
     query = """
-        SELECT id, configuration_id, front_tires, rear_tires, engine_capacity,
-               engine_power_hp, engine_power_kw, consumption, fuel_type,
-               transmission, drive_type, seats_count, doors_count,
-               clearance, trunk_volume
+        SELECT
+            id,
+            configuration_id,
+            configuration_name,
+            manufacture_year,
+            front_tires,
+            rear_tires,
+            fuel_type,
+            transmission,
+            drive_type,
+            seats_count,
+            clearance,
+            body_type,
+            vehicle_weight_kg,
+            engine_model,
+            engine_power_kw,
+            cylinder_layout,
+            cylinders_count,
+            turbo_present,
+            front_brakes,
+            rear_brakes,
+            vehicle_length_mm,
+            vehicle_width_mm,
+            vehicle_height_mm
         FROM car_data
         WHERE configuration_id = %s
     """
@@ -114,7 +217,7 @@ def get_cars_by_configuration(configuration_id):
 
 
 def delete_car(car_id):
-    """Удаление машины по ID."""
+    """Удаление car_data по ID."""
     query = "DELETE FROM car_data WHERE id = %s"
     params = (car_id,)
 

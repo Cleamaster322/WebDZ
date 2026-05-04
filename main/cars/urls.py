@@ -36,6 +36,8 @@ urlpatterns = [
     path('generations/create/', post_generation),
     path('generations/<int:pk>/update/', update_generation),
     path('generations/<int:pk>/delete/', delete_generation),
+    path('model-filter-options/', get_model_filter_options),
+    path('generations-filtered/', get_filtered_generations),
 
     # =========================================================
     # --- CONFIGURATIONS ---
@@ -45,12 +47,15 @@ urlpatterns = [
     path('configurations/create/', post_configuration),
     path('configurations/<int:pk>/update/', update_configuration),
     path('configurations/<int:pk>/delete/', delete_configuration),
+    path('configuration-filter-options/', get_configuration_filter_options),
+    path('configurations-filtered/', get_filtered_configurations),
 
     # =========================================================
     # --- CAR DATA ---
     # =========================================================
     path('car-data/', get_all_car_data),
     path('car-data/<int:pk>/', get_car_data),
+    path('configurations/<int:configuration_id>/car-data/', get_car_data_by_configuration),
     path('car-data/create/', post_car_data),
     path('car-data/<int:pk>/update/', update_car_data),
     path('car-data/<int:pk>/delete/', delete_car_data),

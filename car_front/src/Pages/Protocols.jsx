@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import {useEffect, useState} from "react";
+import {useNavigate} from "react-router-dom";
 import api from "../shared/api.jsx";
 
 import Box from "@mui/material/Box";
@@ -29,7 +29,7 @@ function getStatusText(status) {
     }
 }
 
-function ProtocolCard({ protocol, onOpen }) {
+function ProtocolCard({protocol, onOpen}) {
     return (
         <Paper
             sx={{
@@ -52,7 +52,7 @@ function ProtocolCard({ protocol, onOpen }) {
                     {protocol.brand_name || "Без марки"} {protocol.commercial_name || ""}
                 </Typography>
 
-                <Typography variant="body2" sx={{ mt: 1 }}>
+                <Typography variant="body2" sx={{mt: 1}}>
                     Статус: {getStatusText(protocol.status)}
                 </Typography>
 
@@ -88,7 +88,6 @@ export default function Protocols() {
 
     const [protocols, setProtocols] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [creating, setCreating] = useState(false);
     const [error, setError] = useState("");
 
     const loadProtocols = async () => {
@@ -123,24 +122,12 @@ export default function Protocols() {
         loadProtocols();
     }, []);
 
-    const handleCreate = async () => {
-        try {
-            setCreating(true);
-            setError("");
-
-            const response = await api.post("/cars/protocols/create/", {
-                owner_name: "Не указано",
-            });
-
-            const createdProtocol = response.data;
-
-            navigate(`/protocols/${createdProtocol.id}/inspection`);
-        } catch (err) {
-            console.error(err);
-            setError("Не удалось создать протокол");
-        } finally {
-            setCreating(false);
-        }
+    const handleCreate = () => {
+        navigate("/home", {
+            state: {
+                mode: "create_protocol",
+            },
+        });
     };
 
     const handleOpen = (protocol) => {
@@ -182,7 +169,6 @@ export default function Protocols() {
                     <Button
                         variant="contained"
                         onClick={handleCreate}
-                        disabled={creating}
                         sx={{
                             bgcolor: "black",
                             color: "white",
@@ -198,19 +184,19 @@ export default function Protocols() {
                             },
                         }}
                     >
-                        {creating ? "Создание..." : "Создать"}
+                        Создать
                     </Button>
                 </Box>
 
                 {error && (
-                    <Alert severity="error" sx={{ mb: 3 }}>
+                    <Alert severity="error" sx={{mb: 3}}>
                         {error}
                     </Alert>
                 )}
 
                 {loading ? (
-                    <Box sx={{ display: "flex", justifyContent: "center", mt: 6 }}>
-                        <CircularProgress />
+                    <Box sx={{display: "flex", justifyContent: "center", mt: 6}}>
+                        <CircularProgress/>
                     </Box>
                 ) : protocols.length === 0 ? (
                     <Typography variant="h6">Нет незавершённых протоколов</Typography>
@@ -218,7 +204,7 @@ export default function Protocols() {
                     <Grid container spacing={4}>
                         {protocols.map((protocol) => (
                             <Grid item xs={12} sm={6} md={4} lg={3} key={protocol.id}>
-                                <ProtocolCard protocol={protocol} onOpen={handleOpen} />
+                                <ProtocolCard protocol={protocol} onOpen={handleOpen}/>
                             </Grid>
                         ))}
                     </Grid>

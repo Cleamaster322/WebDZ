@@ -30,6 +30,8 @@ from .serializers import (
     GenerationSerializer,
     ConfigurationSerializer,
     CarDataSerializer,
+    GenerationCardSerializer,
+    CarDataProtocolSerializer,
     ProtocolSerializer,
     ProtocolCreateSerializer,
     ProtocolMeasurementSerializer,
@@ -273,7 +275,7 @@ def get_all_generations(request):
 
         paginator = Pagination()
         paginated = paginator.paginate_queryset(queryset, request)
-        serializer = GenerationSerializer(paginated, many=True)
+        serializer = GenerationCardSerializer(paginated, many=True)
         return paginator.get_paginated_response(serializer.data)
     except Exception:
         return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -287,11 +289,160 @@ def get_generation(request, pk):
         if not obj:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
-        serializer = GenerationSerializer(obj)
+        serializer = GenerationCardSerializer(obj)
         return Response(serializer.data)
     except Exception:
         return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+def normalize_region_name(region):
+    if not region:
+        return 'Не указано'
+
+    mapping = {
+        'japan': 'Япония',
+        'china': 'Китай',
+        'south-korea': 'Южная Корея',
+    }
+
+    return mapping.get(region, region)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_model_filter_options(request):
+    try:
+        model_id = request.GET.get('model_id')
+
+        if not model_id:
+            return Response(
+                {'error': 'model_id is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        generations = Generation.objects.filter(model_id=model_id)
+
+        configurations = Configuration.objects.filter(
+            generation__model_id=model_id
+        )
+
+        car_data = CarData.objects.filter(
+            configuration__generation__model_id=model_id
+        )
+
+        regions = []
+        for region in generations.values_list('region', flat=True).distinct():
+            regions.append({
+                'value': region,
+                'label': normalize_region_name(region),
+            })
+
+        drive_types = list(
+            car_data
+            .exclude(drive_type__isnull=True)
+            .exclude(drive_type='')
+            .values_list('drive_type', flat=True)
+            .distinct()
+        )
+
+        fuel_types = list(
+            car_data
+            .exclude(fuel_type__isnull=True)
+            .exclude(fuel_type='')
+            .values_list('fuel_type', flat=True)
+            .distinct()
+        )
+
+        engine_models = list(
+            car_data
+            .exclude(engine_model__isnull=True)
+            .exclude(engine_model='')
+            .values_list('engine_model', flat=True)
+            .distinct()
+        )
+
+        transmissions = list(
+            car_data
+            .exclude(transmission__isnull=True)
+            .exclude(transmission='')
+            .values_list('transmission', flat=True)
+            .distinct()
+        )
+
+        seats_counts = list(
+            car_data
+            .exclude(seats_count__isnull=True)
+            .exclude(seats_count='')
+            .values_list('seats_count', flat=True)
+            .distinct()
+        )
+
+        return Response({
+            'regions': regions,
+            'drive_types': drive_types,
+            'fuel_types': fuel_types,
+            'engine_models': engine_models,
+            'transmissions': transmissions,
+            'seats_counts': seats_counts,
+        })
+
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_filtered_generations(request):
+    try:
+        model_id = request.GET.get('model_id')
+
+        if not model_id:
+            return Response(
+                {'error': 'model_id is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        region = request.GET.get('region')
+        drive_type = request.GET.get('drive_type')
+        fuel_type = request.GET.get('fuel_type')
+        engine_model = request.GET.get('engine_model')
+        transmission = request.GET.get('transmission')
+        seats_count = request.GET.get('seats_count')
+
+        queryset = Generation.objects.filter(model_id=model_id)
+
+        if region:
+            queryset = queryset.filter(region=region)
+
+        car_filter = {}
+
+        if drive_type:
+            car_filter['configuration__cardata__drive_type'] = drive_type
+
+        if fuel_type:
+            car_filter['configuration__cardata__fuel_type'] = fuel_type
+
+        if engine_model:
+            car_filter['configuration__cardata__engine_model'] = engine_model
+
+        if transmission:
+            car_filter['configuration__cardata__transmission'] = transmission
+
+        if seats_count:
+            car_filter['configuration__cardata__seats_count'] = seats_count
+
+        if car_filter:
+            queryset = queryset.filter(**car_filter)
+
+        queryset = queryset.distinct().order_by('-date_start', '-id')
+
+        paginator = Pagination()
+        paginated = paginator.paginate_queryset(queryset, request)
+        serializer = GenerationCardSerializer(paginated, many=True)
+
+        return paginator.get_paginated_response(serializer.data)
+
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -380,6 +531,127 @@ def get_configuration(request, pk):
     except Exception:
         return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_configuration_filter_options(request):
+    try:
+        generation_id = request.GET.get('generation_id')
+
+        if not generation_id:
+            return Response(
+                {'error': 'generation_id is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        car_data = CarData.objects.filter(
+            configuration__generation_id=generation_id
+        )
+
+        drive_types = list(
+            car_data
+            .exclude(drive_type__isnull=True)
+            .exclude(drive_type='')
+            .values_list('drive_type', flat=True)
+            .distinct()
+        )
+
+        fuel_types = list(
+            car_data
+            .exclude(fuel_type__isnull=True)
+            .exclude(fuel_type='')
+            .values_list('fuel_type', flat=True)
+            .distinct()
+        )
+
+        engine_models = list(
+            car_data
+            .exclude(engine_model__isnull=True)
+            .exclude(engine_model='')
+            .values_list('engine_model', flat=True)
+            .distinct()
+        )
+
+        transmissions = list(
+            car_data
+            .exclude(transmission__isnull=True)
+            .exclude(transmission='')
+            .values_list('transmission', flat=True)
+            .distinct()
+        )
+
+        seats_counts = list(
+            car_data
+            .exclude(seats_count__isnull=True)
+            .exclude(seats_count='')
+            .values_list('seats_count', flat=True)
+            .distinct()
+        )
+
+        return Response({
+            'drive_types': drive_types,
+            'fuel_types': fuel_types,
+            'engine_models': engine_models,
+            'transmissions': transmissions,
+            'seats_counts': seats_counts,
+        })
+
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_filtered_configurations(request):
+    try:
+        generation_id = request.GET.get('generation_id')
+
+        if not generation_id:
+            return Response(
+                {'error': 'generation_id is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        name = request.GET.get('name')
+        drive_type = request.GET.get('drive_type')
+        fuel_type = request.GET.get('fuel_type')
+        engine_model = request.GET.get('engine_model')
+        transmission = request.GET.get('transmission')
+        seats_count = request.GET.get('seats_count')
+
+        queryset = Configuration.objects.filter(generation_id=generation_id)
+
+        if name:
+            queryset = queryset.filter(name__icontains=name)
+
+        car_filter = {}
+
+        if drive_type:
+            car_filter['cardata__drive_type'] = drive_type
+
+        if fuel_type:
+            car_filter['cardata__fuel_type'] = fuel_type
+
+        if engine_model:
+            car_filter['cardata__engine_model'] = engine_model
+
+        if transmission:
+            car_filter['cardata__transmission'] = transmission
+
+        if seats_count:
+            car_filter['cardata__seats_count'] = seats_count
+
+        if car_filter:
+            queryset = queryset.filter(**car_filter)
+
+        queryset = queryset.distinct().order_by('name')
+
+        paginator = Pagination()
+        paginated = paginator.paginate_queryset(queryset, request)
+        serializer = ConfigurationSerializer(paginated, many=True)
+
+        return paginator.get_paginated_response(serializer.data)
+
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -464,6 +736,34 @@ def get_car_data(request, pk):
         return Response(serializer.data)
     except CarData.DoesNotExist:
         return Response(status=status.HTTP_404_NOT_FOUND)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_car_data_by_configuration(request, configuration_id):
+    try:
+        obj = (
+            CarData.objects
+            .select_related(
+                'configuration',
+                'configuration__generation',
+                'configuration__generation__model',
+                'configuration__generation__model__brand',
+            )
+            .filter(configuration_id=configuration_id)
+            .first()
+        )
+
+        if not obj:
+            return Response(
+                {'error': 'Car data not found for this configuration'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        serializer = CarDataProtocolSerializer(obj)
+        return Response(serializer.data)
+
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 @api_view(['POST'])
@@ -558,7 +858,14 @@ def create_protocol(request):
         data['user'] = request.user.id
 
         if not data.get('protocol_number'):
-            data['protocol_number'] = f"TMP-{request.user.id}-{date.today().strftime('%Y%m%d')}"
+            today_str = date.today().strftime('%Y%m%d')
+            prefix = f"TMP-{request.user.id}-{today_str}"
+
+            existing_count = Protocol.objects.filter(
+                protocol_number__startswith=prefix
+            ).count()
+
+            data['protocol_number'] = f"{prefix}-{existing_count + 1:04d}"
 
         if not data.get('protocol_date'):
             data['protocol_date'] = str(date.today())
@@ -573,6 +880,7 @@ def create_protocol(request):
             data['status'] = 'draft'
 
         serializer = ProtocolCreateSerializer(data=data)
+
         if serializer.is_valid():
             protocol = serializer.save()
             return Response(
@@ -581,6 +889,7 @@ def create_protocol(request):
             )
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
     except Exception as e:
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 

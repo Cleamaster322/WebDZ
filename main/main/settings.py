@@ -176,4 +176,5 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
-
+MEDIA_URL = '/main/media/'
+MEDIA_ROOT = BASE_DIR / 'media'

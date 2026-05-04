@@ -20,7 +20,7 @@ function Login() {
         if (accessToken && refreshToken) {
             api.get("/cars/brands/")
                 .then(() => {
-                    navigate("/home");
+                    navigate("/protocols");
                 })
                 .catch(() => {
                     localStorage.removeItem("accessToken");
@@ -40,7 +40,7 @@ function Login() {
                 localStorage.setItem("accessToken", response.data.access);
                 localStorage.setItem("refreshToken", response.data.refresh);
                 await api.setTokenAuth();
-                navigate("/home");
+                navigate("/protocols");
             } else {
                 setError("Ошибка авторизации");
             }

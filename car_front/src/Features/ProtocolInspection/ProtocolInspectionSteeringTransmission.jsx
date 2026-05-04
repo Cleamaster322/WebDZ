@@ -4,13 +4,13 @@ import Grid from "@mui/material/Grid";
 import {renderSelect} from "./protocolInspectionHelpers.jsx";
 
 function ProtocolInspectionSteeringTransmission({
-                                                    form,
-                                                    handleChange,
-                                                    selectFieldSx,
-                                                    sectionPaperSx,
-                                                    sectionTitleSx,
-                                                    subsectionTitleSx,
-                                                }) {
+    form,
+    handleChange,
+    selectFieldSx,
+    sectionPaperSx,
+    sectionTitleSx,
+    subsectionTitleSx,
+}) {
     return (
         <Paper sx={sectionPaperSx}>
             <Typography variant="h5" sx={sectionTitleSx}>
@@ -20,6 +20,7 @@ function ProtocolInspectionSteeringTransmission({
             <Typography variant="h6" sx={subsectionTitleSx}>
                 Рулевое управление
             </Typography>
+
             <Grid container spacing={2} sx={{mb: 3}}>
                 {renderSelect({
                     form,
@@ -29,8 +30,8 @@ function ProtocolInspectionSteeringTransmission({
                     name: "steering_booster_type",
                     md: 6,
                     options: [
-                        {value: "hydromechanical", label: "гидромеханический"},
-                        {value: "electromechanical", label: "электромеханический"},
+                        {value: "hydraulic", label: "гидромеханический"},
+                        {value: "electric", label: "электромеханический"},
                     ],
                 })}
             </Grid>
@@ -38,6 +39,7 @@ function ProtocolInspectionSteeringTransmission({
             <Typography variant="h6" sx={subsectionTitleSx}>
                 Трансмиссия
             </Typography>
+
             <Grid container spacing={2}>
                 {renderSelect({
                     form,
@@ -48,10 +50,10 @@ function ProtocolInspectionSteeringTransmission({
                     md: 6,
                     options: [
                         {value: "automatic", label: "Автомат"},
-                        {value: "cvt", label: "Вариатор"},
+                        {value: "variator", label: "Вариатор"},
                         {value: "manual", label: "Механика"},
                         {value: "robot", label: "Робот"},
-                        {value: "reducer", label: "Редуктор"},
+                        {value: "reductor", label: "Редуктор"},
                     ],
                 })}
             </Grid>

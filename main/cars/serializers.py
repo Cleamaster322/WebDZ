@@ -40,6 +40,26 @@ class GenerationSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
+class GenerationCardSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Generation
+        fields = [
+            'id',
+            'model',
+            'name',
+            'link',
+            'body_code',
+            'region',
+            'body_type',
+            'is_hybrid',
+            'generation_num',
+            'restyling_num',
+            'date_start',
+            'date_end',
+            'image_path',
+        ]
+
+
 class ConfigurationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Configuration
@@ -50,6 +70,68 @@ class CarDataSerializer(serializers.ModelSerializer):
     class Meta:
         model = CarData
         fields = '__all__'
+
+
+class CarDataProtocolSerializer(serializers.ModelSerializer):
+    brand_name = serializers.CharField(
+        source='configuration.generation.model.brand.name',
+        read_only=True
+    )
+    model_name = serializers.CharField(
+        source='configuration.generation.model.name',
+        read_only=True
+    )
+    generation_id = serializers.IntegerField(
+        source='configuration.generation.id',
+        read_only=True
+    )
+    generation_name = serializers.CharField(
+        source='configuration.generation.name',
+        read_only=True
+    )
+    configuration_id = serializers.IntegerField(
+        source='configuration.id',
+        read_only=True
+    )
+
+    class Meta:
+        model = CarData
+        fields = [
+            'id',
+            'configuration_id',
+            'brand_name',
+            'model_name',
+            'generation_id',
+            'generation_name',
+
+            'configuration_name',
+            'manufacture_year',
+            'body_type',
+
+            'front_tires',
+            'rear_tires',
+
+            'fuel_type',
+            'transmission',
+            'drive_type',
+            'seats_count',
+            'clearance',
+
+            'vehicle_weight_kg',
+
+            'engine_model',
+            'engine_power_kw',
+            'cylinder_layout',
+            'cylinders_count',
+            'turbo_present',
+
+            'front_brakes',
+            'rear_brakes',
+
+            'vehicle_length_mm',
+            'vehicle_width_mm',
+            'vehicle_height_mm',
+        ]
 
 
 # =========================
@@ -148,10 +230,14 @@ class ProtocolFullSerializer(serializers.ModelSerializer):
 # =========================
 
 class ProtocolCreateSerializer(serializers.ModelSerializer):
+    configuration_id = serializers.IntegerField(write_only=True, required=False)
+
     class Meta:
         model = Protocol
         fields = [
             'id',
+            'configuration_id',
+
             'protocol_number',
             'protocol_date',
             'status',
@@ -191,11 +277,182 @@ class ProtocolCreateSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']
 
+    def normalize_fuel_type(self, value):
+        if not value:
+            return None
+
+        value = str(value).lower()
+
+        if 'бенз' in value or 'petrol' in value or 'gasoline' in value:
+            return 'petrol'
+        if 'диз' in value or 'diesel' in value:
+            return 'diesel'
+        if 'гибрид' in value or 'hybrid' in value:
+            return 'hybrid'
+        if 'элект' in value or 'electric' in value:
+            return 'electric'
+
+        return None
+
+    def normalize_transmission(self, value):
+        if not value:
+            return None
+
+        value = str(value).lower()
+
+        if 'вариатор' in value or 'cvt' in value:
+            return 'variator'
+        if 'механ' in value or 'мкпп' in value or 'manual' in value:
+            return 'manual'
+        if 'робот' in value or 'robot' in value:
+            return 'robot'
+        if 'редуктор' in value or 'reductor' in value:
+            return 'reductor'
+        if 'автомат' in value or 'акпп' in value or 'automatic' in value:
+            return 'automatic'
+
+        return None
+
+    def normalize_wheel_formula(self, value):
+        if not value:
+            return None
+
+        value = str(value).lower()
+
+        if 'перед' in value or 'front' in value:
+            return '4x2_front'
+        if 'зад' in value or 'rear' in value:
+            return '4x2_rear'
+        if 'полн' in value or '4wd' in value or 'awd' in value or '4x4' in value:
+            return '4x4'
+
+        return None
+
+    def normalize_cylinder_layout(self, value):
+        if not value:
+            return None
+
+        value = str(value).lower()
+
+        if 'ряд' in value or 'inline' in value:
+            return 'inline'
+        if 'оппозит' in value or 'opposed' in value:
+            return 'opposed'
+        if 'v' in value or 'v-' in value or 'v образ' in value:
+            return 'v_shape'
+
+        return None
+
+    def normalize_service_brake_type(self, front_brakes, rear_brakes):
+        front = str(front_brakes or '').lower()
+        rear = str(rear_brakes or '').lower()
+
+        front_is_disc = 'диск' in front or 'disc' in front
+        rear_is_disc = 'диск' in rear or 'disc' in rear
+        rear_is_drum = 'барабан' in rear or 'drum' in rear
+
+        if front_is_disc and rear_is_disc:
+            return 'disc_disc'
+
+        if front_is_disc and rear_is_drum:
+            return 'disc_drum'
+
+        return None
+
     def create(self, validated_data):
+        configuration_id = validated_data.pop('configuration_id', None)
+
+        car_data = None
+        configuration = None
+
+        if configuration_id:
+            car_data = (
+                CarData.objects
+                .select_related(
+                    'configuration',
+                    'configuration__generation',
+                    'configuration__generation__model',
+                    'configuration__generation__model__brand',
+                )
+                .filter(configuration_id=configuration_id)
+                .first()
+            )
+
+            if not car_data:
+                raise serializers.ValidationError({
+                    'configuration_id': 'Для выбранной комплектации не найдены данные car_data'
+                })
+
+            configuration = car_data.configuration
+            generation = configuration.generation
+            model = generation.model
+            brand = model.brand
+
+            validated_data['car'] = car_data
+
+            if not validated_data.get('brand_name'):
+                validated_data['brand_name'] = brand.name
+
+            if not validated_data.get('commercial_name'):
+                validated_data['commercial_name'] = model.name
+
+            if not validated_data.get('body_type'):
+                validated_data['body_type'] = car_data.body_type or generation.body_type
+
+            if not validated_data.get('wheel_marking_front'):
+                validated_data['wheel_marking_front'] = car_data.front_tires
+
+            if not validated_data.get('wheel_marking_rear'):
+                validated_data['wheel_marking_rear'] = car_data.rear_tires
+
+            if not validated_data.get('manufacture_year'):
+                validated_data['manufacture_year'] = car_data.manufacture_year
+
         protocol = Protocol.objects.create(**validated_data)
 
-        ProtocolMeasurement.objects.create(protocol=protocol)
-        ProtocolBrake.objects.create(protocol=protocol)
+        measurement_defaults = {}
+
+        if car_data:
+            measurement_defaults = {
+                'wheel_formula': self.normalize_wheel_formula(car_data.drive_type),
+                'seats_count': car_data.seats_count,
+
+                'engine_model': car_data.engine_model or configuration.engine_name,
+                'engine_power_kw': car_data.engine_power_kw,
+                'fuel_type': self.normalize_fuel_type(car_data.fuel_type),
+                'cylinder_layout': self.normalize_cylinder_layout(car_data.cylinder_layout),
+                'cylinders_count': car_data.cylinders_count,
+                'turbo_present': car_data.turbo_present,
+
+                'transmission_type': self.normalize_transmission(car_data.transmission),
+
+                'vehicle_length_mm': car_data.vehicle_length_mm,
+                'vehicle_width_mm': car_data.vehicle_width_mm,
+                'vehicle_height_mm': car_data.vehicle_height_mm,
+                'vehicle_weight_kg': car_data.vehicle_weight_kg,
+            }
+
+        ProtocolMeasurement.objects.create(
+            protocol=protocol,
+            **measurement_defaults
+        )
+
+        brake_defaults = {}
+
+        if car_data:
+            service_brake_type = self.normalize_service_brake_type(
+                car_data.front_brakes,
+                car_data.rear_brakes
+            )
+
+            if service_brake_type:
+                brake_defaults['service_brake_type'] = service_brake_type
+
+        ProtocolBrake.objects.create(
+            protocol=protocol,
+            **brake_defaults
+        )
+
         ProtocolLight.objects.create(protocol=protocol)
         ProtocolTestCondition.objects.create(protocol=protocol)
         ProtocolRoadCondition.objects.create(protocol=protocol)
