@@ -140,6 +140,22 @@ def build_photo_values(protocol):
         "photo_noise_test": get_photo_path(protocol, "noise_test_photo"),
     }
 
+def debug_docx_context(context, protocol):
+    print("\n========== DEBUG DOCX ==========")
+    print(f"protocol_id: {protocol.id}")
+
+    keys = [
+        "exhaust_noise_constant_db",
+        "u_exhaust_noise_constant_db",
+        "exhaust_noise_deceleration_db",
+        "u_exhaust_noise_deceleration_db",
+    ]
+
+    for key in keys:
+        print(f"{key}: {context.get(key)}")
+
+    print("================================\n")
+
 
 def build_protocol_docx_context(protocol):
     measurement = get_related(protocol, "measurement")
@@ -221,15 +237,15 @@ def build_protocol_docx_context(protocol):
         "tire_depth_rr_mm": fmt_num(getattr(measurement, "tire_depth_rr_mm", None), 1),
 
         "bumper_bends_to_body_label": fmt_bool(getattr(measurement, "bumper_bends_to_body", None)),
-        "bumper_to_body_distance_mm": fmt_num(getattr(measurement, "bumper_to_body_distance_mm", None), 1),
+        "bumper_to_body_distance_mm": fmt_num(getattr(measurement, "bumper_to_body_distance_mm", None), 2),
         "opening_roof_present_label": fmt_bool(getattr(measurement, "opening_roof_present", None)),
         "fuel_tank_leak_protection_measure_label": label(
             FUEL_TANK_MEASURE_LABELS,
             getattr(measurement, "fuel_tank_leak_protection_measure", None),
         ),
 
-        "protruding_elements_doors_mm": fmt_num(getattr(measurement, "protruding_elements_doors_mm", None), 1),
-        "protruding_elements_other_mm": fmt_num(getattr(measurement, "protruding_elements_other_mm", None), 1),
+        "protruding_elements_doors_mm": fmt_num(getattr(measurement, "protruding_elements_doors_mm", None), 2),
+        "protruding_elements_other_mm": fmt_num(getattr(measurement, "protruding_elements_other_mm", None), 2),
 
         "glass_transparency_right_pct": fmt_num(getattr(measurement, "glass_transparency_right_pct", None), 1),
         "glass_transparency_left_pct": fmt_num(getattr(measurement, "glass_transparency_left_pct", None), 1),
@@ -237,7 +253,7 @@ def build_protocol_docx_context(protocol):
             getattr(measurement, "glass_transparency_windshield_pct", None),
             1,
         ),
-        "sun_strip_width_mm": fmt_num(getattr(measurement, "sun_strip_width_mm", None), 1),
+        "sun_strip_width_mm": fmt_num(getattr(measurement, "sun_strip_width_mm", None), 2),
 
         "steering_backlash_deg": fmt_num(getattr(measurement, "steering_backlash_deg", None), 1),
 
@@ -336,38 +352,34 @@ def build_protocol_docx_context(protocol):
         "turn_signal_frequency_per_min": fmt_num(getattr(light, "turn_signal_frequency_per_min", None), 1),
         "turn_signal_frequency_hz": fmt_num(getattr(light, "turn_signal_frequency_hz", None), 1),
 
-        "low_beam_upper_point_mm": fmt_num(getattr(light, "low_beam_upper_point_mm", None), 1),
-        "low_beam_lower_point_mm": fmt_num(getattr(light, "low_beam_lower_point_mm", None), 1),
-        "fog_light_upper_point_mm": fmt_num(getattr(light, "fog_light_upper_point_mm", None), 1),
-        "fog_light_lower_point_mm": fmt_num(getattr(light, "fog_light_lower_point_mm", None), 1),
-        "fog_light_left_distance_mm": fmt_num(getattr(light, "fog_light_left_distance_mm", None), 1),
-        "fog_light_right_distance_mm": fmt_num(getattr(light, "fog_light_right_distance_mm", None), 1),
+        "low_beam_upper_point_mm": fmt_num(getattr(light, "low_beam_upper_point_mm", None), 2),
+        "low_beam_lower_point_mm": fmt_num(getattr(light, "low_beam_lower_point_mm", None), 2),
 
-        "brake_signal_upper_point_mm": fmt_num(getattr(light, "brake_signal_upper_point_mm", None), 1),
-        "brake_signal_lower_point_mm": fmt_num(getattr(light, "brake_signal_lower_point_mm", None), 1),
-        "brake_signal_left_distance_mm": fmt_num(getattr(light, "brake_signal_left_distance_mm", None), 1),
-        "brake_signal_right_distance_mm": fmt_num(getattr(light, "brake_signal_right_distance_mm", None), 1),
+        "fog_light_upper_point_mm": fmt_num(getattr(light, "fog_light_upper_point_mm", None), 2),
+        "fog_light_lower_point_mm": fmt_num(getattr(light, "fog_light_lower_point_mm", None), 2),
+        "fog_light_left_distance_mm": fmt_num(getattr(light, "fog_light_left_distance_mm", None), 2),
+        "fog_light_right_distance_mm": fmt_num(getattr(light, "fog_light_right_distance_mm", None), 2),
+
+        "brake_signal_upper_point_mm": fmt_num(getattr(light, "brake_signal_upper_point_mm", None), 2),
+        "brake_signal_lower_point_mm": fmt_num(getattr(light, "brake_signal_lower_point_mm", None), 2),
+        "brake_signal_left_distance_mm": fmt_num(getattr(light, "brake_signal_left_distance_mm", None), 2),
+        "brake_signal_right_distance_mm": fmt_num(getattr(light, "brake_signal_right_distance_mm", None), 2),
 
         "additional_brake_signal_from_glass_edge_mm": fmt_num(
-            getattr(light, "additional_brake_signal_from_glass_edge_mm", None),
-            1,
-        ),
+            getattr(light, "additional_brake_signal_from_glass_edge_mm", None), 2),
         "additional_brake_signal_from_support_surface_mm": fmt_num(
-            getattr(light, "additional_brake_signal_from_support_surface_mm", None),
-            1,
-        ),
+            getattr(light, "additional_brake_signal_from_support_surface_mm", None), 2),
         "additional_brake_signal_optical_center_shift_mm": fmt_num(
-            getattr(light, "additional_brake_signal_optical_center_shift_mm", None),
-            1,
-        ),
+            getattr(light, "additional_brake_signal_optical_center_shift_mm", None), 2),
 
-        "rear_fog_upper_point_mm": fmt_num(getattr(light, "rear_fog_upper_point_mm", None), 1),
-        "rear_fog_lower_point_mm": fmt_num(getattr(light, "rear_fog_lower_point_mm", None), 1),
+        "rear_fog_upper_point_mm": fmt_num(getattr(light, "rear_fog_upper_point_mm", None), 2),
+        "rear_fog_lower_point_mm": fmt_num(getattr(light, "rear_fog_lower_point_mm", None), 2),
     }
 
     context.update(build_a_20_5_values(measurement))
     context.update(build_calculated_values(protocol))
-    context.update(build_uncertainty_values())
+    context.update(build_uncertainty_values(protocol))
     context.update(build_photo_values(protocol))
 
+    debug_docx_context(context, protocol)
     return context
