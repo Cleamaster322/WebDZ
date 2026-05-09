@@ -1,8 +1,8 @@
--- MySQL dump 10.13  Distrib 8.0.34, for Win64 (x86_64)
+-- MySQL dump 10.13  Distrib 8.0.36, for Win64 (x86_64)
 --
 -- Host: localhost    Database: cars
 -- ------------------------------------------------------
--- Server version	8.0.35
+-- Server version	8.0.37
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
@@ -24,14 +24,14 @@ DROP TABLE IF EXISTS `protocol_photos`;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `protocol_photos` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
-  `protocol_id` bigint unsigned NOT NULL,
-  `photo_type` enum('front_view','rear_view','left_view','right_view','vin_plate','vin_body','tire_marking','odometer','test_process','exhaust_noise_test','other') NOT NULL DEFAULT 'other',
-  `file_path` varchar(500) NOT NULL,
-  `sort_order` int NOT NULL DEFAULT '0',
-  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `protocol_id` bigint unsigned DEFAULT NULL,
+  `photo_type` enum('front_view','rear_view','left_view','right_view','vin_photo','nameplate_photo','tire_size_label_photo','odometer_photo','gas_test_photo','noise_test_photo','stand_test_photo','other') DEFAULT NULL,
+  `file_path` varchar(500) DEFAULT NULL,
+  `sort_order` int DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  KEY `idx_protocol_photos_protocol_id` (`protocol_id`),
-  CONSTRAINT `fk_protocol_photos_protocol` FOREIGN KEY (`protocol_id`) REFERENCES `protocols` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+  KEY `protocol_id` (`protocol_id`),
+  CONSTRAINT `protocol_photos_ibfk_1` FOREIGN KEY (`protocol_id`) REFERENCES `protocols` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -53,4 +53,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-04-17 17:33:26
+-- Dump completed on 2026-05-08 17:43:53

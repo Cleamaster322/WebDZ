@@ -19,8 +19,40 @@ function ProtocolInspectionMisc({
             </Typography>
 
             <Typography variant="h6" sx={subsectionTitleSx}>
+                Комплектность и противоугонное устройство
+            </Typography>
+
+            <Grid container spacing={2} sx={{mb: 3}}>
+                {renderSelect({
+                    form,
+                    handleChange,
+                    selectFieldSx,
+                    label: "Запасное колесо",
+                    name: "spare_wheel_present",
+                    md: 6,
+                    options: [
+                        {value: "true", label: "Есть"},
+                        {value: "false", label: "Нет"},
+                    ],
+                })}
+                {renderSelect({
+                    form,
+                    handleChange,
+                    selectFieldSx,
+                    label: "Блокировка рулевого управления",
+                    name: "steering_lock_present",
+                    md: 6,
+                    options: [
+                        {value: "true", label: "Есть"},
+                        {value: "false", label: "Нет"},
+                    ],
+                })}
+            </Grid>
+
+            <Typography variant="h6" sx={subsectionTitleSx}>
                 Остаточная глубина рисунка протектора
             </Typography>
+
             <Grid container spacing={2} sx={{mb: 3}}>
                 {renderField({
                     form,
@@ -57,21 +89,10 @@ function ProtocolInspectionMisc({
             </Grid>
 
             <Typography variant="h6" sx={subsectionTitleSx}>
-                Кузов и топливная система
+                Кузов
             </Typography>
+
             <Grid container spacing={2} sx={{mb: 3}}>
-                {renderSelect({
-                    form,
-                    handleChange,
-                    selectFieldSx,
-                    label: "Концы бампера загибаются к кузову",
-                    name: "bumper_ends_bent_to_body",
-                    md: 6,
-                    options: [
-                        {value: "true", label: "Да"},
-                        {value: "false", label: "Нет"},
-                    ],
-                })}
                 {renderField({
                     form,
                     handleChange,
@@ -92,24 +113,12 @@ function ProtocolInspectionMisc({
                         {value: "false", label: "Нет"},
                     ],
                 })}
-                {renderSelect({
-                    form,
-                    handleChange,
-                    selectFieldSx,
-                    label: "Меры по обеспечению утечки паров и топлива из топливного бака",
-                    name: "fuel_leak_prevention_measure",
-                    md: 6,
-                    options: [
-                        {value: "fixed_cap", label: "Несъемная крышка"},
-                        {value: "structural_elements", label: "Элементы конструкции"},
-                        {value: "other_measure", label: "Любая другая мера"},
-                    ],
-                })}
             </Grid>
 
             <Typography variant="h6" sx={subsectionTitleSx}>
                 Выступающие элементы
             </Typography>
+
             <Grid container spacing={2} sx={{mb: 3}}>
                 {renderField({
                     form,
@@ -132,6 +141,7 @@ function ProtocolInspectionMisc({
             <Typography variant="h6" sx={subsectionTitleSx}>
                 Светопропускание стекол
             </Typography>
+
             <Grid container spacing={2} sx={{mb: 3}}>
                 {renderField({
                     form,
@@ -162,6 +172,7 @@ function ProtocolInspectionMisc({
             <Typography variant="h6" sx={subsectionTitleSx}>
                 Дополнительные параметры
             </Typography>
+
             <Grid container spacing={2} sx={{mb: 3}}>
                 {renderField({
                     form,
@@ -184,6 +195,7 @@ function ProtocolInspectionMisc({
             <Typography variant="h6" sx={subsectionTitleSx}>
                 Скорость транспортного средства
             </Typography>
+
             <Grid container spacing={2} sx={{mb: 3}}>
                 {renderField({
                     form,
@@ -206,12 +218,13 @@ function ProtocolInspectionMisc({
             <Typography variant="h6" sx={subsectionTitleSx}>
                 Экология и шум
             </Typography>
+
             <Grid container spacing={2} sx={{mb: 3}}>
                 {renderField({
                     form,
                     handleChange,
                     textFieldSx,
-                    label: "Шум при постоянной целевой частоте, дБА",
+                    label: "Шум на повышенных оборотах, дБА",
                     name: "exhaust_noise_constant_db",
                     md: 6,
                 })}
@@ -228,7 +241,7 @@ function ProtocolInspectionMisc({
                     form,
                     handleChange,
                     textFieldSx,
-                    label: "Минимальные обороты: CO, %",
+                    label: "Min обороты: CO, %",
                     name: "co_min_pct",
                     md: 4,
                 })}
@@ -236,7 +249,7 @@ function ProtocolInspectionMisc({
                     form,
                     handleChange,
                     textFieldSx,
-                    label: "Максимальные обороты: CO, %",
+                    label: "Max обороты: CO, %",
                     name: "co_max_pct",
                     md: 4,
                 })}
@@ -245,6 +258,7 @@ function ProtocolInspectionMisc({
             <Typography variant="h6" sx={subsectionTitleSx}>
                 Коэффициент поглощения света
             </Typography>
+
             <Grid container spacing={2} sx={{mb: 3}}>
                 {renderField({
                     form,
@@ -297,8 +311,9 @@ function ProtocolInspectionMisc({
             </Grid>
 
             <Typography variant="h6" sx={subsectionTitleSx}>
-                Габаритные размеры и масса
+                Габаритные размеры ТС
             </Typography>
+
             <Grid container spacing={2} sx={{mb: 3}}>
                 {renderField({
                     form,
@@ -306,7 +321,7 @@ function ProtocolInspectionMisc({
                     textFieldSx,
                     label: "Длина, мм",
                     name: "vehicle_length_mm",
-                    md: 3,
+                    md: 4,
                 })}
                 {renderField({
                     form,
@@ -314,7 +329,7 @@ function ProtocolInspectionMisc({
                     textFieldSx,
                     label: "Ширина, мм",
                     name: "vehicle_width_mm",
-                    md: 3,
+                    md: 4,
                 })}
                 {renderField({
                     form,
@@ -322,29 +337,30 @@ function ProtocolInspectionMisc({
                     textFieldSx,
                     label: "Высота, мм",
                     name: "vehicle_height_mm",
-                    md: 3,
-                })}
-                {renderField({
-                    form,
-                    handleChange,
-                    textFieldSx,
-                    label: "Масса транспортного средства, кг",
-                    name: "vehicle_weight_kg",
-                    md: 3,
+                    md: 4,
                 })}
             </Grid>
 
             <Typography variant="h6" sx={subsectionTitleSx}>
-                Нагрузка на ось
+                Масса и нагрузка на ось (весы)
             </Typography>
+
             <Grid container spacing={2}>
+                {renderField({
+                    form,
+                    handleChange,
+                    textFieldSx,
+                    label: "Масса, кг",
+                    name: "vehicle_weight_kg",
+                    md: 4,
+                })}
                 {renderField({
                     form,
                     handleChange,
                     textFieldSx,
                     label: "Ось 1, кг",
                     name: "axle1_load_kg",
-                    md: 6,
+                    md: 4,
                 })}
                 {renderField({
                     form,
@@ -352,7 +368,7 @@ function ProtocolInspectionMisc({
                     textFieldSx,
                     label: "Ось 2, кг",
                     name: "axle2_load_kg",
-                    md: 6,
+                    md: 4,
                 })}
             </Grid>
         </Paper>

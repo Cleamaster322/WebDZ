@@ -1,4 +1,5 @@
 import re
+import time
 
 from bs4 import BeautifulSoup
 from selenium.webdriver.common.by import By
@@ -11,8 +12,6 @@ from parsers.error_writer import write_parser_error
 from db.car_crud import add_car
 from utils.logger import setup_logger
 
-import re
-import time
 
 logger = setup_logger(__name__)
 
@@ -22,6 +21,7 @@ FIELD_MAPPING = {
     "Период выпуска": "production_period",
     "Тип привода": "drive_type",
     "Тип кузова": "body_type",
+    "Марка кузова": "body_mark",
     "Тип трансмиссии": "transmission",
     "Клиренс (высота дорожного просвета), мм": "clearance_mm",
     "Число мест": "seats_count",
@@ -30,7 +30,6 @@ FIELD_MAPPING = {
     "Тип двигателя": "engine_type_raw",
     "Нагнетатель": "turbo_raw",
     "Максимальная мощность, л.с. (кВт) при об./мин.": "power_raw",
-    "Электродвигатель: мощность, кВт": "electric_motor_power_kw",
     "Передние колеса": "front_tires",
     "Задние колеса": "rear_tires",
     "Передние тормоза": "front_brakes",
@@ -45,11 +44,13 @@ FINAL_CAR_DATA_FIELDS = {
     "manufacture_year",
     "drive_type",
     "body_type",
+    "body_mark",
     "transmission",
     "clearance_mm",
     "seats_count",
     "vehicle_weight_kg",
     "engine_model",
+    "engine_power_hp",
     "engine_power_kw",
     "fuel_type",
     "cylinder_layout",
@@ -187,19 +188,105 @@ def parse_dimensions(value):
     }
 
 
+def hp_to_kw(hp):
+    if hp is None:
+        return None
+
+    return round(hp * 0.7355)
+
+
+def kw_to_hp(kw):
+    if kw is None:
+        return None
+
+    return round(kw / 0.7355)
+
+
 def parse_power(value):
+    """
+    Основная мощность из обычной таблицы.
+
+    Пример:
+    544 (400) / 0
+    """
     if not value:
         return {}
 
-    match = re.search(r"(\d+)\s*\((\d+)\)\s*/\s*(\d+)", str(value))
-    if match:
-        return {"engine_power_kw": int(match.group(2))}
+    value = clean_text(value)
 
-    match = re.search(r"\((\d+)\)", str(value))
+    match = re.search(r"(\d+)\s*\((\d+)\)", value)
     if match:
-        return {"engine_power_kw": int(match.group(1))}
+        return {
+            "engine_power_hp": int(match.group(1)),
+            "engine_power_kw": int(match.group(2)),
+        }
+
+    hp_match = re.search(r"(\d+)\s*л\.?\s*с", value, re.IGNORECASE)
+    if hp_match:
+        hp = int(hp_match.group(1))
+        return {
+            "engine_power_hp": hp,
+            "engine_power_kw": hp_to_kw(hp),
+        }
+
+    kw_match = re.search(r"(\d+)\s*кВт", value, re.IGNORECASE)
+    if kw_match:
+        kw = int(kw_match.group(1))
+        return {
+            "engine_power_hp": kw_to_hp(kw),
+            "engine_power_kw": kw,
+        }
 
     return {}
+
+
+def parse_power_from_summary(browser):
+    """
+    Fallback для страниц, где в основной таблице нет строки мощности.
+
+    Берем из верхней мини-таблицы только блок с подписью 'Мощность'.
+    Это важно, потому что у мягких гибридов может быть вторая мощность
+    отдельным блоком.
+    """
+    try:
+        soup = BeautifulSoup(browser.driver.page_source, "html.parser")
+
+        # Сначала пробуем точечно по тексту страницы.
+        text = clean_text(soup.get_text(" ", strip=True))
+
+        # Пример: "Мощность 653 л.с."
+        matches = re.findall(
+            r"Мощность\s+(\d+)\s*л\.?\s*с\.?",
+            text,
+            re.IGNORECASE,
+        )
+
+        if matches:
+            hp = int(matches[0])
+            return {
+                "engine_power_hp": hp,
+                "engine_power_kw": hp_to_kw(hp),
+            }
+
+        # На некоторых электрокарах может быть только кВт.
+        kw_matches = re.findall(
+            r"Мощность\s+(\d+)\s*кВт",
+            text,
+            re.IGNORECASE,
+        )
+
+        if kw_matches:
+            kw = int(kw_matches[0])
+            return {
+                "engine_power_hp": kw_to_hp(kw),
+                "engine_power_kw": kw,
+            }
+
+        return {}
+
+    except Exception as e:
+        logger.warning(f"Не удалось получить мощность из мини-таблицы: {e}")
+        return {}
 
 
 def parse_engine_type(value):
@@ -301,6 +388,7 @@ def extract_raw_data_from_page(browser, config_id=None, config_name=None, config
 
     return raw_data
 
+
 def normalize_raw_data(raw_data):
     normalized = {}
 
@@ -341,11 +429,6 @@ def normalize_raw_data(raw_data):
 
     if "power_raw" in normalized:
         normalized.update(parse_power(normalized["power_raw"]))
-
-    if "electric_motor_power_kw" in normalized:
-        normalized["engine_power_kw"] = extract_int(
-            normalized["electric_motor_power_kw"]
-        )
 
     if "engine_type_raw" in normalized:
         normalized.update(parse_engine_type(normalized["engine_type_raw"]))
@@ -473,6 +556,17 @@ def parse_car_data_from_configuration(config, browser):
 
         normalize_start = time.perf_counter()
         normalized_data = normalize_raw_data(raw_data)
+
+        if not normalized_data.get("engine_power_hp") and not normalized_data.get("engine_power_kw"):
+            summary_power = parse_power_from_summary(browser)
+
+            if summary_power:
+                normalized_data.update(summary_power)
+
+                logger.info(
+                    f"Мощность взята из мини-таблицы id={config_id}: {summary_power}"
+                )
+
         normalize_end = time.perf_counter()
 
         filter_start = time.perf_counter()
@@ -553,6 +647,7 @@ def parse_car_data_from_configuration(config, browser):
         )
 
         return None
+
 
 def parse_cars(configurations):
     if not configurations:

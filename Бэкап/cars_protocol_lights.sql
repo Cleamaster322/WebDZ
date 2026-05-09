@@ -1,8 +1,8 @@
--- MySQL dump 10.13  Distrib 8.0.34, for Win64 (x86_64)
+-- MySQL dump 10.13  Distrib 8.0.36, for Win64 (x86_64)
 --
 -- Host: localhost    Database: cars
 -- ------------------------------------------------------
--- Server version	8.0.35
+-- Server version	8.0.37
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
@@ -24,51 +24,62 @@ DROP TABLE IF EXISTS `protocol_lights`;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `protocol_lights` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
-  `protocol_id` bigint unsigned NOT NULL,
-  `low_beam_count` smallint unsigned DEFAULT NULL,
-  `high_beam_count` smallint unsigned DEFAULT NULL,
-  `front_fog_count` smallint unsigned DEFAULT NULL,
-  `reverse_light_count` smallint unsigned DEFAULT NULL,
-  `turn_signal_count` smallint unsigned DEFAULT NULL,
-  `front_position_light_count` smallint unsigned DEFAULT NULL,
-  `rear_position_light_count` smallint unsigned DEFAULT NULL,
-  `main_brake_signal_count` smallint unsigned DEFAULT NULL,
-  `additional_brake_signal_count` smallint unsigned DEFAULT NULL,
-  `rear_fog_count` smallint unsigned DEFAULT NULL,
-  `plate_light_count` smallint unsigned DEFAULT NULL,
-  `daytime_running_light_count` smallint unsigned DEFAULT NULL,
-  `parking_light_count` smallint unsigned DEFAULT NULL,
+  `protocol_id` bigint unsigned DEFAULT NULL,
+  `low_beam_count` int DEFAULT NULL,
+  `low_beam_color` varchar(50) DEFAULT NULL,
+  `high_beam_count` int DEFAULT NULL,
+  `high_beam_color` varchar(50) DEFAULT NULL,
+  `front_fog_count` int DEFAULT NULL,
+  `front_fog_color` varchar(50) DEFAULT NULL,
+  `reverse_light_count` int DEFAULT NULL,
+  `reverse_light_color` varchar(50) DEFAULT NULL,
+  `turn_signal_count` int DEFAULT NULL,
+  `turn_signal_color` varchar(50) DEFAULT NULL,
+  `front_position_light_count` int DEFAULT NULL,
+  `front_position_light_color` varchar(50) DEFAULT NULL,
+  `rear_position_light_count` int DEFAULT NULL,
+  `rear_position_light_color` varchar(50) DEFAULT NULL,
+  `main_brake_signal_count` int DEFAULT NULL,
+  `main_brake_signal_color` varchar(50) DEFAULT NULL,
+  `additional_brake_signal_count` int DEFAULT NULL,
+  `additional_brake_signal_color` varchar(50) DEFAULT NULL,
+  `rear_fog_count` int DEFAULT NULL,
+  `rear_fog_color` varchar(50) DEFAULT NULL,
+  `plate_light_count` int DEFAULT NULL,
+  `plate_light_color` varchar(50) DEFAULT NULL,
+  `daytime_running_light_count` int DEFAULT NULL,
+  `daytime_running_light_color` varchar(50) DEFAULT NULL,
+  `parking_light_count` int DEFAULT NULL,
+  `parking_light_color` varchar(50) DEFAULT NULL,
   `headlight_type` enum('halogen','xenon','led','other') DEFAULT NULL,
-  `low_beam_upper_point_mm` decimal(10,2) DEFAULT NULL,
-  `low_beam_lower_point_mm` decimal(10,2) DEFAULT NULL,
-  `fog_light_upper_point_mm` decimal(10,2) DEFAULT NULL,
-  `fog_light_lower_point_mm` decimal(10,2) DEFAULT NULL,
-  `fog_light_left_distance_mm` decimal(10,2) DEFAULT NULL,
-  `fog_light_right_distance_mm` decimal(10,2) DEFAULT NULL,
-  `brake_signal_upper_point_mm` decimal(10,2) DEFAULT NULL,
-  `brake_signal_lower_point_mm` decimal(10,2) DEFAULT NULL,
-  `brake_signal_left_distance_mm` decimal(10,2) DEFAULT NULL,
-  `brake_signal_right_distance_mm` decimal(10,2) DEFAULT NULL,
-  `additional_brake_signal_from_glass_edge_mm` decimal(10,2) DEFAULT NULL,
-  `additional_brake_signal_from_support_surface_mm` decimal(10,2) DEFAULT NULL,
-  `additional_brake_signal_optical_center_shift_mm` decimal(10,2) DEFAULT NULL,
-  `rear_fog_upper_point_mm` decimal(10,2) DEFAULT NULL,
-  `rear_fog_lower_point_mm` decimal(10,2) DEFAULT NULL,
+  `low_beam_upper_point_mm` float DEFAULT NULL,
+  `low_beam_lower_point_mm` float DEFAULT NULL,
+  `fog_light_upper_point_mm` float DEFAULT NULL,
+  `fog_light_lower_point_mm` float DEFAULT NULL,
+  `fog_light_left_distance_mm` float DEFAULT NULL,
+  `fog_light_right_distance_mm` float DEFAULT NULL,
+  `brake_signal_upper_point_mm` float DEFAULT NULL,
+  `brake_signal_lower_point_mm` float DEFAULT NULL,
+  `brake_signal_left_distance_mm` float DEFAULT NULL,
+  `brake_signal_right_distance_mm` float DEFAULT NULL,
+  `additional_brake_signal_from_glass_edge_mm` float DEFAULT NULL,
+  `additional_brake_signal_from_support_surface_mm` float DEFAULT NULL,
+  `additional_brake_signal_optical_center_shift_mm` float DEFAULT NULL,
+  `rear_fog_upper_point_mm` float DEFAULT NULL,
+  `rear_fog_lower_point_mm` float DEFAULT NULL,
   `headlight_washer_present` tinyint(1) DEFAULT NULL,
-  `left_34v_cd` decimal(12,2) DEFAULT NULL,
-  `left_52h_cd` decimal(12,2) DEFAULT NULL,
-  `left_high_beam_cd` decimal(12,2) DEFAULT NULL,
-  `right_34v_cd` decimal(12,2) DEFAULT NULL,
-  `right_52h_cd` decimal(12,2) DEFAULT NULL,
-  `right_high_beam_cd` decimal(12,2) DEFAULT NULL,
-  `turn_signal_frequency_per_min` decimal(10,2) DEFAULT NULL,
-  `turn_signal_frequency_hz` decimal(10,2) DEFAULT NULL,
-  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `left_34v_cd` float DEFAULT NULL,
+  `left_52h_cd` float DEFAULT NULL,
+  `left_high_beam_cd` float DEFAULT NULL,
+  `right_34v_cd` float DEFAULT NULL,
+  `right_52h_cd` float DEFAULT NULL,
+  `right_high_beam_cd` float DEFAULT NULL,
+  `turn_signal_frequency_per_min` float DEFAULT NULL,
+  `turn_signal_frequency_hz` float DEFAULT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `uq_protocol_lights_protocol_id` (`protocol_id`),
-  CONSTRAINT `fk_protocol_lights_protocol` FOREIGN KEY (`protocol_id`) REFERENCES `protocols` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+  UNIQUE KEY `protocol_id` (`protocol_id`),
+  CONSTRAINT `protocol_lights_ibfk_1` FOREIGN KEY (`protocol_id`) REFERENCES `protocols` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -77,7 +88,7 @@ CREATE TABLE `protocol_lights` (
 
 LOCK TABLES `protocol_lights` WRITE;
 /*!40000 ALTER TABLE `protocol_lights` DISABLE KEYS */;
-INSERT INTO `protocol_lights` VALUES (1,1,2,2,2,2,4,2,2,2,1,1,2,2,2,'led',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,1,NULL,NULL,NULL,NULL,NULL,NULL,90.00,1.50,'2026-04-17 03:36:54','2026-04-17 03:37:35');
+INSERT INTO `protocol_lights` VALUES (1,1,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL),(2,2,2,'белый',2,'белый',NULL,NULL,2,'белый',2,'желтый',2,'белый',2,'красный',2,'красный',1,'красный',2,'красный',2,'белый',2,'белый',NULL,NULL,'halogen',780,630,NULL,NULL,NULL,NULL,955,890,150,150,10,1140,0,940,850,0,450,3500,19000,470,3800,21000,84,1.4);
 /*!40000 ALTER TABLE `protocol_lights` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
@@ -90,4 +101,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-04-17 17:33:24
+-- Dump completed on 2026-05-08 17:43:54

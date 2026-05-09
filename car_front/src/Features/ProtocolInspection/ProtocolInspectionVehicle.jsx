@@ -76,9 +76,29 @@ function ProtocolInspectionVehicle({
                     form,
                     handleChange,
                     textFieldSx,
+                    label: "Пробег, км",
+                    name: "mileage_km",
+                    md: 4,
+                    placeholder: "35000",
+                })}
+                {renderField({
+                    form,
+                    handleChange,
+                    textFieldSx,
+                    label: "Год выпуска",
+                    name: "manufacture_year",
+                    md: 4,
+                })}
+            </Grid>
+
+            <Grid container spacing={2} sx={{mb: 2}}>
+                {renderField({
+                    form,
+                    handleChange,
+                    textFieldSx,
                     label: "Маркировка колес (перед)",
                     name: "tire_marking_front",
-                    md: 4,
+                    md: 6,
                     placeholder: "185/65R15",
                 })}
                 {renderField({
@@ -87,7 +107,7 @@ function ProtocolInspectionVehicle({
                     textFieldSx,
                     label: "Маркировка колес (зад)",
                     name: "tire_marking_rear",
-                    md: 4,
+                    md: 6,
                     placeholder: "185/65R15",
                 })}
             </Grid>
@@ -121,21 +141,13 @@ function ProtocolInspectionVehicle({
                     form,
                     handleChange,
                     textFieldSx,
-                    label: "Год выпуска",
-                    name: "manufacture_year",
+                    label: "Цвет",
+                    name: "color",
                     md: 4,
                 })}
             </Grid>
 
             <Grid container spacing={2} sx={{mb: 2}}>
-                {renderField({
-                    form,
-                    handleChange,
-                    textFieldSx,
-                    label: "Цвет",
-                    name: "color",
-                    md: 4,
-                })}
                 {renderSelect({
                     form,
                     handleChange,
@@ -161,6 +173,18 @@ function ProtocolInspectionVehicle({
                         {value: "2", label: "2"},
                     ],
                 })}
+                {renderSelect({
+                    form,
+                    handleChange,
+                    selectFieldSx,
+                    label: "Подножки",
+                    name: "side_steps_present",
+                    md: 4,
+                    options: [
+                        {value: "true", label: "Наличие"},
+                        {value: "false", label: "Отсутствие"},
+                    ],
+                })}
             </Grid>
 
             <Grid container spacing={2}>
@@ -170,20 +194,8 @@ function ProtocolInspectionVehicle({
                     textFieldSx,
                     label: "Количество посадочных мест",
                     name: "seats_count",
-                    md: 6,
+                    md: 12,
                     placeholder: "2/3 или 2/2/3",
-                })}
-                {renderSelect({
-                    form,
-                    handleChange,
-                    selectFieldSx,
-                    label: "Подножки",
-                    name: "side_steps_present",
-                    md: 6,
-                    options: [
-                        {value: "true", label: "Наличие"},
-                        {value: "false", label: "Отсутствие"},
-                    ],
                 })}
             </Grid>
         </Paper>

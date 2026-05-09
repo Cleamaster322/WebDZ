@@ -496,6 +496,61 @@ def delete_generation(request, pk):
 # --- CONFIGURATION FUNCTIONS ---
 # =========================================================
 
+def normalize_bool_param(value):
+    if value is None or value == '':
+        return None
+
+    value = str(value).lower().strip()
+
+    if value in ['true', '1', 'yes', 'да']:
+        return True
+
+    if value in ['false', '0', 'no', 'нет']:
+        return False
+
+    return None
+
+
+def extract_year_from_drom_date(value):
+    if not value:
+        return None
+
+    value = str(value).strip()
+
+    if value in ['н.в.', 'н.в', 'present', 'now', '-']:
+        return None
+
+    parts = value.split('.')
+
+    if len(parts) == 2 and parts[1].isdigit():
+        return int(parts[1])
+
+    if value.isdigit() and len(value) == 4:
+        return int(value)
+
+    return None
+
+
+def configuration_matches_year(configuration, year):
+    if not year:
+        return True
+
+    try:
+        year = int(year)
+    except (TypeError, ValueError):
+        return True
+
+    start_year = extract_year_from_drom_date(configuration.date_start)
+    end_year = extract_year_from_drom_date(configuration.date_end)
+
+    if start_year and year < start_year:
+        return False
+
+    if end_year and year > end_year:
+        return False
+
+    return True
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_all_configurations(request):
@@ -553,6 +608,7 @@ def get_configuration_filter_options(request):
             .exclude(drive_type='')
             .values_list('drive_type', flat=True)
             .distinct()
+            .order_by('drive_type')
         )
 
         fuel_types = list(
@@ -561,6 +617,7 @@ def get_configuration_filter_options(request):
             .exclude(fuel_type='')
             .values_list('fuel_type', flat=True)
             .distinct()
+            .order_by('fuel_type')
         )
 
         engine_models = list(
@@ -569,6 +626,7 @@ def get_configuration_filter_options(request):
             .exclude(engine_model='')
             .values_list('engine_model', flat=True)
             .distinct()
+            .order_by('engine_model')
         )
 
         transmissions = list(
@@ -577,13 +635,37 @@ def get_configuration_filter_options(request):
             .exclude(transmission='')
             .values_list('transmission', flat=True)
             .distinct()
+            .order_by('transmission')
         )
 
         seats_counts = list(
             car_data
             .exclude(seats_count__isnull=True)
-            .exclude(seats_count='')
             .values_list('seats_count', flat=True)
+            .distinct()
+            .order_by('seats_count')
+        )
+
+        engine_powers_kw = list(
+            car_data
+            .exclude(engine_power_kw__isnull=True)
+            .values_list('engine_power_kw', flat=True)
+            .distinct()
+            .order_by('engine_power_kw')
+        )
+
+        engine_powers_hp = list(
+            car_data
+            .exclude(engine_power_hp__isnull=True)
+            .values_list('engine_power_hp', flat=True)
+            .distinct()
+            .order_by('engine_power_hp')
+        )
+
+        turbo_values = list(
+            car_data
+            .exclude(turbo_present__isnull=True)
+            .values_list('turbo_present', flat=True)
             .distinct()
         )
 
@@ -593,6 +675,9 @@ def get_configuration_filter_options(request):
             'engine_models': engine_models,
             'transmissions': transmissions,
             'seats_counts': seats_counts,
+            'engine_powers_kw': engine_powers_kw,
+            'engine_powers_hp': engine_powers_hp,
+            'turbo_values': turbo_values,
         })
 
     except Exception as e:
@@ -617,7 +702,19 @@ def get_filtered_configurations(request):
         transmission = request.GET.get('transmission')
         seats_count = request.GET.get('seats_count')
 
-        queryset = Configuration.objects.filter(generation_id=generation_id)
+        manufacture_year = request.GET.get('manufacture_year')
+        engine_power = request.GET.get('engine_power')
+        turbo_present = normalize_bool_param(request.GET.get('turbo_present'))
+
+        # Пока принимаем, но нормально он заработает только если body_code будет
+        # в car_data или configurations, а не только в generations.
+        body_code = request.GET.get('body_code')
+
+        queryset = (
+            Configuration.objects
+            .filter(generation_id=generation_id)
+            .select_related('generation')
+        )
 
         if name:
             queryset = queryset.filter(name__icontains=name)
@@ -639,10 +736,28 @@ def get_filtered_configurations(request):
         if seats_count:
             car_filter['cardata__seats_count'] = seats_count
 
+        if turbo_present is not None:
+            car_filter['cardata__turbo_present'] = turbo_present
+
+        if engine_power:
+            car_filter['cardata__engine_power_kw'] = engine_power
+
         if car_filter:
             queryset = queryset.filter(**car_filter)
 
-        queryset = queryset.distinct().order_by('name')
+        if body_code:
+            queryset = queryset.filter(generation__body_code__icontains=body_code)
+
+        queryset = queryset.distinct().order_by('name', 'date_start', 'id')
+
+        if manufacture_year:
+            filtered_ids = [
+                configuration.id
+                for configuration in queryset
+                if configuration_matches_year(configuration, manufacture_year)
+            ]
+
+            queryset = Configuration.objects.filter(id__in=filtered_ids).order_by('name', 'date_start', 'id')
 
         paginator = Pagination()
         paginated = paginator.paginate_queryset(queryset, request)

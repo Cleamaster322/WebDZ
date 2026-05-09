@@ -8,7 +8,7 @@ logger = setup_logger(__name__)
 def add_car(configuration_id, car_data):
     """Добавление записи car_data для комплектации, если она ещё не существует."""
     logger.info(f"Попытка добавить car_data для configuration_id={configuration_id}")
-
+    logger.info(f"DEBUG car_crud file path: {__file__}")
     if car_exists(configuration_id):
         logger.info(
             f"car_data уже существует для configuration_id={configuration_id}, выполняем обновление"
@@ -28,8 +28,10 @@ def add_car(configuration_id, car_data):
             seats_count,
             clearance,
             body_type,
+            body_mark,
             vehicle_weight_kg,
             engine_model,
+            engine_power_hp,
             engine_power_kw,
             cylinder_layout,
             cylinders_count,
@@ -39,7 +41,7 @@ def add_car(configuration_id, car_data):
             vehicle_length_mm,
             vehicle_width_mm,
             vehicle_height_mm
-        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
     """
 
     params = (
@@ -54,8 +56,10 @@ def add_car(configuration_id, car_data):
         car_data.get("seats_count"),
         car_data.get("clearance_mm"),
         car_data.get("body_type"),
+        car_data.get("body_mark"),
         car_data.get("vehicle_weight_kg"),
         car_data.get("engine_model"),
+        car_data.get("engine_power_hp"),
         car_data.get("engine_power_kw"),
         car_data.get("cylinder_layout"),
         car_data.get("cylinders_count"),
@@ -80,6 +84,7 @@ def add_car(configuration_id, car_data):
         )
         return False
 
+
 def update_car(configuration_id, car_data):
     """Обновление car_data для существующей комплектации."""
     query = """
@@ -95,8 +100,10 @@ def update_car(configuration_id, car_data):
             seats_count = %s,
             clearance = %s,
             body_type = %s,
+            body_mark = %s,
             vehicle_weight_kg = %s,
             engine_model = %s,
+            engine_power_hp = %s,
             engine_power_kw = %s,
             cylinder_layout = %s,
             cylinders_count = %s,
@@ -120,8 +127,10 @@ def update_car(configuration_id, car_data):
         car_data.get("seats_count"),
         car_data.get("clearance_mm"),
         car_data.get("body_type"),
+        car_data.get("body_mark"),
         car_data.get("vehicle_weight_kg"),
         car_data.get("engine_model"),
+        car_data.get("engine_power_hp"),
         car_data.get("engine_power_kw"),
         car_data.get("cylinder_layout"),
         car_data.get("cylinders_count"),
@@ -135,6 +144,12 @@ def update_car(configuration_id, car_data):
     )
 
     try:
+        logger.info(
+            f"DEBUG POWER update_car configuration_id={configuration_id}: "
+            f"hp={car_data.get('engine_power_hp')}, "
+            f"kw={car_data.get('engine_power_kw')}, "
+            f"keys={list(car_data.keys())}"
+        )
         db.execute_query(query, params)
         logger.info(f"car_data успешно обновлена для configuration_id={configuration_id}")
         return True
@@ -186,8 +201,10 @@ def get_cars_by_configuration(configuration_id):
             seats_count,
             clearance,
             body_type,
+            body_mark,
             vehicle_weight_kg,
             engine_model,
+            engine_power_hp,
             engine_power_kw,
             cylinder_layout,
             cylinders_count,
@@ -230,6 +247,35 @@ def delete_car(car_id):
             exc_info=True,
         )
 
+def get_configurations_with_missing_power():
+    query = """
+        SELECT
+            c.id,
+            c.generation_id,
+            c.name,
+            c.link,
+            c.engine_name,
+            c.date_start,
+            c.date_end
+        FROM configurations c
+        INNER JOIN car_data cd ON cd.configuration_id = c.id
+        WHERE cd.engine_power_hp IS NULL
+           OR cd.engine_power_kw IS NULL
+        ORDER BY c.id
+    """
+
+    try:
+        result = db.fetch_all(query)
+        logger.info(
+            f"Получены комплектации с пустой мощностью: count={len(result)}"
+        )
+        return result
+    except Exception as e:
+        logger.error(
+            f"Ошибка при получении комплектаций с пустой мощностью: {e}",
+            exc_info=True,
+        )
+        return []
 
 def close_db_connection():
     """Закрытие соединения с базой данных."""

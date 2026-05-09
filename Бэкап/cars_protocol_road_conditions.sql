@@ -16,29 +16,31 @@
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
 --
--- Table structure for table `django_session`
+-- Table structure for table `protocol_road_conditions`
 --
 
-DROP TABLE IF EXISTS `django_session`;
+DROP TABLE IF EXISTS `protocol_road_conditions`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `django_session` (
-  `session_key` varchar(40) NOT NULL,
-  `session_data` longtext NOT NULL,
-  `expire_date` datetime(6) NOT NULL,
-  PRIMARY KEY (`session_key`),
-  KEY `django_session_expire_date_a5c62663` (`expire_date`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+CREATE TABLE `protocol_road_conditions` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `protocol_id` bigint unsigned DEFAULT NULL,
+  `road_ambient_temperature_c` float DEFAULT NULL,
+  `road_relative_humidity_pct` float DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `protocol_id` (`protocol_id`),
+  CONSTRAINT `protocol_road_conditions_ibfk_1` FOREIGN KEY (`protocol_id`) REFERENCES `protocols` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
--- Dumping data for table `django_session`
+-- Dumping data for table `protocol_road_conditions`
 --
 
-LOCK TABLES `django_session` WRITE;
-/*!40000 ALTER TABLE `django_session` DISABLE KEYS */;
-INSERT INTO `django_session` VALUES ('2f0zqgb8a2zkgsqx0ol3tjkxdfjsf36a','.eJxVjDsOwjAQBe_iGln2xr9Q0nMGa-1d4wBypDipEHeHSCmgfTPzXiLitta4dV7iROIstDj9bgnzg9sO6I7tNss8t3WZktwVedAurzPx83K4fwcVe_3WwXFhDUxBKQ_WG07BeZsTFATtCtjBFz9qsob0kAFSsZYUs8IRkI14fwDa-jfQ:1uHeDx:wNX8X7zlh16Ui3MkYsxjB97XgodaZ7vm8rYaSZ_tmIs','2025-06-04 07:50:49.248323'),('s9pwb4hggto8duvzgt39fzaau89h9z9z','.eJxVjDsOwjAQBe_iGln2xr9Q0nMGa-1d4wBypDipEHeHSCmgfTPzXiLitta4dV7iROIstDj9bgnzg9sO6I7tNss8t3WZktwVedAurzPx83K4fwcVe_3WwXFhDUxBKQ_WG07BeZsTFATtCtjBFz9qsob0kAFSsZYUs8IRkI14fwDa-jfQ:1uHVqS:51hRZEDPCPSRxCFClg1F22C_RiXgTSuaFAosfrxfnPo','2025-06-03 22:54:00.320725');
-/*!40000 ALTER TABLE `django_session` ENABLE KEYS */;
+LOCK TABLES `protocol_road_conditions` WRITE;
+/*!40000 ALTER TABLE `protocol_road_conditions` DISABLE KEYS */;
+INSERT INTO `protocol_road_conditions` VALUES (1,1,NULL,NULL),(2,2,14,56);
+/*!40000 ALTER TABLE `protocol_road_conditions` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 

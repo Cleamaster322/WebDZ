@@ -14,11 +14,12 @@ from db.brand_crud import get_all_brands
 from db.models_crud import get_all_models
 from db.generation_crud import get_all_generations
 from db.configuration_crud import get_all_configurations
+from db.car_crud import get_configurations_with_missing_power
 
 logger = setup_logger(__name__)
 
 
-def run_brands(limit=None, brand_name=None, model_name=None, generation_id=None):
+def run_brands(limit=None, brand_name=None, model_name=None, generation_id=None, configuration_id=None, missing_power=False):
     logger.info(
         f"Запуск этапа brands (limit={limit}, brand={brand_name}, model={model_name}, generation_id={generation_id})"
     )
@@ -26,7 +27,7 @@ def run_brands(limit=None, brand_name=None, model_name=None, generation_id=None)
     logger.info("Этап brands завершен")
 
 
-def run_models(limit=None, brand_name=None, model_name=None, generation_id=None):
+def run_models(limit=None, brand_name=None, model_name=None, generation_id=None, configuration_id=None, missing_power=False):
     logger.info(
         f"Запуск этапа models (limit={limit}, brand={brand_name}, model={model_name}, generation_id={generation_id})"
     )
@@ -56,7 +57,7 @@ def run_models(limit=None, brand_name=None, model_name=None, generation_id=None)
     logger.info("Этап models завершен")
 
 
-def run_generations(limit=None, brand_name=None, model_name=None, generation_id=None):
+def run_generations(limit=None, brand_name=None, model_name=None, generation_id=None, configuration_id=None, missing_power=False):
     logger.info(
         f"Запуск этапа generations (limit={limit}, brand={brand_name}, model={model_name}, generation_id={generation_id})"
     )
@@ -91,7 +92,7 @@ def run_generations(limit=None, brand_name=None, model_name=None, generation_id=
     logger.info("Этап generations завершен")
 
 
-def run_configurations(limit=None, brand_name=None, model_name=None, generation_id=None):
+def run_configurations(limit=None, brand_name=None, model_name=None, generation_id=None, configuration_id=None, missing_power=False):
     logger.info(
         f"Запуск этапа configurations (limit={limit}, brand={brand_name}, model={model_name}, generation_id={generation_id})"
     )
@@ -132,12 +133,19 @@ def run_configurations(limit=None, brand_name=None, model_name=None, generation_
     logger.info("Этап configurations завершен")
 
 
-def run_cars(limit=None, brand_name=None, model_name=None, generation_id=None, configuration_id=None):
+def run_cars(limit=None, brand_name=None, model_name=None, generation_id=None, configuration_id=None, missing_power=False):
     logger.info(
-        f"Запуск этапа cars (limit={limit}, brand={brand_name}, model={model_name}, generation_id={generation_id})"
+        f"Запуск этапа cars "
+        f"(limit={limit}, brand={brand_name}, model={model_name}, "
+        f"generation_id={generation_id}, configuration_id={configuration_id}, "
+        f"missing_power={missing_power})"
     )
 
-    configs = get_all_configurations()
+    if missing_power:
+        configs = get_configurations_with_missing_power()
+    else:
+        configs = get_all_configurations()
+
     if not configs:
         logger.warning("В таблице configurations нет данных")
         return
@@ -173,8 +181,11 @@ def run_cars(limit=None, brand_name=None, model_name=None, generation_id=None, c
         logger.warning("После фильтрации не осталось комплектаций")
         return
 
+    logger.info(f"К парсингу car_data подготовлено комплектаций: {len(configs)}")
+
     CarP.parse_cars(configs)
     logger.info("Этап cars завершен")
+
 
 STAGES = {
     "brands": run_brands,
@@ -201,7 +212,7 @@ def main() -> None:
         "--limit",
         type=int,
         required=False,
-        help="Ограничение количества записей (для тестирования)",
+        help="Ограничение количества записей для тестирования",
     )
 
     parser.add_argument(
@@ -224,6 +235,7 @@ def main() -> None:
         required=False,
         help="Фильтр по ID поколения",
     )
+
     parser.add_argument(
         "--configuration-id",
         type=int,
@@ -231,11 +243,21 @@ def main() -> None:
         help="Фильтр по ID комплектации",
     )
 
+    parser.add_argument(
+        "--missing-power",
+        action="store_true",
+        help="Парсить только комплектации, у которых engine_power_hp или engine_power_kw пустые",
+    )
+
     args = parser.parse_args()
 
     try:
         logger.info(
-            f"Выбран этап: {args.stage}, limit={args.limit}, brand={args.brand}, model={args.model}, generation_id={args.generation_id}"
+            f"Выбран этап: {args.stage}, limit={args.limit}, "
+            f"brand={args.brand}, model={args.model}, "
+            f"generation_id={args.generation_id}, "
+            f"configuration_id={args.configuration_id}, "
+            f"missing_power={args.missing_power}"
         )
 
         STAGES[args.stage](
@@ -244,6 +266,7 @@ def main() -> None:
             model_name=args.model,
             generation_id=args.generation_id,
             configuration_id=args.configuration_id,
+            missing_power=args.missing_power,
         )
 
     except Exception as e:

@@ -1,8 +1,8 @@
--- MySQL dump 10.13  Distrib 8.0.34, for Win64 (x86_64)
+-- MySQL dump 10.13  Distrib 8.0.36, for Win64 (x86_64)
 --
 -- Host: localhost    Database: cars
 -- ------------------------------------------------------
--- Server version	8.0.35
+-- Server version	8.0.37
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
@@ -28,7 +28,7 @@ CREATE TABLE `django_content_type` (
   `model` varchar(100) NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `django_content_type_app_label_model_76bd3d3b_uniq` (`app_label`,`model`)
-) ENGINE=InnoDB AUTO_INCREMENT=15 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=22 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -37,7 +37,7 @@ CREATE TABLE `django_content_type` (
 
 LOCK TABLES `django_content_type` WRITE;
 /*!40000 ALTER TABLE `django_content_type` DISABLE KEYS */;
-INSERT INTO `django_content_type` VALUES (1,'admin','logentry'),(3,'auth','group'),(2,'auth','permission'),(4,'auth','user'),(8,'cars','brand'),(12,'cars','cardata'),(7,'cars','configuration'),(11,'cars','generation'),(13,'cars','model'),(14,'cars','protocol'),(5,'contenttypes','contenttype'),(6,'sessions','session'),(9,'token_blacklist','blacklistedtoken'),(10,'token_blacklist','outstandingtoken');
+INSERT INTO `django_content_type` VALUES (1,'admin','logentry'),(3,'auth','group'),(2,'auth','permission'),(4,'auth','user'),(8,'cars','brand'),(12,'cars','cardata'),(7,'cars','configuration'),(11,'cars','generation'),(13,'cars','model'),(14,'cars','protocol'),(15,'cars','protocolbrake'),(16,'cars','protocollight'),(17,'cars','protocolmeasurement'),(21,'cars','protocolphoto'),(19,'cars','protocolpowersupply'),(18,'cars','protocolroadcondition'),(20,'cars','protocoltestcondition'),(5,'contenttypes','contenttype'),(6,'sessions','session'),(9,'token_blacklist','blacklistedtoken'),(10,'token_blacklist','outstandingtoken');
 /*!40000 ALTER TABLE `django_content_type` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
@@ -50,4 +50,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-04-17 17:33:23
+-- Dump completed on 2026-05-08 17:43:49

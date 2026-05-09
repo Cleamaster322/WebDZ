@@ -55,6 +55,7 @@ const initialForm = {
     vin: "",
     category: "",
     body_type: "",
+    mileage_km: "",
     tire_marking_front: "",
     tire_marking_rear: "",
     tire_season: "",
@@ -117,8 +118,14 @@ const initialForm = {
     plate_light_color: "",
     daytime_running_light_count: "",
     daytime_running_light_color: "",
+
     parking_light_count: "",
     parking_light_color: "",
+    rear_parking_light_count: "",
+    rear_parking_light_color: "",
+    adaptive_front_lighting_count: "",
+    adaptive_front_lighting_color: "",
+
     headlight_type: "",
     headlight_washer_present: "",
     left_34v_cd: "",
@@ -145,6 +152,10 @@ const initialForm = {
     additional_brake_signal_optical_center_shift_mm: "",
     rear_fog_upper_point_mm: "",
     rear_fog_lower_point_mm: "",
+
+    spare_wheel_present: "",
+    steering_lock_present: "",
+    gas_equipment_present: "",
 
     tire_depth_fl_mm: "",
     tire_depth_rl_mm: "",
@@ -235,6 +246,7 @@ function mapProtocolToForm(data) {
         vin: toFormValue(protocol.vin),
         category: toFormValue(protocol.vehicle_category),
         body_type: toFormValue(protocol.body_type),
+        mileage_km: toFormValue(measurement.mileage_km),
         tire_marking_front: toFormValue(protocol.wheel_marking_front),
         tire_marking_rear: toFormValue(protocol.wheel_marking_rear),
         tire_season: toFormValue(protocol.tire_season),
@@ -271,6 +283,7 @@ function mapProtocolToForm(data) {
         service_brake_rear_right_kn: toFormValue(brake.service_brake_rear_right_kn),
         parking_brake_left_kn: toFormValue(brake.parking_brake_left_kn),
         parking_brake_right_kn: toFormValue(brake.parking_brake_right_kn),
+
         stand_axle1_load_kg: toFormValue(measurement.stand_axle1_load_kg),
         stand_axle2_load_kg: toFormValue(measurement.stand_axle2_load_kg),
 
@@ -300,8 +313,14 @@ function mapProtocolToForm(data) {
         daytime_running_light_color: toFormValue(light.daytime_running_light_color),
         parking_light_count: toFormValue(light.parking_light_count),
         parking_light_color: toFormValue(light.parking_light_color),
+        rear_parking_light_count: toFormValue(light.rear_parking_light_count),
+        rear_parking_light_color: toFormValue(light.rear_parking_light_color),
+        adaptive_front_lighting_count: toFormValue(light.adaptive_front_lighting_count),
+        adaptive_front_lighting_color: toFormValue(light.adaptive_front_lighting_color),
+
         headlight_type: toFormValue(light.headlight_type),
         headlight_washer_present: booleanToSelect(light.headlight_washer_present),
+
         left_34v_cd: toFormValue(light.left_34v_cd),
         left_52h_cd: toFormValue(light.left_52h_cd),
         left_high_beam_cd: toFormValue(light.left_high_beam_cd),
@@ -326,6 +345,10 @@ function mapProtocolToForm(data) {
         additional_brake_signal_optical_center_shift_mm: toFormValue(light.additional_brake_signal_optical_center_shift_mm),
         rear_fog_upper_point_mm: toFormValue(light.rear_fog_upper_point_mm),
         rear_fog_lower_point_mm: toFormValue(light.rear_fog_lower_point_mm),
+
+        spare_wheel_present: booleanToSelect(measurement.spare_wheel_present),
+        steering_lock_present: booleanToSelect(measurement.steering_lock_present),
+        gas_equipment_present: booleanToSelect(measurement.gas_equipment_present),
 
         tire_depth_fl_mm: toFormValue(measurement.tire_depth_fl_mm),
         tire_depth_rl_mm: toFormValue(measurement.tire_depth_rl_mm),
@@ -409,6 +432,8 @@ function buildPowerSupplyPayload(form) {
 
 function buildMeasurementPayload(form) {
     return {
+        mileage_km: emptyToNull(form.mileage_km),
+
         wheel_formula: emptyToNull(form.wheel_formula),
         mufflers_count: emptyToNull(form.mufflers_count),
         seats_count: emptyToNull(form.seats_count),
@@ -469,6 +494,10 @@ function buildMeasurementPayload(form) {
         axle2_load_kg: emptyToNull(form.axle2_load_kg),
         stand_axle1_load_kg: emptyToNull(form.stand_axle1_load_kg),
         stand_axle2_load_kg: emptyToNull(form.stand_axle2_load_kg),
+
+        spare_wheel_present: stringToBooleanOrNull(form.spare_wheel_present),
+        steering_lock_present: stringToBooleanOrNull(form.steering_lock_present),
+        gas_equipment_present: stringToBooleanOrNull(form.gas_equipment_present),
     };
 }
 
@@ -498,30 +527,48 @@ function buildLightPayload(form) {
     return {
         low_beam_count: emptyToNull(form.low_beam_count),
         low_beam_color: emptyToNull(form.low_beam_color),
+
         high_beam_count: emptyToNull(form.high_beam_count),
         high_beam_color: emptyToNull(form.high_beam_color),
+
         front_fog_count: emptyToNull(form.front_fog_count),
         front_fog_color: emptyToNull(form.front_fog_color),
+
         reverse_light_count: emptyToNull(form.reverse_light_count),
         reverse_light_color: emptyToNull(form.reverse_light_color),
+
         turn_signal_count: emptyToNull(form.turn_signal_count),
         turn_signal_color: emptyToNull(form.turn_signal_color),
+
         front_position_light_count: emptyToNull(form.front_position_light_count),
         front_position_light_color: emptyToNull(form.front_position_light_color),
+
         rear_position_light_count: emptyToNull(form.rear_position_light_count),
         rear_position_light_color: emptyToNull(form.rear_position_light_color),
+
         main_brake_signal_count: emptyToNull(form.main_brake_signal_count),
         main_brake_signal_color: emptyToNull(form.main_brake_signal_color),
+
         additional_brake_signal_count: emptyToNull(form.additional_brake_signal_count),
         additional_brake_signal_color: emptyToNull(form.additional_brake_signal_color),
+
         rear_fog_count: emptyToNull(form.rear_fog_count),
         rear_fog_color: emptyToNull(form.rear_fog_color),
+
         plate_light_count: emptyToNull(form.plate_light_count),
         plate_light_color: emptyToNull(form.plate_light_color),
+
         daytime_running_light_count: emptyToNull(form.daytime_running_light_count),
         daytime_running_light_color: emptyToNull(form.daytime_running_light_color),
+
         parking_light_count: emptyToNull(form.parking_light_count),
         parking_light_color: emptyToNull(form.parking_light_color),
+
+        rear_parking_light_count: emptyToNull(form.rear_parking_light_count),
+        rear_parking_light_color: emptyToNull(form.rear_parking_light_color),
+
+        adaptive_front_lighting_count: emptyToNull(form.adaptive_front_lighting_count),
+        adaptive_front_lighting_color: emptyToNull(form.adaptive_front_lighting_color),
 
         headlight_type: emptyToNull(form.headlight_type),
         headlight_washer_present: stringToBooleanOrNull(form.headlight_washer_present),
@@ -529,25 +576,31 @@ function buildLightPayload(form) {
         left_34v_cd: emptyToNull(form.left_34v_cd),
         left_52h_cd: emptyToNull(form.left_52h_cd),
         left_high_beam_cd: emptyToNull(form.left_high_beam_cd),
+
         right_34v_cd: emptyToNull(form.right_34v_cd),
         right_52h_cd: emptyToNull(form.right_52h_cd),
         right_high_beam_cd: emptyToNull(form.right_high_beam_cd),
+
         turn_signal_frequency_per_min: emptyToNull(form.turn_signal_frequency_per_min),
         turn_signal_frequency_hz: emptyToNull(form.turn_signal_frequency_hz),
 
         low_beam_upper_point_mm: emptyToNull(form.low_beam_upper_point_mm),
         low_beam_lower_point_mm: emptyToNull(form.low_beam_lower_point_mm),
+
         fog_light_upper_point_mm: emptyToNull(form.fog_light_upper_point_mm),
         fog_light_lower_point_mm: emptyToNull(form.fog_light_lower_point_mm),
         fog_light_left_distance_mm: emptyToNull(form.fog_light_left_distance_mm),
         fog_light_right_distance_mm: emptyToNull(form.fog_light_right_distance_mm),
+
         brake_signal_upper_point_mm: emptyToNull(form.brake_signal_upper_point_mm),
         brake_signal_lower_point_mm: emptyToNull(form.brake_signal_lower_point_mm),
         brake_signal_left_distance_mm: emptyToNull(form.brake_signal_left_distance_mm),
         brake_signal_right_distance_mm: emptyToNull(form.brake_signal_right_distance_mm),
+
         additional_brake_signal_from_glass_edge_mm: emptyToNull(form.additional_brake_signal_from_glass_edge_mm),
         additional_brake_signal_from_support_surface_mm: emptyToNull(form.additional_brake_signal_from_support_surface_mm),
         additional_brake_signal_optical_center_shift_mm: emptyToNull(form.additional_brake_signal_optical_center_shift_mm),
+
         rear_fog_upper_point_mm: emptyToNull(form.rear_fog_upper_point_mm),
         rear_fog_lower_point_mm: emptyToNull(form.rear_fog_lower_point_mm),
     };
@@ -593,7 +646,6 @@ function ProtocolInspection() {
             setLoading(false);
         }
     };
-
 
     useEffect(() => {
         if (id) {

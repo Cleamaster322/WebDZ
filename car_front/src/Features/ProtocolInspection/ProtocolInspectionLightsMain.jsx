@@ -14,19 +14,16 @@ function ProtocolInspectionLightsMain({
                                           subsectionTitleSx,
                                       }) {
     const lightPairs = [
-        ["Фара ближнего света", "low_beam_count", "low_beam_color"],
         ["Фара дальнего света", "high_beam_count", "high_beam_color"],
         ["Передняя ПТФ", "front_fog_count", "front_fog_color"],
         ["Фонарь заднего хода", "reverse_light_count", "reverse_light_color"],
-        ["Указатели поворота", "turn_signal_count", "turn_signal_color"],
-        ["Передний габаритный огонь", "front_position_light_count", "front_position_light_color"],
-        ["Задний габаритный огонь", "rear_position_light_count", "rear_position_light_color"],
-        ["Сигнал торможения основной", "main_brake_signal_count", "main_brake_signal_color"],
         ["Сигнал торможения дополнительный", "additional_brake_signal_count", "additional_brake_signal_color"],
         ["Задний ПТФ", "rear_fog_count", "rear_fog_color"],
         ["Подсветка госномера", "plate_light_count", "plate_light_color"],
         ["ДХО", "daytime_running_light_count", "daytime_running_light_color"],
-        ["Стояночные огни", "parking_light_count", "parking_light_color"],
+        ["Стояночные огни передние", "parking_light_count", "parking_light_color"],
+        ["Стояночные огни задние", "rear_parking_light_count", "rear_parking_light_color"],
+        ["Адаптивная система переднего освещения", "adaptive_front_lighting_count", "adaptive_front_lighting_color"],
     ];
 
     return (
@@ -36,7 +33,7 @@ function ProtocolInspectionLightsMain({
             </Typography>
 
             <Typography variant="h6" sx={subsectionTitleSx}>
-                Внешние световые приборы (количество и цвет)
+                Внешние световые приборы
             </Typography>
 
             {lightPairs.map(([title, countName, colorName]) =>
@@ -55,6 +52,7 @@ function ProtocolInspectionLightsMain({
             <Typography variant="h6" sx={subsectionTitleSx}>
                 Основные параметры освещения
             </Typography>
+
             <Grid container spacing={2} sx={{mb: 3}}>
                 {renderSelect({
                     form,
@@ -86,6 +84,7 @@ function ProtocolInspectionLightsMain({
             <Typography variant="h6" sx={subsectionTitleSx}>
                 Сила света фар
             </Typography>
+
             <Grid container spacing={2} sx={{mb: 3}}>
                 {renderField({
                     form,
@@ -138,8 +137,9 @@ function ProtocolInspectionLightsMain({
             </Grid>
 
             <Typography variant="h6" sx={subsectionTitleSx}>
-                Частота мерцания указателей поворота
+                Частота мерцания указателей поворота / аварийной сигнализации
             </Typography>
+
             <Grid container spacing={2}>
                 {renderField({
                     form,

@@ -61,9 +61,101 @@ class GenerationCardSerializer(serializers.ModelSerializer):
 
 
 class ConfigurationSerializer(serializers.ModelSerializer):
+    drive_type = serializers.SerializerMethodField()
+    fuel_type = serializers.SerializerMethodField()
+    engine_model = serializers.SerializerMethodField()
+    transmission = serializers.SerializerMethodField()
+    seats_count = serializers.SerializerMethodField()
+    engine_power_kw = serializers.SerializerMethodField()
+    engine_power_hp = serializers.SerializerMethodField()
+    turbo_present = serializers.SerializerMethodField()
+    front_tires = serializers.SerializerMethodField()
+    rear_tires = serializers.SerializerMethodField()
+    body_type = serializers.SerializerMethodField()
+    manufacture_year = serializers.SerializerMethodField()
+
     class Meta:
         model = Configuration
-        fields = '__all__'
+        fields = [
+            'id',
+            'generation',
+            'name',
+            'link',
+            'engine_name',
+            'date_start',
+            'date_end',
+
+            # данные из car_data для отображения и выбора комплектации
+            'drive_type',
+            'fuel_type',
+            'engine_model',
+            'transmission',
+            'seats_count',
+            'engine_power_kw',
+            'engine_power_hp',
+            'turbo_present',
+            'front_tires',
+            'rear_tires',
+            'body_type',
+            'manufacture_year',
+        ]
+
+    def get_car_data(self, obj):
+        return CarData.objects.filter(configuration_id=obj.id).first()
+
+    def get_drive_type(self, obj):
+        car_data = self.get_car_data(obj)
+        return car_data.drive_type if car_data else None
+
+    def get_fuel_type(self, obj):
+        car_data = self.get_car_data(obj)
+        return car_data.fuel_type if car_data else None
+
+    def get_engine_model(self, obj):
+        car_data = self.get_car_data(obj)
+        return car_data.engine_model if car_data else None
+
+    def get_transmission(self, obj):
+        car_data = self.get_car_data(obj)
+        return car_data.transmission if car_data else None
+
+    def get_seats_count(self, obj):
+        car_data = self.get_car_data(obj)
+        return car_data.seats_count if car_data else None
+
+    def get_engine_power_kw(self, obj):
+        car_data = self.get_car_data(obj)
+        return car_data.engine_power_kw if car_data else None
+
+    def get_engine_power_hp(self, obj):
+        car_data = self.get_car_data(obj)
+        return car_data.engine_power_hp if car_data else None
+
+    def get_turbo_present(self, obj):
+        car_data = self.get_car_data(obj)
+        return car_data.turbo_present if car_data else None
+
+    def get_front_tires(self, obj):
+        car_data = self.get_car_data(obj)
+        return car_data.front_tires if car_data else None
+
+    def get_rear_tires(self, obj):
+        car_data = self.get_car_data(obj)
+        return car_data.rear_tires if car_data else None
+
+    def get_body_type(self, obj):
+        car_data = self.get_car_data(obj)
+        if car_data and car_data.body_type:
+            return car_data.body_type
+
+        if obj.generation and obj.generation.body_type:
+            return obj.generation.body_type
+
+        return None
+
+    def get_manufacture_year(self, obj):
+        car_data = self.get_car_data(obj)
+        return car_data.manufacture_year if car_data else None
 
 
 class CarDataSerializer(serializers.ModelSerializer):
@@ -120,6 +212,8 @@ class CarDataProtocolSerializer(serializers.ModelSerializer):
             'vehicle_weight_kg',
 
             'engine_model',
+            'engine_capacity',
+            'engine_power_hp',
             'engine_power_kw',
             'cylinder_layout',
             'cylinders_count',
@@ -359,6 +453,68 @@ class ProtocolCreateSerializer(serializers.ModelSerializer):
 
         return None
 
+    def get_default_light_values(self):
+        """
+        Дефолтные значения под актуальный шаблон протокола.
+        Пользователь потом может изменить их на странице осмотра.
+        """
+        return {
+            # Ближний свет: в шаблоне подсказка "всегда 2"
+            'low_beam_count': 2,
+            'low_beam_color': 'белый',
+
+            # Дальний свет обычно 2, но оставляем редактируемым
+            'high_beam_count': 2,
+            'high_beam_color': 'белый',
+
+            # Передние указатели поворота: "всегда 2"
+            'turn_signal_count': 2,
+            'turn_signal_color': 'автожелтый',
+
+            # Передние габаритные огни: "всегда 2"
+            'front_position_light_count': 2,
+            'front_position_light_color': 'белый',
+
+            # Задние габаритные огни: "красный + 2"
+            'rear_position_light_count': 2,
+            'rear_position_light_color': 'красный',
+
+            # Основной сигнал торможения: "красный + 2"
+            'main_brake_signal_count': 2,
+            'main_brake_signal_color': 'красный',
+
+            # Задние стояночные огни: "нет или всегда 2"
+            # По умолчанию лучше оставить пустым, чтобы пользователь выбрал.
+            'rear_parking_light_count': None,
+            'rear_parking_light_color': 'красный',
+
+            # Передние стояночные огни — тоже оставляем на выбор.
+            'parking_light_count': None,
+            'parking_light_color': 'белый',
+
+            # Остальные приборы зависят от конкретного ТС.
+            'front_fog_count': None,
+            'front_fog_color': 'белый',
+
+            'reverse_light_count': None,
+            'reverse_light_color': 'белый',
+
+            'additional_brake_signal_count': None,
+            'additional_brake_signal_color': 'красный',
+
+            'rear_fog_count': None,
+            'rear_fog_color': 'красный',
+
+            'plate_light_count': None,
+            'plate_light_color': 'белый',
+
+            'daytime_running_light_count': None,
+            'daytime_running_light_color': 'белый',
+
+            'adaptive_front_lighting_count': None,
+            'adaptive_front_lighting_color': 'белый',
+        }
+
     def create(self, validated_data):
         configuration_id = validated_data.pop('configuration_id', None)
 
@@ -453,7 +609,11 @@ class ProtocolCreateSerializer(serializers.ModelSerializer):
             **brake_defaults
         )
 
-        ProtocolLight.objects.create(protocol=protocol)
+        ProtocolLight.objects.create(
+            protocol=protocol,
+            **self.get_default_light_values()
+        )
+
         ProtocolTestCondition.objects.create(protocol=protocol)
         ProtocolRoadCondition.objects.create(protocol=protocol)
         ProtocolPowerSupply.objects.create(protocol=protocol)

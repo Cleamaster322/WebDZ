@@ -9,11 +9,11 @@ import {
     CircularProgress,
     Chip,
     MenuItem,
+    Button,
 } from "@mui/material";
 import {useState, useEffect} from "react";
 import api from "../shared/api.jsx";
 import {useNavigate} from "react-router-dom";
-import Button from "@mui/material/Button";
 
 function getGenerationImageUrl(imagePath) {
     if (!imagePath) return "";
@@ -64,12 +64,22 @@ function groupGenerationsByRegion(generations) {
     }, {});
 }
 
+function getBodyCodeOptions(generation) {
+    if (!generation?.body_code) return [];
+
+    return generation.body_code
+        .split(",")
+        .map((item) => item.trim())
+        .filter(Boolean)
+        .sort((a, b) => a.localeCompare(b, "ru", {numeric: true}));
+}
+
 function buildCreateProtocolPayload({
-                                        selectedBrand,
-                                        selectedModel,
-                                        selectedGeneration,
-                                        selectedConfiguration,
-                                    }) {
+    selectedBrand,
+    selectedModel,
+    selectedGeneration,
+    selectedConfiguration,
+}) {
     const payload = {
         owner_name: "Не указано",
         brand_name: selectedBrand?.name || "",
@@ -84,8 +94,76 @@ function buildCreateProtocolPayload({
     return payload;
 }
 
+function buildConfigurationLabel(option) {
+    if (!option) return "";
+
+    const parts = [];
+
+    if (option.name) {
+        parts.push(option.name);
+    }
+
+    if (option.engine_name) {
+        parts.push(`двигатель: ${option.engine_name}`);
+    }
+
+    if (option.engine_model) {
+        parts.push(`модель ДВС: ${option.engine_model}`);
+    }
+
+    if (option.engine_power_kw) {
+        parts.push(`${option.engine_power_kw} кВт`);
+    } else if (option.engine_power_hp) {
+        parts.push(`${option.engine_power_hp} л.с.`);
+    }
+
+    if (option.fuel_type) {
+        parts.push(option.fuel_type);
+    }
+
+    if (option.transmission) {
+        parts.push(option.transmission);
+    }
+
+    if (option.drive_type) {
+        parts.push(option.drive_type);
+    }
+
+    if (option.seats_count) {
+        parts.push(`${option.seats_count} мест`);
+    }
+
+    const period = option.date_start || option.date_end
+        ? ` (${option.date_start || "?"} - ${option.date_end || "?"})`
+        : "";
+
+    return `${parts.join(" · ")}${period}`;
+}
+
 function CarSelection() {
     const navigate = useNavigate();
+
+    const emptyConfigurationFilterOptions = {
+        drive_types: [],
+        fuel_types: [],
+        engine_models: [],
+        transmissions: [],
+        seats_counts: [],
+        engine_powers_kw: [],
+        engine_powers_hp: [],
+    };
+
+    const emptyConfigurationFilters = {
+        drive_type: "",
+        fuel_type: "",
+        engine_model: "",
+        transmission: "",
+        seats_count: "",
+        manufacture_year: "",
+        body_code: "",
+        engine_power: "",
+        turbo_present: "",
+    };
 
     const [brands, setBrands] = useState([]);
     const [selectedBrand, setSelectedBrand] = useState(null);
@@ -102,21 +180,8 @@ function CarSelection() {
     const [creatingProtocol, setCreatingProtocol] = useState(false);
     const [createProtocolError, setCreateProtocolError] = useState("");
 
-    const [configurationFilterOptions, setConfigurationFilterOptions] = useState({
-        drive_types: [],
-        fuel_types: [],
-        engine_models: [],
-        transmissions: [],
-        seats_counts: [],
-    });
-
-    const [configurationFilters, setConfigurationFilters] = useState({
-        drive_type: "",
-        fuel_type: "",
-        engine_model: "",
-        transmission: "",
-        seats_count: "",
-    });
+    const [configurationFilterOptions, setConfigurationFilterOptions] = useState(emptyConfigurationFilterOptions);
+    const [configurationFilters, setConfigurationFilters] = useState(emptyConfigurationFilters);
 
     const [brandInputValue, setBrandInputValue] = useState("");
     const [modelInputValue, setModelInputValue] = useState("");
@@ -216,13 +281,7 @@ function CarSelection() {
 
     useEffect(() => {
         if (!selectedGeneration) {
-            setConfigurationFilterOptions({
-                drive_types: [],
-                fuel_types: [],
-                engine_models: [],
-                transmissions: [],
-                seats_counts: [],
-            });
+            setConfigurationFilterOptions(emptyConfigurationFilterOptions);
             return;
         }
 
@@ -236,22 +295,13 @@ function CarSelection() {
                     },
                 });
 
-                setConfigurationFilterOptions(response.data || {
-                    drive_types: [],
-                    fuel_types: [],
-                    engine_models: [],
-                    transmissions: [],
-                    seats_counts: [],
+                setConfigurationFilterOptions({
+                    ...emptyConfigurationFilterOptions,
+                    ...(response.data || {}),
                 });
             } catch (error) {
                 console.error(error);
-                setConfigurationFilterOptions({
-                    drive_types: [],
-                    fuel_types: [],
-                    engine_models: [],
-                    transmissions: [],
-                    seats_counts: [],
-                });
+                setConfigurationFilterOptions(emptyConfigurationFilterOptions);
             } finally {
                 setConfigurationFilterLoading(false);
             }
@@ -280,25 +330,11 @@ function CarSelection() {
                         params.name = configurationInputValue;
                     }
 
-                    if (configurationFilters.drive_type) {
-                        params.drive_type = configurationFilters.drive_type;
-                    }
-
-                    if (configurationFilters.fuel_type) {
-                        params.fuel_type = configurationFilters.fuel_type;
-                    }
-
-                    if (configurationFilters.engine_model) {
-                        params.engine_model = configurationFilters.engine_model;
-                    }
-
-                    if (configurationFilters.transmission) {
-                        params.transmission = configurationFilters.transmission;
-                    }
-
-                    if (configurationFilters.seats_count) {
-                        params.seats_count = configurationFilters.seats_count;
-                    }
+                    Object.entries(configurationFilters).forEach(([key, value]) => {
+                        if (value !== "" && value !== null && value !== undefined) {
+                            params[key] = value;
+                        }
+                    });
 
                     const response = await api.get("/cars/configurations-filtered/", {params});
                     setConfigurations(response.data.results || []);
@@ -319,19 +355,12 @@ function CarSelection() {
     const handleLogout = () => {
         localStorage.removeItem("accessToken");
         localStorage.removeItem("refreshToken");
-        api.client.defaults.headers.common["Authorization"] = null;
+        delete api.client.defaults.headers.common["Authorization"];
         navigate("/");
     };
 
     const resetConfigurationFilters = () => {
-        setConfigurationFilters({
-            drive_type: "",
-            fuel_type: "",
-            engine_model: "",
-            transmission: "",
-            seats_count: "",
-        });
-
+        setConfigurationFilters(emptyConfigurationFilters);
         setSelectedConfiguration(null);
         setConfigurationInputValue("");
     };
@@ -349,7 +378,8 @@ function CarSelection() {
         setSelectedGeneration(generation);
         setSelectedConfiguration(null);
         setConfigurationInputValue("");
-        resetConfigurationFilters();
+        setConfigurationFilters(emptyConfigurationFilters);
+        setConfigurations([]);
     };
 
     const handleNextPage = async () => {
@@ -367,7 +397,6 @@ function CarSelection() {
             });
 
             const response = await api.post("/cars/protocols/create/", payload);
-
             const createdProtocol = response.data;
 
             navigate(`/protocols/${createdProtocol.id}/inspection`);
@@ -379,7 +408,8 @@ function CarSelection() {
                 error.response?.data?.configuration_id ||
                 error.response?.data?.commercial_name?.[0] ||
                 error.response?.data?.brand_name?.[0] ||
-                error.response?.data?.error;
+                error.response?.data?.error ||
+                error.response?.data?.detail;
 
             setCreateProtocolError(
                 backendError || "Не удалось создать протокол"
@@ -390,6 +420,7 @@ function CarSelection() {
     };
 
     const groupedGenerations = groupGenerationsByRegion(generations);
+    const bodyCodeOptions = getBodyCodeOptions(selectedGeneration);
 
     return (
         <Box sx={{padding: 3}}>
@@ -411,7 +442,9 @@ function CarSelection() {
                 inputValue={brandInputValue}
                 disablePortal
                 options={brands}
-                getOptionLabel={(option) => option.name || ""}
+                getOptionLabel={(option) => option?.name || ""}
+                isOptionEqualToValue={(option, value) => option.id === value.id}
+                filterOptions={(options) => options}
                 loading={brandLoading}
                 onInputChange={(event, newInputValue) => setBrandInputValue(newInputValue)}
                 onChange={(event, newValue) => {
@@ -424,7 +457,7 @@ function CarSelection() {
                     setConfigurations([]);
                     setModelInputValue("");
                     setConfigurationInputValue("");
-                    resetConfigurationFilters();
+                    setConfigurationFilters(emptyConfigurationFilters);
                 }}
                 sx={{width: 400, marginBottom: 2}}
                 renderInput={(params) => (
@@ -438,7 +471,9 @@ function CarSelection() {
                     inputValue={modelInputValue}
                     disablePortal
                     options={models}
-                    getOptionLabel={(option) => option.name || ""}
+                    getOptionLabel={(option) => option?.name || ""}
+                    isOptionEqualToValue={(option, value) => option.id === value.id}
+                    filterOptions={(options) => options}
                     loading={modelLoading}
                     onInputChange={(event, newInputValue) => setModelInputValue(newInputValue)}
                     onChange={(event, newValue) => {
@@ -448,7 +483,7 @@ function CarSelection() {
                         setGenerations([]);
                         setConfigurations([]);
                         setConfigurationInputValue("");
-                        resetConfigurationFilters();
+                        setConfigurationFilters(emptyConfigurationFilters);
                     }}
                     sx={{width: 400, marginBottom: 3}}
                     renderInput={(params) => (
@@ -547,7 +582,7 @@ function CarSelection() {
                                                 </Typography>
 
                                                 <Typography variant="body2" color="text.secondary">
-                                                    {generation.date_start} - {generation.date_end}
+                                                    {generation.date_start || "?"} - {generation.date_end || "?"}
                                                 </Typography>
 
                                                 <Box sx={{display: "flex", gap: 1, flexWrap: "wrap", marginTop: 1}}>
@@ -606,6 +641,30 @@ function CarSelection() {
                         }}
                     >
                         <TextField
+                            label="Год выпуска"
+                            value={configurationFilters.manufacture_year}
+                            onChange={(e) => handleConfigurationFilterChange("manufacture_year", e.target.value)}
+                            size="small"
+                            placeholder="Например 2021"
+                        />
+
+                        <TextField
+                            select
+                            label="Код кузова"
+                            value={configurationFilters.body_code}
+                            onChange={(e) => handleConfigurationFilterChange("body_code", e.target.value)}
+                            size="small"
+                            disabled={bodyCodeOptions.length === 0}
+                        >
+                            <MenuItem value="">Все</MenuItem>
+                            {bodyCodeOptions.map((value) => (
+                                <MenuItem key={value} value={value}>
+                                    {value}
+                                </MenuItem>
+                            ))}
+                        </TextField>
+
+                        <TextField
                             select
                             label="Привод"
                             value={configurationFilters.drive_type}
@@ -652,6 +711,28 @@ function CarSelection() {
 
                         <TextField
                             select
+                            label="Мощность"
+                            value={configurationFilters.engine_power}
+                            onChange={(e) => handleConfigurationFilterChange("engine_power", e.target.value)}
+                            size="small"
+                        >
+                            <MenuItem value="">Все</MenuItem>
+
+                            {(configurationFilterOptions.engine_powers_kw || []).map((value) => (
+                                <MenuItem key={`kw-${value}`} value={value}>
+                                    {value} кВт
+                                </MenuItem>
+                            ))}
+
+                            {(configurationFilterOptions.engine_powers_hp || []).map((value) => (
+                                <MenuItem key={`hp-${value}`} value={value}>
+                                    {value} л.с.
+                                </MenuItem>
+                            ))}
+                        </TextField>
+
+                        <TextField
+                            select
                             label="Тип коробки"
                             value={configurationFilters.transmission}
                             onChange={(e) => handleConfigurationFilterChange("transmission", e.target.value)}
@@ -679,6 +760,18 @@ function CarSelection() {
                                 </MenuItem>
                             ))}
                         </TextField>
+
+                        <TextField
+                            select
+                            label="Турбонаддув"
+                            value={configurationFilters.turbo_present}
+                            onChange={(e) => handleConfigurationFilterChange("turbo_present", e.target.value)}
+                            size="small"
+                        >
+                            <MenuItem value="">Все</MenuItem>
+                            <MenuItem value="true">Есть</MenuItem>
+                            <MenuItem value="false">Нет</MenuItem>
+                        </TextField>
                     </Box>
 
                     <Button
@@ -689,27 +782,28 @@ function CarSelection() {
                         Сбросить фильтры комплектаций
                     </Button>
 
+                    <Typography variant="body2" color="text.secondary" sx={{marginBottom: 1}}>
+                        Найдено комплектаций: {configurations.length}
+                    </Typography>
+
                     <Autocomplete
                         value={selectedConfiguration}
                         inputValue={configurationInputValue}
                         disablePortal
                         options={configurations}
-                        getOptionLabel={(option) => {
-                            if (!option) return "";
-
-                            const engine = option.engine_name ? `, двигатель: ${option.engine_name}` : "";
-                            const period = option.date_start || option.date_end
-                                ? ` (${option.date_start || "?"} - ${option.date_end || "?"})`
-                                : "";
-
-                            return `${option.name}${engine}${period}`;
-                        }}
+                        getOptionLabel={buildConfigurationLabel}
+                        isOptionEqualToValue={(option, value) => option.id === value.id}
+                        filterOptions={(options) => options}
                         loading={configurationLoading}
                         onInputChange={(event, newInputValue) => setConfigurationInputValue(newInputValue)}
                         onChange={(event, newValue) => setSelectedConfiguration(newValue)}
-                        sx={{width: 700, marginTop: 1}}
+                        sx={{width: 850, marginTop: 1}}
                         renderInput={(params) => (
-                            <TextField {...params} label="Выберите конфигурацию"/>
+                            <TextField
+                                {...params}
+                                label="Выберите конфигурацию"
+                                placeholder="Можно искать по названию: X, Bolero, Highway Star..."
+                            />
                         )}
                     />
 

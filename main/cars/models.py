@@ -40,11 +40,11 @@ class Generation(models.Model):
     region = models.CharField(max_length=50, null=True, blank=True)
     body_type = models.CharField(max_length=100, null=True, blank=True)
     is_hybrid = models.BooleanField(default=False)
-    generation_num = models.IntegerField()
-    restyling_num = models.IntegerField()
-    date_start = models.CharField(max_length=11)
-    date_end = models.CharField(max_length=11)
-    image_path = models.URLField(max_length=500, null=True, blank=True)
+    generation_num = models.IntegerField(null=True, blank=True)
+    restyling_num = models.IntegerField(null=True, blank=True)
+    date_start = models.CharField(max_length=11, null=True, blank=True)
+    date_end = models.CharField(max_length=11, null=True, blank=True)
+    image_path = models.CharField(max_length=500, null=True, blank=True)
 
     class Meta:
         db_table = 'generations'
@@ -56,11 +56,11 @@ class Generation(models.Model):
 class Configuration(models.Model):
     id = models.AutoField(primary_key=True)
     generation = models.ForeignKey(Generation, on_delete=models.DO_NOTHING, db_column='generation_id')
-    name = models.CharField(max_length=255)
-    link = models.URLField(max_length=255)
+    name = models.CharField(max_length=255, null=True, blank=True)
+    link = models.URLField(max_length=255, null=True, blank=True)
     engine_name = models.CharField(max_length=100, null=True, blank=True)
-    date_start = models.CharField(max_length=11)
-    date_end = models.CharField(max_length=11)
+    date_start = models.CharField(max_length=11, null=True, blank=True)
+    date_end = models.CharField(max_length=11, null=True, blank=True)
 
     class Meta:
         db_table = 'configurations'
@@ -90,6 +90,8 @@ class CarData(models.Model):
     vehicle_weight_kg = models.IntegerField(null=True, blank=True)
 
     engine_model = models.CharField(max_length=255, null=True, blank=True)
+    engine_capacity = models.FloatField(null=True, blank=True)
+    engine_power_hp = models.IntegerField(null=True, blank=True)
     engine_power_kw = models.IntegerField(null=True, blank=True)
     cylinder_layout = models.CharField(max_length=50, null=True, blank=True)
     cylinders_count = models.IntegerField(null=True, blank=True)
@@ -196,8 +198,7 @@ class Protocol(models.Model):
         ordering = ['-created_at']
 
     def __str__(self):
-        return self.protocol_number
-
+        return self.protocol_number or f"Protocol #{self.id}"
 
 # =========================
 # ProtocolMeasurement
@@ -248,6 +249,7 @@ class ProtocolMeasurement(models.Model):
     ]
 
     id = models.BigAutoField(primary_key=True)
+
     protocol = models.OneToOneField(
         Protocol,
         on_delete=models.CASCADE,
@@ -255,26 +257,56 @@ class ProtocolMeasurement(models.Model):
         db_column='protocol_id'
     )
 
-    wheel_formula = models.CharField(max_length=20, choices=WHEEL_FORMULA_CHOICES, blank=True, null=True)
+    # Конструктив
+    wheel_formula = models.CharField(
+        max_length=20,
+        choices=WHEEL_FORMULA_CHOICES,
+        blank=True,
+        null=True
+    )
     mufflers_count = models.IntegerField(blank=True, null=True)
     seats_count = models.CharField(max_length=50, blank=True, null=True)
     steps_present = models.BooleanField(blank=True, null=True)
 
+    # Двигатель
     engine_model = models.CharField(max_length=255, blank=True, null=True)
     engine_power_kw = models.IntegerField(blank=True, null=True)
-    engine_layout = models.CharField(max_length=20, choices=ENGINE_LAYOUT_CHOICES, blank=True, null=True)
-    cylinder_layout = models.CharField(max_length=20, choices=CYLINDER_LAYOUT_CHOICES, blank=True, null=True)
+    engine_layout = models.CharField(
+        max_length=20,
+        choices=ENGINE_LAYOUT_CHOICES,
+        blank=True,
+        null=True
+    )
+    cylinder_layout = models.CharField(
+        max_length=20,
+        choices=CYLINDER_LAYOUT_CHOICES,
+        blank=True,
+        null=True
+    )
     cylinders_count = models.IntegerField(blank=True, null=True)
-    fuel_type = models.CharField(max_length=20, choices=FUEL_TYPE_CHOICES, blank=True, null=True)
+    fuel_type = models.CharField(
+        max_length=20,
+        choices=FUEL_TYPE_CHOICES,
+        blank=True,
+        null=True
+    )
     turbo_present = models.BooleanField(blank=True, null=True)
 
+    # Рулевое управление
     steering_booster_type = models.CharField(
         max_length=20,
         choices=STEERING_BOOSTER_TYPE_CHOICES,
         blank=True,
         null=True
     )
+    steering_backlash_deg = models.DecimalField(
+        max_digits=8,
+        decimal_places=2,
+        blank=True,
+        null=True
+    )
 
+    # Трансмиссия
     transmission_type = models.CharField(
         max_length=20,
         choices=TRANSMISSION_TYPE_CHOICES,
@@ -282,14 +314,23 @@ class ProtocolMeasurement(models.Model):
         null=True
     )
 
+    # Остаточная глубина рисунка протектора
     tire_depth_fl_mm = models.DecimalField(max_digits=6, decimal_places=2, blank=True, null=True)
     tire_depth_fr_mm = models.DecimalField(max_digits=6, decimal_places=2, blank=True, null=True)
     tire_depth_rl_mm = models.DecimalField(max_digits=6, decimal_places=2, blank=True, null=True)
     tire_depth_rr_mm = models.DecimalField(max_digits=6, decimal_places=2, blank=True, null=True)
 
+    # Кузов и наружные элементы
     bumper_bends_to_body = models.BooleanField(blank=True, null=True)
-    bumper_to_body_distance_mm = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    bumper_to_body_distance_mm = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        blank=True,
+        null=True
+    )
+
     opening_roof_present = models.BooleanField(blank=True, null=True)
+
     fuel_tank_leak_protection_measure = models.CharField(
         max_length=50,
         choices=FUEL_TANK_LEAK_PROTECTION_CHOICES,
@@ -297,25 +338,78 @@ class ProtocolMeasurement(models.Model):
         null=True
     )
 
-    protruding_elements_doors_mm = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
-    protruding_elements_other_mm = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    protruding_elements_doors_mm = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        blank=True,
+        null=True
+    )
+    protruding_elements_other_mm = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        blank=True,
+        null=True
+    )
 
-    glass_transparency_right_pct = models.DecimalField(max_digits=6, decimal_places=2, blank=True, null=True)
-    glass_transparency_left_pct = models.DecimalField(max_digits=6, decimal_places=2, blank=True, null=True)
-    glass_transparency_windshield_pct = models.DecimalField(max_digits=6, decimal_places=2, blank=True, null=True)
-    sun_strip_width_mm = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    # Стекла
+    glass_transparency_right_pct = models.DecimalField(
+        max_digits=6,
+        decimal_places=2,
+        blank=True,
+        null=True
+    )
+    glass_transparency_left_pct = models.DecimalField(
+        max_digits=6,
+        decimal_places=2,
+        blank=True,
+        null=True
+    )
+    glass_transparency_windshield_pct = models.DecimalField(
+        max_digits=6,
+        decimal_places=2,
+        blank=True,
+        null=True
+    )
+    sun_strip_width_mm = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        blank=True,
+        null=True
+    )
 
-    steering_backlash_deg = models.DecimalField(max_digits=8, decimal_places=2, blank=True, null=True)
+    # Скорость
+    speed_by_speedometer_kmh = models.DecimalField(
+        max_digits=8,
+        decimal_places=2,
+        blank=True,
+        null=True
+    )
+    actual_speed_kmh = models.DecimalField(
+        max_digits=8,
+        decimal_places=2,
+        blank=True,
+        null=True
+    )
 
-    speed_by_speedometer_kmh = models.DecimalField(max_digits=8, decimal_places=2, blank=True, null=True)
-    actual_speed_kmh = models.DecimalField(max_digits=8, decimal_places=2, blank=True, null=True)
+    # Шум отработавших газов
+    exhaust_noise_constant_db = models.DecimalField(
+        max_digits=8,
+        decimal_places=2,
+        blank=True,
+        null=True
+    )
+    exhaust_noise_deceleration_db = models.DecimalField(
+        max_digits=8,
+        decimal_places=2,
+        blank=True,
+        null=True
+    )
 
-    exhaust_noise_constant_db = models.DecimalField(max_digits=8,decimal_places=2,blank=True,null=True)
-    exhaust_noise_deceleration_db = models.DecimalField(max_digits=8,decimal_places=2,blank=True,null=True)
-
+    # Содержание CO
     co_min_pct = models.DecimalField(max_digits=8, decimal_places=3, blank=True, null=True)
     co_max_pct = models.DecimalField(max_digits=8, decimal_places=3, blank=True, null=True)
 
+    # Коэффициент поглощения света
     light_absorption_1 = models.DecimalField(max_digits=8, decimal_places=3, blank=True, null=True)
     light_absorption_2 = models.DecimalField(max_digits=8, decimal_places=3, blank=True, null=True)
     light_absorption_3 = models.DecimalField(max_digits=8, decimal_places=3, blank=True, null=True)
@@ -323,15 +417,42 @@ class ProtocolMeasurement(models.Model):
     light_absorption_5 = models.DecimalField(max_digits=8, decimal_places=3, blank=True, null=True)
     light_absorption_6 = models.DecimalField(max_digits=8, decimal_places=3, blank=True, null=True)
 
+    # Габариты и масса
     vehicle_length_mm = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     vehicle_width_mm = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     vehicle_height_mm = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     vehicle_weight_kg = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
 
+    # Нагрузка на ось
     axle1_load_kg = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     axle2_load_kg = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+
+    # Нагрузка на ось на тормозном стенде
     stand_axle1_load_kg = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     stand_axle2_load_kg = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+
+    # Новые поля под актуальную версию протокола
+    mileage_km = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        blank=True,
+        null=True
+    )
+
+    spare_wheel_present = models.BooleanField(
+        blank=True,
+        null=True
+    )
+
+    steering_lock_present = models.BooleanField(
+        blank=True,
+        null=True
+    )
+
+    gas_equipment_present = models.BooleanField(
+        blank=True,
+        null=True
+    )
 
     class Meta:
         db_table = 'protocol_measurements'
@@ -398,6 +519,7 @@ class ProtocolLight(models.Model):
     ]
 
     id = models.BigAutoField(primary_key=True)
+
     protocol = models.OneToOneField(
         Protocol,
         on_delete=models.CASCADE,
@@ -405,6 +527,7 @@ class ProtocolLight(models.Model):
         db_column='protocol_id'
     )
 
+    # Количество и цвет внешних световых приборов
     low_beam_count = models.IntegerField(blank=True, null=True)
     low_beam_color = models.CharField(max_length=50, blank=True, null=True)
 
@@ -441,45 +564,151 @@ class ProtocolLight(models.Model):
     daytime_running_light_count = models.IntegerField(blank=True, null=True)
     daytime_running_light_color = models.CharField(max_length=50, blank=True, null=True)
 
+    # Передние стояночные огни
     parking_light_count = models.IntegerField(blank=True, null=True)
     parking_light_color = models.CharField(max_length=50, blank=True, null=True)
 
-    headlight_type = models.CharField(max_length=20, choices=HEADLIGHT_TYPE_CHOICES, blank=True, null=True)
+    # Задние стояночные огни
+    rear_parking_light_count = models.IntegerField(blank=True, null=True)
+    rear_parking_light_color = models.CharField(max_length=50, blank=True, null=True)
 
-    low_beam_upper_point_mm = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
-    low_beam_lower_point_mm = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    # Адаптивная система переднего освещения
+    adaptive_front_lighting_count = models.IntegerField(blank=True, null=True)
+    adaptive_front_lighting_color = models.CharField(max_length=50, blank=True, null=True)
 
-    fog_light_upper_point_mm = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
-    fog_light_lower_point_mm = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
-    fog_light_left_distance_mm = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
-    fog_light_right_distance_mm = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    # Тип фар
+    headlight_type = models.CharField(
+        max_length=20,
+        choices=HEADLIGHT_TYPE_CHOICES,
+        blank=True,
+        null=True
+    )
 
-    brake_signal_upper_point_mm = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
-    brake_signal_lower_point_mm = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
-    brake_signal_left_distance_mm = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
-    brake_signal_right_distance_mm = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    # Установка фар ближнего света по высоте
+    low_beam_upper_point_mm = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        blank=True,
+        null=True
+    )
+    low_beam_lower_point_mm = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        blank=True,
+        null=True
+    )
 
-    additional_brake_signal_from_glass_edge_mm = models.DecimalField(max_digits=10, decimal_places=2, blank=True,
-                                                                     null=True)
-    additional_brake_signal_from_support_surface_mm = models.DecimalField(max_digits=10, decimal_places=2, blank=True,
-                                                                          null=True)
-    additional_brake_signal_optical_center_shift_mm = models.DecimalField(max_digits=10, decimal_places=2, blank=True,
-                                                                          null=True)
+    # Установка ПТФ
+    fog_light_upper_point_mm = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        blank=True,
+        null=True
+    )
+    fog_light_lower_point_mm = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        blank=True,
+        null=True
+    )
+    fog_light_left_distance_mm = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        blank=True,
+        null=True
+    )
+    fog_light_right_distance_mm = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        blank=True,
+        null=True
+    )
 
-    rear_fog_upper_point_mm = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
-    rear_fog_lower_point_mm = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    # Установка основных сигналов торможения
+    brake_signal_upper_point_mm = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        blank=True,
+        null=True
+    )
+    brake_signal_lower_point_mm = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        blank=True,
+        null=True
+    )
+    brake_signal_left_distance_mm = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        blank=True,
+        null=True
+    )
+    brake_signal_right_distance_mm = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        blank=True,
+        null=True
+    )
 
+    # Установка дополнительного сигнала торможения
+    additional_brake_signal_from_glass_edge_mm = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        blank=True,
+        null=True
+    )
+    additional_brake_signal_from_support_surface_mm = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        blank=True,
+        null=True
+    )
+    additional_brake_signal_optical_center_shift_mm = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        blank=True,
+        null=True
+    )
+
+    # Установка задних ПТФ по высоте
+    rear_fog_upper_point_mm = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        blank=True,
+        null=True
+    )
+    rear_fog_lower_point_mm = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        blank=True,
+        null=True
+    )
+
+    # Омыватели фар
     headlight_washer_present = models.BooleanField(blank=True, null=True)
 
+    # Сила света фар
     left_34v_cd = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True)
     left_52h_cd = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True)
     left_high_beam_cd = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True)
+
     right_34v_cd = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True)
     right_52h_cd = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True)
     right_high_beam_cd = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True)
 
-    turn_signal_frequency_per_min = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
-    turn_signal_frequency_hz = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    # Частота мерцания указателей поворота / аварийной сигнализации
+    turn_signal_frequency_per_min = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        blank=True,
+        null=True
+    )
+    turn_signal_frequency_hz = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        blank=True,
+        null=True
+    )
 
     class Meta:
         db_table = 'protocol_lights'
