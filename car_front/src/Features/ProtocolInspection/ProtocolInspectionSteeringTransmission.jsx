@@ -26,12 +26,12 @@ function ProtocolInspectionSteeringTransmission({
                     form,
                     handleChange,
                     selectFieldSx,
-                    label: "Тип усилителя",
+                    label: "Тип усилителя рулевого управления",
                     name: "steering_booster_type",
                     md: 6,
                     options: [
-                        {value: "hydraulic", label: "гидромеханический"},
-                        {value: "electric", label: "электромеханический"},
+                        {value: "hydraulic", label: "Гидромеханический"},
+                        {value: "electric", label: "Электромеханический"},
                     ],
                 })}
             </Grid>

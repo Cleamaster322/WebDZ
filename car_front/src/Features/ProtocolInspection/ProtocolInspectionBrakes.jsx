@@ -21,6 +21,7 @@ function ProtocolInspectionBrakes({
             <Typography variant="h6" sx={subsectionTitleSx}>
                 Типы систем
             </Typography>
+
             <Grid container spacing={2} sx={{mb: 3}}>
                 {renderSelect({
                     form,
@@ -34,6 +35,7 @@ function ProtocolInspectionBrakes({
                         {value: "disc_drum", label: "Дисковая/барабанная"},
                     ],
                 })}
+
                 {renderSelect({
                     form,
                     handleChange,
@@ -52,6 +54,7 @@ function ProtocolInspectionBrakes({
             <Typography variant="h6" sx={subsectionTitleSx}>
                 Усилие на органе управления
             </Typography>
+
             <Grid container spacing={2} sx={{mb: 3}}>
                 {renderField({
                     form,
@@ -61,6 +64,7 @@ function ProtocolInspectionBrakes({
                     name: "service_brake_control_force_axle1_n",
                     md: 4,
                 })}
+
                 {renderField({
                     form,
                     handleChange,
@@ -69,6 +73,7 @@ function ProtocolInspectionBrakes({
                     name: "service_brake_control_force_axle2_n",
                     md: 4,
                 })}
+
                 {renderField({
                     form,
                     handleChange,
@@ -82,6 +87,7 @@ function ProtocolInspectionBrakes({
             <Typography variant="h6" sx={subsectionTitleSx}>
                 Относительная разность тормозных сил
             </Typography>
+
             <Grid container spacing={2} sx={{mb: 3}}>
                 {renderField({
                     form,
@@ -91,6 +97,7 @@ function ProtocolInspectionBrakes({
                     name: "axle_1_brake_difference_pct",
                     md: 6,
                 })}
+
                 {renderField({
                     form,
                     handleChange,
@@ -104,6 +111,7 @@ function ProtocolInspectionBrakes({
             <Typography variant="h6" sx={subsectionTitleSx}>
                 Удельная тормозная сила рабочей тормозной системы
             </Typography>
+
             <Grid container spacing={2} sx={{mb: 3}}>
                 {renderField({
                     form,
@@ -113,6 +121,7 @@ function ProtocolInspectionBrakes({
                     name: "service_brake_front_left_kn",
                     md: 3,
                 })}
+
                 {renderField({
                     form,
                     handleChange,
@@ -121,6 +130,7 @@ function ProtocolInspectionBrakes({
                     name: "service_brake_front_right_kn",
                     md: 3,
                 })}
+
                 {renderField({
                     form,
                     handleChange,
@@ -129,6 +139,7 @@ function ProtocolInspectionBrakes({
                     name: "service_brake_rear_left_kn",
                     md: 3,
                 })}
+
                 {renderField({
                     form,
                     handleChange,
@@ -142,7 +153,8 @@ function ProtocolInspectionBrakes({
             <Typography variant="h6" sx={subsectionTitleSx}>
                 Удельная тормозная сила стояночной тормозной системы
             </Typography>
-            <Grid container spacing={2} sx={{mb: 3}}>
+
+            <Grid container spacing={2}>
                 {renderField({
                     form,
                     handleChange,
@@ -151,34 +163,13 @@ function ProtocolInspectionBrakes({
                     name: "parking_brake_left_kn",
                     md: 6,
                 })}
+
                 {renderField({
                     form,
                     handleChange,
                     textFieldSx,
                     label: "Заднее правое, кН",
                     name: "parking_brake_right_kn",
-                    md: 6,
-                })}
-            </Grid>
-
-            <Typography variant="h6" sx={subsectionTitleSx}>
-                Нагрузка на ось (стенд)
-            </Typography>
-            <Grid container spacing={2}>
-                {renderField({
-                    form,
-                    handleChange,
-                    textFieldSx,
-                    label: "Ось 1, кг",
-                    name: "stand_axle1_load_kg",
-                    md: 6,
-                })}
-                {renderField({
-                    form,
-                    handleChange,
-                    textFieldSx,
-                    label: "Ось 2, кг",
-                    name: "stand_axle2_load_kg",
                     md: 6,
                 })}
             </Grid>

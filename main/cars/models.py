@@ -85,7 +85,15 @@ class CarData(models.Model):
 
     seats_count = models.CharField(max_length=50, null=True, blank=True)
     clearance = models.IntegerField(null=True, blank=True)
+
+    # Тип кузова: Хэтчбек, Седан, Универсал и т.д.
     body_type = models.CharField(max_length=255, null=True, blank=True)
+
+    # Маркировка кузова из справочника: 5BA-B43W, CBA-TD54W и т.д.
+    # В протокол нужно передавать очищенное значение без японского префикса:
+    # 5BA-B43W -> B43W
+    # CBA-TD54W -> TD54W
+    body_mark = models.CharField(max_length=100, null=True, blank=True)
 
     vehicle_weight_kg = models.IntegerField(null=True, blank=True)
 
@@ -104,6 +112,27 @@ class CarData(models.Model):
     vehicle_width_mm = models.IntegerField(null=True, blank=True)
     vehicle_height_mm = models.IntegerField(null=True, blank=True)
 
+    @property
+    def normalized_body_mark(self):
+        """
+        Очищенная маркировка кузова для протокола.
+
+        Примеры:
+        5BA-B43W  -> B43W
+        CBA-TD54W -> TD54W
+        DBA-Z12   -> Z12
+        B43W      -> B43W
+        """
+        if not self.body_mark:
+            return None
+
+        value = str(self.body_mark).strip()
+
+        if '-' in value:
+            return value.split('-')[-1].strip()
+
+        return value
+
     class Meta:
         db_table = 'car_data'
         verbose_name = 'Car Data'
@@ -111,7 +140,6 @@ class CarData(models.Model):
 
     def __str__(self):
         return f"{self.configuration.name} - {self.fuel_type}"
-
 
 # =========================
 # Протокол

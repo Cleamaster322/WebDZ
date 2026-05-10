@@ -30,8 +30,9 @@ function ProtocolInspectionVehicle({
                     label: "Марка",
                     name: "brand_name",
                     md: 3,
-                    placeholder: "Kia",
+                    placeholder: "Nissan",
                 })}
+
                 {renderField({
                     form,
                     handleChange,
@@ -39,16 +40,19 @@ function ProtocolInspectionVehicle({
                     label: "Коммерческое название",
                     name: "commercial_name",
                     md: 3,
-                    placeholder: "Rio",
+                    placeholder: "DAYZ",
                 })}
+
                 {renderField({
                     form,
                     handleChange,
                     textFieldSx,
-                    label: "VIN (№ кузова/шасси)",
+                    label: "VIN / № кузова / № шасси",
                     name: "vin",
                     md: 3,
+                    placeholder: "B43W-0105450",
                 })}
+
                 {renderSelect({
                     form,
                     handleChange,
@@ -68,10 +72,12 @@ function ProtocolInspectionVehicle({
                     form,
                     handleChange,
                     textFieldSx,
-                    label: "Тип кузова",
+                    label: "Тип / код кузова",
                     name: "body_type",
                     md: 4,
+                    placeholder: "B43W",
                 })}
+
                 {renderField({
                     form,
                     handleChange,
@@ -81,6 +87,7 @@ function ProtocolInspectionVehicle({
                     md: 4,
                     placeholder: "35000",
                 })}
+
                 {renderField({
                     form,
                     handleChange,
@@ -88,6 +95,7 @@ function ProtocolInspectionVehicle({
                     label: "Год выпуска",
                     name: "manufacture_year",
                     md: 4,
+                    placeholder: "2023",
                 })}
             </Grid>
 
@@ -96,19 +104,20 @@ function ProtocolInspectionVehicle({
                     form,
                     handleChange,
                     textFieldSx,
-                    label: "Маркировка колес (перед)",
+                    label: "Маркировка колес / шин передней оси",
                     name: "tire_marking_front",
                     md: 6,
-                    placeholder: "185/65R15",
+                    placeholder: "155/65R14",
                 })}
+
                 {renderField({
                     form,
                     handleChange,
                     textFieldSx,
-                    label: "Маркировка колес (зад)",
+                    label: "Маркировка колес / шин задней оси",
                     name: "tire_marking_rear",
                     md: 6,
-                    placeholder: "185/65R15",
+                    placeholder: "155/65R14",
                 })}
             </Grid>
 
@@ -125,6 +134,7 @@ function ProtocolInspectionVehicle({
                         {value: "winter", label: "Зима"},
                     ],
                 })}
+
                 {renderSelect({
                     form,
                     handleChange,
@@ -137,6 +147,7 @@ function ProtocolInspectionVehicle({
                         {value: "false", label: "Нет"},
                     ],
                 })}
+
                 {renderField({
                     form,
                     handleChange,
@@ -161,6 +172,7 @@ function ProtocolInspectionVehicle({
                         {value: "4x4", label: "4х4 полный"},
                     ],
                 })}
+
                 {renderSelect({
                     form,
                     handleChange,
@@ -173,6 +185,7 @@ function ProtocolInspectionVehicle({
                         {value: "2", label: "2"},
                     ],
                 })}
+
                 {renderSelect({
                     form,
                     handleChange,
@@ -195,7 +208,7 @@ function ProtocolInspectionVehicle({
                     label: "Количество посадочных мест",
                     name: "seats_count",
                     md: 12,
-                    placeholder: "2/3 или 2/2/3",
+                    placeholder: "2/2 или 2/3",
                 })}
             </Grid>
         </Paper>

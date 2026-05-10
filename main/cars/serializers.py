@@ -19,6 +19,31 @@ from .models import (
 
 
 # =========================
+# Общие helpers
+# =========================
+
+def normalize_body_mark_value(value):
+    """
+    Преобразует японскую маркировку кузова в код кузова для протокола.
+
+    Примеры:
+    5BA-B43W  -> B43W
+    CBA-TD54W -> TD54W
+    DBA-Z12   -> Z12
+    B43W      -> B43W
+    """
+    if not value:
+        return None
+
+    value = str(value).strip()
+
+    if '-' in value:
+        return value.split('-')[-1].strip()
+
+    return value
+
+
+# =========================
 # Справочник автомобилей
 # =========================
 
@@ -72,6 +97,7 @@ class ConfigurationSerializer(serializers.ModelSerializer):
     front_tires = serializers.SerializerMethodField()
     rear_tires = serializers.SerializerMethodField()
     body_type = serializers.SerializerMethodField()
+    body_mark = serializers.SerializerMethodField()
     manufacture_year = serializers.SerializerMethodField()
 
     class Meta:
@@ -97,6 +123,7 @@ class ConfigurationSerializer(serializers.ModelSerializer):
             'front_tires',
             'rear_tires',
             'body_type',
+            'body_mark',
             'manufacture_year',
         ]
 
@@ -145,11 +172,20 @@ class ConfigurationSerializer(serializers.ModelSerializer):
 
     def get_body_type(self, obj):
         car_data = self.get_car_data(obj)
+
         if car_data and car_data.body_type:
             return car_data.body_type
 
         if obj.generation and obj.generation.body_type:
             return obj.generation.body_type
+
+        return None
+
+    def get_body_mark(self, obj):
+        car_data = self.get_car_data(obj)
+
+        if car_data and car_data.body_mark:
+            return normalize_body_mark_value(car_data.body_mark)
 
         return None
 
@@ -185,6 +221,7 @@ class CarDataProtocolSerializer(serializers.ModelSerializer):
         source='configuration.id',
         read_only=True
     )
+    normalized_body_mark = serializers.SerializerMethodField()
 
     class Meta:
         model = CarData
@@ -199,6 +236,8 @@ class CarDataProtocolSerializer(serializers.ModelSerializer):
             'configuration_name',
             'manufacture_year',
             'body_type',
+            'body_mark',
+            'normalized_body_mark',
 
             'front_tires',
             'rear_tires',
@@ -226,6 +265,9 @@ class CarDataProtocolSerializer(serializers.ModelSerializer):
             'vehicle_width_mm',
             'vehicle_height_mm',
         ]
+
+    def get_normalized_body_mark(self, obj):
+        return normalize_body_mark_value(obj.body_mark)
 
 
 # =========================
@@ -371,6 +413,9 @@ class ProtocolCreateSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']
 
+    def normalize_body_mark(self, value):
+        return normalize_body_mark_value(value)
+
     def normalize_fuel_type(self, value):
         if not value:
             return None
@@ -459,40 +504,30 @@ class ProtocolCreateSerializer(serializers.ModelSerializer):
         Пользователь потом может изменить их на странице осмотра.
         """
         return {
-            # Ближний свет: в шаблоне подсказка "всегда 2"
             'low_beam_count': 2,
             'low_beam_color': 'белый',
 
-            # Дальний свет обычно 2, но оставляем редактируемым
             'high_beam_count': 2,
             'high_beam_color': 'белый',
 
-            # Передние указатели поворота: "всегда 2"
             'turn_signal_count': 2,
             'turn_signal_color': 'автожелтый',
 
-            # Передние габаритные огни: "всегда 2"
             'front_position_light_count': 2,
             'front_position_light_color': 'белый',
 
-            # Задние габаритные огни: "красный + 2"
             'rear_position_light_count': 2,
             'rear_position_light_color': 'красный',
 
-            # Основной сигнал торможения: "красный + 2"
             'main_brake_signal_count': 2,
             'main_brake_signal_color': 'красный',
 
-            # Задние стояночные огни: "нет или всегда 2"
-            # По умолчанию лучше оставить пустым, чтобы пользователь выбрал.
             'rear_parking_light_count': None,
             'rear_parking_light_color': 'красный',
 
-            # Передние стояночные огни — тоже оставляем на выбор.
             'parking_light_count': None,
             'parking_light_color': 'белый',
 
-            # Остальные приборы зависят от конкретного ТС.
             'front_fog_count': None,
             'front_fog_color': 'белый',
 
@@ -552,7 +587,13 @@ class ProtocolCreateSerializer(serializers.ModelSerializer):
             if not validated_data.get('commercial_name'):
                 validated_data['commercial_name'] = model.name
 
-            if not validated_data.get('body_type'):
+            # В protocols.body_type для шаблона протокола кладём код кузова.
+            # Если в car_data.body_mark лежит 5BA-B43W, в протокол попадёт B43W.
+            normalized_body_mark = self.normalize_body_mark(car_data.body_mark)
+
+            if normalized_body_mark:
+                validated_data['body_type'] = normalized_body_mark
+            elif not validated_data.get('body_type'):
                 validated_data['body_type'] = car_data.body_type or generation.body_type
 
             if not validated_data.get('wheel_marking_front'):

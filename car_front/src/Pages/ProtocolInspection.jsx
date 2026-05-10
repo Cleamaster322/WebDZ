@@ -76,6 +76,7 @@ const initialForm = {
     turbo_present: "",
 
     steering_booster_type: "",
+    steering_backlash_deg: "",
     transmission_type: "",
 
     service_brake_type: "",
@@ -91,8 +92,6 @@ const initialForm = {
     service_brake_rear_right_kn: "",
     parking_brake_left_kn: "",
     parking_brake_right_kn: "",
-    stand_axle1_load_kg: "",
-    stand_axle2_load_kg: "",
 
     low_beam_count: "",
     low_beam_color: "",
@@ -155,12 +154,7 @@ const initialForm = {
 
     spare_wheel_present: "",
     steering_lock_present: "",
-    gas_equipment_present: "",
 
-    tire_depth_fl_mm: "",
-    tire_depth_rl_mm: "",
-    tire_depth_fr_mm: "",
-    tire_depth_rr_mm: "",
     bumper_ends_bent_to_body: "",
     bumper_to_body_distance_mm: "",
     opening_roof_present: "",
@@ -171,7 +165,6 @@ const initialForm = {
     glass_transparency_left_pct: "",
     glass_transparency_windshield_pct: "",
     sun_strip_width_mm: "",
-    steering_backlash_deg: "",
     speed_by_speedometer_kmh: "",
     actual_speed_kmh: "",
     exhaust_noise_constant_db: "",
@@ -187,9 +180,6 @@ const initialForm = {
     vehicle_length_mm: "",
     vehicle_width_mm: "",
     vehicle_height_mm: "",
-    vehicle_weight_kg: "",
-    axle1_load_kg: "",
-    axle2_load_kg: "",
 };
 
 function toFormValue(value) {
@@ -268,6 +258,7 @@ function mapProtocolToForm(data) {
         turbo_present: booleanToSelect(measurement.turbo_present),
 
         steering_booster_type: toFormValue(measurement.steering_booster_type),
+        steering_backlash_deg: toFormValue(measurement.steering_backlash_deg),
         transmission_type: toFormValue(measurement.transmission_type),
 
         service_brake_type: toFormValue(brake.service_brake_type),
@@ -283,9 +274,6 @@ function mapProtocolToForm(data) {
         service_brake_rear_right_kn: toFormValue(brake.service_brake_rear_right_kn),
         parking_brake_left_kn: toFormValue(brake.parking_brake_left_kn),
         parking_brake_right_kn: toFormValue(brake.parking_brake_right_kn),
-
-        stand_axle1_load_kg: toFormValue(measurement.stand_axle1_load_kg),
-        stand_axle2_load_kg: toFormValue(measurement.stand_axle2_load_kg),
 
         low_beam_count: toFormValue(light.low_beam_count),
         low_beam_color: toFormValue(light.low_beam_color),
@@ -364,7 +352,6 @@ function mapProtocolToForm(data) {
         glass_transparency_left_pct: toFormValue(measurement.glass_transparency_left_pct),
         glass_transparency_windshield_pct: toFormValue(measurement.glass_transparency_windshield_pct),
         sun_strip_width_mm: toFormValue(measurement.sun_strip_width_mm),
-        steering_backlash_deg: toFormValue(measurement.steering_backlash_deg),
         speed_by_speedometer_kmh: toFormValue(measurement.speed_by_speedometer_kmh),
         actual_speed_kmh: toFormValue(measurement.actual_speed_kmh),
         exhaust_noise_constant_db: toFormValue(measurement.exhaust_noise_constant_db),
@@ -448,6 +435,7 @@ function buildMeasurementPayload(form) {
         turbo_present: stringToBooleanOrNull(form.turbo_present),
 
         steering_booster_type: emptyToNull(form.steering_booster_type),
+        steering_backlash_deg: emptyToNull(form.steering_backlash_deg),
         transmission_type: emptyToNull(form.transmission_type),
 
         tire_depth_fl_mm: emptyToNull(form.tire_depth_fl_mm),
@@ -467,8 +455,6 @@ function buildMeasurementPayload(form) {
         glass_transparency_left_pct: emptyToNull(form.glass_transparency_left_pct),
         glass_transparency_windshield_pct: emptyToNull(form.glass_transparency_windshield_pct),
         sun_strip_width_mm: emptyToNull(form.sun_strip_width_mm),
-
-        steering_backlash_deg: emptyToNull(form.steering_backlash_deg),
 
         speed_by_speedometer_kmh: emptyToNull(form.speed_by_speedometer_kmh),
         actual_speed_kmh: emptyToNull(form.actual_speed_kmh),
@@ -492,8 +478,6 @@ function buildMeasurementPayload(form) {
 
         axle1_load_kg: emptyToNull(form.axle1_load_kg),
         axle2_load_kg: emptyToNull(form.axle2_load_kg),
-        stand_axle1_load_kg: emptyToNull(form.stand_axle1_load_kg),
-        stand_axle2_load_kg: emptyToNull(form.stand_axle2_load_kg),
 
         spare_wheel_present: stringToBooleanOrNull(form.spare_wheel_present),
         steering_lock_present: stringToBooleanOrNull(form.steering_lock_present),

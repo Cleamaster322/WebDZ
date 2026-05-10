@@ -31,6 +31,7 @@ function ProtocolInspectionEngine({
                     name: "engine_model",
                     md: 6,
                 })}
+
                 {renderField({
                     form,
                     handleChange,
@@ -54,6 +55,7 @@ function ProtocolInspectionEngine({
                         {value: "longitudinal", label: "Продольное"},
                     ],
                 })}
+
                 {renderSelect({
                     form,
                     handleChange,
@@ -69,7 +71,7 @@ function ProtocolInspectionEngine({
                 })}
             </Grid>
 
-            <Grid container spacing={2} sx={{mb: 2}}>
+            <Grid container spacing={2}>
                 {renderSelect({
                     form,
                     handleChange,
@@ -78,11 +80,13 @@ function ProtocolInspectionEngine({
                     name: "cylinders_count",
                     md: 4,
                     options: [
+                        {value: "3", label: "3"},
                         {value: "4", label: "4"},
                         {value: "6", label: "6"},
                         {value: "8", label: "8"},
                     ],
                 })}
+
                 {renderSelect({
                     form,
                     handleChange,
@@ -97,6 +101,7 @@ function ProtocolInspectionEngine({
                         {value: "electric", label: "Электро"},
                     ],
                 })}
+
                 {renderSelect({
                     form,
                     handleChange,

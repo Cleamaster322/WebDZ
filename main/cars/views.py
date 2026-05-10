@@ -1,6 +1,7 @@
 from datetime import date
 
 from channels.layers import get_channel_layer
+from django.contrib.auth.models import User
 from django.http import FileResponse, HttpResponse
 from django.middleware.csrf import get_token
 from rest_framework import status
@@ -46,8 +47,96 @@ from .serializers import (
 )
 from .services.test_docx import generate_protocol_docx
 from .word_utils import create_car_word_doc
-from django.contrib.auth.models import User
 
+
+# =========================================================
+# --- HELPERS ---
+# =========================================================
+
+def normalize_region_name(region):
+    if not region:
+        return 'Не указано'
+
+    mapping = {
+        'japan': 'Япония',
+        'china': 'Китай',
+        'south-korea': 'Южная Корея',
+    }
+
+    return mapping.get(region, region)
+
+
+def normalize_bool_param(value):
+    if value is None or value == '':
+        return None
+
+    value = str(value).lower().strip()
+
+    if value in ['true', '1', 'yes', 'да']:
+        return True
+
+    if value in ['false', '0', 'no', 'нет']:
+        return False
+
+    return None
+
+
+def normalize_body_mark(value):
+    if not value:
+        return None
+
+    value = str(value).strip()
+
+    if '-' in value:
+        return value.split('-')[-1].strip()
+
+    return value
+
+
+def extract_year_from_drom_date(value):
+    if not value:
+        return None
+
+    value = str(value).strip()
+
+    if value in ['н.в.', 'н.в', 'present', 'now', '-']:
+        return None
+
+    parts = value.split('.')
+
+    if len(parts) == 2 and parts[1].isdigit():
+        return int(parts[1])
+
+    if value.isdigit() and len(value) == 4:
+        return int(value)
+
+    return None
+
+
+def configuration_matches_year(configuration, year):
+    if not year:
+        return True
+
+    try:
+        year = int(year)
+    except (TypeError, ValueError):
+        return True
+
+    start_year = extract_year_from_drom_date(configuration.date_start)
+    end_year = extract_year_from_drom_date(configuration.date_end)
+
+    if start_year and year < start_year:
+        return False
+
+    if end_year and year > end_year:
+        return False
+
+    return True
+
+
+# =========================================================
+# --- TEST / CSRF FUNCTIONS ---
+# =========================================================
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
@@ -294,18 +383,6 @@ def get_generation(request, pk):
     except Exception:
         return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-def normalize_region_name(region):
-    if not region:
-        return 'Не указано'
-
-    mapping = {
-        'japan': 'Япония',
-        'china': 'Китай',
-        'south-korea': 'Южная Корея',
-    }
-
-    return mapping.get(region, region)
-
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -320,10 +397,6 @@ def get_model_filter_options(request):
             )
 
         generations = Generation.objects.filter(model_id=model_id)
-
-        configurations = Configuration.objects.filter(
-            generation__model_id=model_id
-        )
 
         car_data = CarData.objects.filter(
             configuration__generation__model_id=model_id
@@ -444,6 +517,7 @@ def get_filtered_generations(request):
     except Exception as e:
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def post_generation(request):
@@ -496,61 +570,6 @@ def delete_generation(request, pk):
 # --- CONFIGURATION FUNCTIONS ---
 # =========================================================
 
-def normalize_bool_param(value):
-    if value is None or value == '':
-        return None
-
-    value = str(value).lower().strip()
-
-    if value in ['true', '1', 'yes', 'да']:
-        return True
-
-    if value in ['false', '0', 'no', 'нет']:
-        return False
-
-    return None
-
-
-def extract_year_from_drom_date(value):
-    if not value:
-        return None
-
-    value = str(value).strip()
-
-    if value in ['н.в.', 'н.в', 'present', 'now', '-']:
-        return None
-
-    parts = value.split('.')
-
-    if len(parts) == 2 and parts[1].isdigit():
-        return int(parts[1])
-
-    if value.isdigit() and len(value) == 4:
-        return int(value)
-
-    return None
-
-
-def configuration_matches_year(configuration, year):
-    if not year:
-        return True
-
-    try:
-        year = int(year)
-    except (TypeError, ValueError):
-        return True
-
-    start_year = extract_year_from_drom_date(configuration.date_start)
-    end_year = extract_year_from_drom_date(configuration.date_end)
-
-    if start_year and year < start_year:
-        return False
-
-    if end_year and year > end_year:
-        return False
-
-    return True
-
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_all_configurations(request):
@@ -585,6 +604,7 @@ def get_configuration(request, pk):
         return Response(serializer.data)
     except Exception:
         return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -641,6 +661,7 @@ def get_configuration_filter_options(request):
         seats_counts = list(
             car_data
             .exclude(seats_count__isnull=True)
+            .exclude(seats_count='')
             .values_list('seats_count', flat=True)
             .distinct()
             .order_by('seats_count')
@@ -654,13 +675,23 @@ def get_configuration_filter_options(request):
             .order_by('engine_power_kw')
         )
 
-        engine_powers_hp = list(
+        body_marks_raw = list(
             car_data
-            .exclude(engine_power_hp__isnull=True)
-            .values_list('engine_power_hp', flat=True)
+            .exclude(body_mark__isnull=True)
+            .exclude(body_mark='')
+            .values_list('body_mark', flat=True)
             .distinct()
-            .order_by('engine_power_hp')
         )
+
+        body_marks = []
+
+        for body_mark in body_marks_raw:
+            normalized_body_mark = normalize_body_mark(body_mark)
+
+            if normalized_body_mark and normalized_body_mark not in body_marks:
+                body_marks.append(normalized_body_mark)
+
+        body_marks = sorted(body_marks)
 
         turbo_values = list(
             car_data
@@ -676,12 +707,13 @@ def get_configuration_filter_options(request):
             'transmissions': transmissions,
             'seats_counts': seats_counts,
             'engine_powers_kw': engine_powers_kw,
-            'engine_powers_hp': engine_powers_hp,
+            'body_marks': body_marks,
             'turbo_values': turbo_values,
         })
 
     except Exception as e:
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -704,11 +736,8 @@ def get_filtered_configurations(request):
 
         manufacture_year = request.GET.get('manufacture_year')
         engine_power = request.GET.get('engine_power')
-        turbo_present = normalize_bool_param(request.GET.get('turbo_present'))
-
-        # Пока принимаем, но нормально он заработает только если body_code будет
-        # в car_data или configurations, а не только в generations.
         body_code = request.GET.get('body_code')
+        turbo_present = normalize_bool_param(request.GET.get('turbo_present'))
 
         queryset = (
             Configuration.objects
@@ -745,10 +774,23 @@ def get_filtered_configurations(request):
         if car_filter:
             queryset = queryset.filter(**car_filter)
 
-        if body_code:
-            queryset = queryset.filter(generation__body_code__icontains=body_code)
-
         queryset = queryset.distinct().order_by('name', 'date_start', 'id')
+
+        if body_code:
+            filtered_ids = []
+
+            for configuration in queryset:
+                car_data = CarData.objects.filter(configuration_id=configuration.id).first()
+
+                if not car_data:
+                    continue
+
+                normalized_body_mark = normalize_body_mark(car_data.body_mark)
+
+                if normalized_body_mark == body_code:
+                    filtered_ids.append(configuration.id)
+
+            queryset = Configuration.objects.filter(id__in=filtered_ids).order_by('name', 'date_start', 'id')
 
         if manufacture_year:
             filtered_ids = [
@@ -767,6 +809,7 @@ def get_filtered_configurations(request):
 
     except Exception as e:
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -851,6 +894,7 @@ def get_car_data(request, pk):
         return Response(serializer.data)
     except CarData.DoesNotExist:
         return Response(status=status.HTTP_404_NOT_FOUND)
+
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])

@@ -35,6 +35,7 @@ function ProtocolInspectionMisc({
                         {value: "false", label: "Нет"},
                     ],
                 })}
+
                 {renderSelect({
                     form,
                     handleChange,
@@ -46,45 +47,6 @@ function ProtocolInspectionMisc({
                         {value: "true", label: "Есть"},
                         {value: "false", label: "Нет"},
                     ],
-                })}
-            </Grid>
-
-            <Typography variant="h6" sx={subsectionTitleSx}>
-                Остаточная глубина рисунка протектора
-            </Typography>
-
-            <Grid container spacing={2} sx={{mb: 3}}>
-                {renderField({
-                    form,
-                    handleChange,
-                    textFieldSx,
-                    label: "Левое переднее, мм",
-                    name: "tire_depth_fl_mm",
-                    md: 3,
-                })}
-                {renderField({
-                    form,
-                    handleChange,
-                    textFieldSx,
-                    label: "Левое заднее, мм",
-                    name: "tire_depth_rl_mm",
-                    md: 3,
-                })}
-                {renderField({
-                    form,
-                    handleChange,
-                    textFieldSx,
-                    label: "Правое переднее, мм",
-                    name: "tire_depth_fr_mm",
-                    md: 3,
-                })}
-                {renderField({
-                    form,
-                    handleChange,
-                    textFieldSx,
-                    label: "Правое заднее, мм",
-                    name: "tire_depth_rr_mm",
-                    md: 3,
                 })}
             </Grid>
 
@@ -101,6 +63,7 @@ function ProtocolInspectionMisc({
                     name: "bumper_to_body_distance_mm",
                     md: 6,
                 })}
+
                 {renderSelect({
                     form,
                     handleChange,
@@ -128,6 +91,7 @@ function ProtocolInspectionMisc({
                     name: "protruding_elements_doors_mm",
                     md: 6,
                 })}
+
                 {renderField({
                     form,
                     handleChange,
@@ -151,6 +115,7 @@ function ProtocolInspectionMisc({
                     name: "glass_transparency_right_pct",
                     md: 4,
                 })}
+
                 {renderField({
                     form,
                     handleChange,
@@ -159,6 +124,7 @@ function ProtocolInspectionMisc({
                     name: "glass_transparency_left_pct",
                     md: 4,
                 })}
+
                 {renderField({
                     form,
                     handleChange,
@@ -182,11 +148,12 @@ function ProtocolInspectionMisc({
                     name: "sun_strip_width_mm",
                     md: 6,
                 })}
+
                 {renderField({
                     form,
                     handleChange,
                     textFieldSx,
-                    label: "Суммарный люфт в рулевом управлении, °",
+                    label: "Суммарный люфт в Р/У, °",
                     name: "steering_backlash_deg",
                     md: 6,
                 })}
@@ -205,6 +172,7 @@ function ProtocolInspectionMisc({
                     name: "speed_by_speedometer_kmh",
                     md: 6,
                 })}
+
                 {renderField({
                     form,
                     handleChange,
@@ -237,21 +205,23 @@ function ProtocolInspectionMisc({
                     name: "exhaust_noise_deceleration_db",
                     md: 6,
                 })}
+
                 {renderField({
                     form,
                     handleChange,
                     textFieldSx,
                     label: "Min обороты: CO, %",
                     name: "co_min_pct",
-                    md: 4,
+                    md: 6,
                 })}
+
                 {renderField({
                     form,
                     handleChange,
                     textFieldSx,
                     label: "Max обороты: CO, %",
                     name: "co_max_pct",
-                    md: 4,
+                    md: 6,
                 })}
             </Grid>
 
@@ -268,6 +238,7 @@ function ProtocolInspectionMisc({
                     name: "light_absorption_1",
                     md: 2,
                 })}
+
                 {renderField({
                     form,
                     handleChange,
@@ -276,6 +247,7 @@ function ProtocolInspectionMisc({
                     name: "light_absorption_2",
                     md: 2,
                 })}
+
                 {renderField({
                     form,
                     handleChange,
@@ -284,6 +256,7 @@ function ProtocolInspectionMisc({
                     name: "light_absorption_3",
                     md: 2,
                 })}
+
                 {renderField({
                     form,
                     handleChange,
@@ -292,6 +265,7 @@ function ProtocolInspectionMisc({
                     name: "light_absorption_4",
                     md: 2,
                 })}
+
                 {renderField({
                     form,
                     handleChange,
@@ -300,6 +274,7 @@ function ProtocolInspectionMisc({
                     name: "light_absorption_5",
                     md: 2,
                 })}
+
                 {renderField({
                     form,
                     handleChange,
@@ -323,6 +298,7 @@ function ProtocolInspectionMisc({
                     name: "vehicle_length_mm",
                     md: 4,
                 })}
+
                 {renderField({
                     form,
                     handleChange,
@@ -331,43 +307,13 @@ function ProtocolInspectionMisc({
                     name: "vehicle_width_mm",
                     md: 4,
                 })}
+
                 {renderField({
                     form,
                     handleChange,
                     textFieldSx,
                     label: "Высота, мм",
                     name: "vehicle_height_mm",
-                    md: 4,
-                })}
-            </Grid>
-
-            <Typography variant="h6" sx={subsectionTitleSx}>
-                Масса и нагрузка на ось (весы)
-            </Typography>
-
-            <Grid container spacing={2}>
-                {renderField({
-                    form,
-                    handleChange,
-                    textFieldSx,
-                    label: "Масса, кг",
-                    name: "vehicle_weight_kg",
-                    md: 4,
-                })}
-                {renderField({
-                    form,
-                    handleChange,
-                    textFieldSx,
-                    label: "Ось 1, кг",
-                    name: "axle1_load_kg",
-                    md: 4,
-                })}
-                {renderField({
-                    form,
-                    handleChange,
-                    textFieldSx,
-                    label: "Ось 2, кг",
-                    name: "axle2_load_kg",
                     md: 4,
                 })}
             </Grid>

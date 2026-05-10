@@ -64,27 +64,22 @@ function groupGenerationsByRegion(generations) {
     }, {});
 }
 
-function getBodyCodeOptions(generation) {
-    if (!generation?.body_code) return [];
-
-    return generation.body_code
-        .split(",")
-        .map((item) => item.trim())
-        .filter(Boolean)
-        .sort((a, b) => a.localeCompare(b, "ru", {numeric: true}));
-}
-
 function buildCreateProtocolPayload({
     selectedBrand,
     selectedModel,
     selectedGeneration,
     selectedConfiguration,
+    configurationFilters,
 }) {
     const payload = {
         owner_name: "Не указано",
         brand_name: selectedBrand?.name || "",
         commercial_name: selectedModel?.name || "",
-        body_type: selectedGeneration?.body_type || "",
+        body_type:
+            selectedConfiguration?.body_mark ||
+            configurationFilters?.body_code ||
+            selectedGeneration?.body_type ||
+            "",
     };
 
     if (selectedConfiguration?.id) {
@@ -103,6 +98,10 @@ function buildConfigurationLabel(option) {
         parts.push(option.name);
     }
 
+    if (option.body_mark) {
+        parts.push(`кузов: ${option.body_mark}`);
+    }
+
     if (option.engine_name) {
         parts.push(`двигатель: ${option.engine_name}`);
     }
@@ -113,8 +112,6 @@ function buildConfigurationLabel(option) {
 
     if (option.engine_power_kw) {
         parts.push(`${option.engine_power_kw} кВт`);
-    } else if (option.engine_power_hp) {
-        parts.push(`${option.engine_power_hp} л.с.`);
     }
 
     if (option.fuel_type) {
@@ -150,7 +147,8 @@ function CarSelection() {
         transmissions: [],
         seats_counts: [],
         engine_powers_kw: [],
-        engine_powers_hp: [],
+        body_marks: [],
+        turbo_values: [],
     };
 
     const emptyConfigurationFilters = {
@@ -394,6 +392,7 @@ function CarSelection() {
                 selectedModel,
                 selectedGeneration,
                 selectedConfiguration,
+                configurationFilters,
             });
 
             const response = await api.post("/cars/protocols/create/", payload);
@@ -420,7 +419,7 @@ function CarSelection() {
     };
 
     const groupedGenerations = groupGenerationsByRegion(generations);
-    const bodyCodeOptions = getBodyCodeOptions(selectedGeneration);
+    const bodyCodeOptions = configurationFilterOptions.body_marks || [];
 
     return (
         <Box sx={{padding: 3}}>
@@ -606,7 +605,7 @@ function CarSelection() {
 
                                                 {generation.body_code && (
                                                     <Typography variant="body2" color="text.secondary">
-                                                        Код кузова: {generation.body_code}
+                                                        Коды кузова поколения: {generation.body_code}
                                                     </Typography>
                                                 )}
                                             </CardContent>
@@ -711,7 +710,7 @@ function CarSelection() {
 
                         <TextField
                             select
-                            label="Мощность"
+                            label="Мощность, кВт"
                             value={configurationFilters.engine_power}
                             onChange={(e) => handleConfigurationFilterChange("engine_power", e.target.value)}
                             size="small"
@@ -719,14 +718,8 @@ function CarSelection() {
                             <MenuItem value="">Все</MenuItem>
 
                             {(configurationFilterOptions.engine_powers_kw || []).map((value) => (
-                                <MenuItem key={`kw-${value}`} value={value}>
+                                <MenuItem key={value} value={value}>
                                     {value} кВт
-                                </MenuItem>
-                            ))}
-
-                            {(configurationFilterOptions.engine_powers_hp || []).map((value) => (
-                                <MenuItem key={`hp-${value}`} value={value}>
-                                    {value} л.с.
                                 </MenuItem>
                             ))}
                         </TextField>
