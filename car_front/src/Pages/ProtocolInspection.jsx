@@ -180,6 +180,11 @@ const initialForm = {
     vehicle_length_mm: "",
     vehicle_width_mm: "",
     vehicle_height_mm: "",
+
+    tire_depth_fl_mm: "",
+    tire_depth_rl_mm: "",
+    tire_depth_fr_mm: "",
+    tire_depth_rr_mm: "",
 };
 
 function toFormValue(value) {

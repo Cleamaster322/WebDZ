@@ -76,10 +76,14 @@ CREATE TABLE `protocol_lights` (
   `right_high_beam_cd` float DEFAULT NULL,
   `turn_signal_frequency_per_min` float DEFAULT NULL,
   `turn_signal_frequency_hz` float DEFAULT NULL,
+  `rear_parking_light_count` int DEFAULT NULL,
+  `rear_parking_light_color` varchar(50) DEFAULT NULL,
+  `adaptive_front_lighting_count` int DEFAULT NULL,
+  `adaptive_front_lighting_color` varchar(50) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `protocol_id` (`protocol_id`),
   CONSTRAINT `protocol_lights_ibfk_1` FOREIGN KEY (`protocol_id`) REFERENCES `protocols` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -88,7 +92,7 @@ CREATE TABLE `protocol_lights` (
 
 LOCK TABLES `protocol_lights` WRITE;
 /*!40000 ALTER TABLE `protocol_lights` DISABLE KEYS */;
-INSERT INTO `protocol_lights` VALUES (1,1,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL),(2,2,2,'белый',2,'белый',NULL,NULL,2,'белый',2,'желтый',2,'белый',2,'красный',2,'красный',1,'красный',2,'красный',2,'белый',2,'белый',NULL,NULL,'halogen',780,630,NULL,NULL,NULL,NULL,955,890,150,150,10,1140,0,940,850,0,450,3500,19000,470,3800,21000,84,1.4);
+INSERT INTO `protocol_lights` VALUES (1,1,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL),(2,2,2,'белый',2,'белый',NULL,NULL,2,'белый',2,'желтый',2,'белый',2,'красный',2,'красный',1,'красный',2,'красный',2,'белый',2,'белый',NULL,NULL,'halogen',780,630,NULL,NULL,NULL,NULL,955,890,150,150,10,1140,0,940,850,1,450,3500,19000,470,3800,21000,84,1.4,NULL,NULL,NULL,NULL),(3,3,2,'белый',2,'белый',NULL,'белый',NULL,'белый',2,'автожелтый',2,'белый',2,'красный',2,'красный',NULL,'красный',NULL,'красный',NULL,'белый',NULL,'белый',NULL,'белый',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,'красный',NULL,'белый'),(4,4,2,'белый',2,'белый',0,'белый',2,'белый',2,'автожелтый',2,'белый',2,'красный',2,'красный',1,'красный',0,'красный',2,'белый',0,'белый',0,'белый','halogen',985,818,NULL,NULL,NULL,NULL,1190,1070,100,100,5,1136,0,0,0,0,553,12300,34900,560,14600,37500,84,1.4,0,'красный',0,'белый');
 /*!40000 ALTER TABLE `protocol_lights` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
@@ -101,4 +105,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-05-08 17:43:54
+-- Dump completed on 2026-05-13 21:31:06

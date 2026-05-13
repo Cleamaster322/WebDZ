@@ -23,7 +23,6 @@ from .labels import (
     label,
 )
 
-
 DEFAULT_INSPECTION_PLACE = "690074, Россия, Приморский край, г. Владивосток, ул. Снеговая, д. 64"
 
 
@@ -79,12 +78,31 @@ def normalize_light_color(value):
 
 
 def is_positive_count(value):
+    """
+    Проверка наличия светового прибора по количеству.
+
+    Правило:
+    - пусто / None / "-" / "0" / 0 => прибора нет;
+    - любая другая цифра/число => прибор есть.
+
+    Например:
+    1, 2, 3 => есть
+    0, "-", "" => нет
+    """
+    if value is None:
+        return False
+
+    value = str(value).strip()
+
+    if value == "" or value == "-":
+        return False
+
     number = decimal_value(value)
 
     if number is None:
         return False
 
-    return number > 0
+    return number != 0
 
 
 def is_true(value):
@@ -101,6 +119,125 @@ def is_fuel_diesel(value):
 
 def conclusion_text(*lines):
     return "\n".join(lines)
+
+
+def get_tire_depth_value(protocol, value, active_season):
+    if protocol.tire_season != active_season:
+        return "-"
+
+    return value_with_unit_or_dash(True, value, 1)
+
+
+def get_tire_depth_uncertainty(protocol, value, active_season):
+    if protocol.tire_season != active_season:
+        return "-"
+
+    return uncertainty_with_unit_or_dash(True, value, "0,05")
+
+
+def value_if_applicable(is_applicable, value, decimals=2):
+    if not is_applicable:
+        return "-"
+
+    formatted = fmt_num(value, decimals)
+
+    if not formatted:
+        return "-"
+
+    return formatted
+
+
+def uncertainty_if_applicable(is_applicable, value, uncertainty):
+    if not is_applicable:
+        return "-"
+
+    if value is None or value == "":
+        return "-"
+
+    return uncertainty
+
+
+def result_with_uncertainty_if_applicable(is_applicable, value, uncertainty, decimals=2, unit=""):
+    if not is_applicable:
+        return "-"
+
+    formatted = fmt_num(value, decimals)
+
+    if not formatted:
+        return "-"
+
+    if unit:
+        return f"{formatted} {unit} ± {uncertainty} {unit}"
+
+    return f"{formatted} ± {uncertainty}"
+
+
+def value_with_unit_or_dash(is_applicable, value, decimals=2, unit=""):
+    if not is_applicable:
+        return "-"
+
+    formatted = fmt_num(value, decimals)
+
+    if not formatted:
+        return "-"
+
+    if unit:
+        return f"{formatted} {unit}"
+
+    return formatted
+
+
+def uncertainty_with_unit_or_dash(is_applicable, value, uncertainty, unit=""):
+    if not is_applicable:
+        return "-"
+
+    if value is None or value == "":
+        return "-"
+
+    if unit:
+        return f"{uncertainty} {unit}"
+
+    return uncertainty
+
+
+def build_full_result_text(is_applicable, conclusion, requirement_text=None, result_text=None):
+    if not is_applicable:
+        return "-"
+
+    parts = []
+
+    if conclusion:
+        parts.append(conclusion)
+
+    if requirement_text:
+        parts.append("Требование:")
+        parts.append(requirement_text)
+
+    if result_text:
+        parts.append("Результат:")
+        parts.append(result_text)
+
+    return "\n".join(parts)
+
+
+def build_tire_depth_result_text(is_applicable, conclusion, requirement_text, values):
+    if not is_applicable:
+        return "-"
+
+    parts = []
+
+    if conclusion:
+        parts.append(conclusion)
+
+    parts.append("Требование:")
+    parts.append(requirement_text)
+
+    parts.append("Результат:")
+
+    for label_text, value, uncertainty in values:
+        parts.append(f"{label_text}: {value} ± {uncertainty} мм")
+
+    return "\n".join(parts)
 
 
 # =========================
@@ -169,6 +306,18 @@ CONCLUSIONS = {
         "Приложения N 4 п.1.3.7",
     ),
 
+    "a_8_10_1": conclusion_text(
+        "Соответствует требованиям",
+        "ТР ТС 018/2011",
+        "Приложения N 4 п.1.3.10.1",
+    ),
+
+    "a_8_10_2": conclusion_text(
+        "Соответствует требованиям",
+        "ТР ТС 018/2011",
+        "Приложения N 4 п.1.3.10.2",
+    ),
+
     "a_8_10_3": conclusion_text(
         "Соответствует требованиям",
         "ТР ТС 018/2011",
@@ -179,6 +328,12 @@ CONCLUSIONS = {
         "Соответствует требованиям",
         "ТР ТС 018/2011",
         "Приложения N 4 п.1.3.13.1",
+    ),
+
+    "a_8_13_2": conclusion_text(
+        "Соответствует требованиям",
+        "ТР ТС 018/2011",
+        "Приложения N 4 п.1.3.13.2",
     ),
 
     "a_8_20_3": conclusion_text(
@@ -233,6 +388,24 @@ CONCLUSIONS = {
         "Соответствует требованиям",
         "ТР ТС 018/2011",
         "Приложения N 8 п.5.4",
+    ),
+
+    "a_10_7_2": conclusion_text(
+        "Соответствует требованиям",
+        "ТР ТС 018/2011",
+        "Приложения N 8 п.5.6.2",
+    ),
+
+    "a_10_7_3": conclusion_text(
+        "Соответствует требованиям",
+        "ТР ТС 018/2011",
+        "Приложения N 8 п.5.6.3",
+    ),
+
+    "a_11_8_sun_strip": conclusion_text(
+        "Соответствует требованиям",
+        "ТР ТС 018/2011",
+        "Приложения N 8 п.4.3",
     ),
 
     "a_16_17": conclusion_text(
@@ -335,8 +508,8 @@ def build_dynamic_result_values(protocol, measurement, light):
     )
 
     parking_light_present = (
-        is_positive_count(getattr(light, "parking_light_count", None))
-        or is_positive_count(getattr(light, "rear_parking_light_count", None))
+            is_positive_count(getattr(light, "parking_light_count", None))
+            or is_positive_count(getattr(light, "rear_parking_light_count", None))
     )
 
     adaptive_front_lighting_present = is_positive_count(
@@ -361,9 +534,7 @@ def build_dynamic_result_values(protocol, measurement, light):
         CONCLUSIONS["a_6_5"],
     )
 
-    # А.8.7 — корректировка/система переднего освещения.
-    # Если адаптивная система есть или омыватели есть — соответствует.
-    # Если ничего из этого нет — не применяется.
+    # А.8.7 — адаптивная система переднего освещения или омыватели фар
     add_result_pair(
         values,
         "result_a_8_7",
@@ -471,39 +642,7 @@ def build_dynamic_result_values(protocol, measurement, light):
         CONCLUSIONS["a_18_5"],
     )
 
-    # А.21.7 — CO, применяется для бензина/гибрида.
-    add_result_pair(
-        values,
-        "result_a_21_7",
-        is_fuel_petrol_like(fuel_type),
-        CONCLUSIONS["a_21_7"],
-    )
-
-    # А.21.8 — дымность, применяется для дизеля.
-    # В статусной ячейке выводим среднее значение коэффициента поглощения.
-    if is_fuel_diesel(fuel_type):
-        average = calc_light_absorption_average(measurement)
-
-        if average is not None:
-            status = f"{fmt_num(average, 3)} м-1"
-        else:
-            status = "соответствует"
-
-        add_direct_result_pair(
-            values,
-            "result_a_21_8",
-            status,
-            CONCLUSIONS["a_21_8"],
-        )
-    else:
-        add_direct_result_pair(
-            values,
-            "result_a_21_8",
-            "не применяется",
-            "-",
-        )
-
-    # А.21.9 — пробег более/менее 3000 км.
+    # А.21.7–А.21.9 — экология, дымность и пробег.
     mileage = decimal_value(getattr(measurement, "mileage_km", None))
 
     if mileage is None:
@@ -513,14 +652,22 @@ def build_dynamic_result_values(protocol, measurement, light):
             "не указано",
             "-",
         )
-    elif mileage >= 3000:
+
         add_direct_result_pair(
             values,
-            "result_a_21_9",
-            f"более 3000 км. Пробег: {fmt_num(mileage, 0)} км",
-            CONCLUSIONS["a_21_9"],
+            "result_a_21_7",
+            "не применяется",
+            "-",
         )
-    else:
+
+        add_direct_result_pair(
+            values,
+            "result_a_21_8",
+            "не применяется",
+            "-",
+        )
+
+    elif mileage < 3000:
         add_direct_result_pair(
             values,
             "result_a_21_9",
@@ -528,9 +675,81 @@ def build_dynamic_result_values(protocol, measurement, light):
             "-",
         )
 
+        add_direct_result_pair(
+            values,
+            "result_a_21_7",
+            "не применяется",
+            "-",
+        )
+
+        add_direct_result_pair(
+            values,
+            "result_a_21_8",
+            "не применяется",
+            "-",
+        )
+
+    else:
+        add_direct_result_pair(
+            values,
+            "result_a_21_9",
+            f"более 3000 км. Пробег: {fmt_num(mileage, 0)} км",
+            CONCLUSIONS["a_21_9"],
+        )
+
+        if is_fuel_petrol_like(fuel_type):
+            add_result_pair(
+                values,
+                "result_a_21_7",
+                True,
+                CONCLUSIONS["a_21_7"],
+            )
+
+            add_direct_result_pair(
+                values,
+                "result_a_21_8",
+                "не применяется",
+                "-",
+            )
+
+        elif is_fuel_diesel(fuel_type):
+            add_direct_result_pair(
+                values,
+                "result_a_21_7",
+                "не применяется",
+                "-",
+            )
+
+            average = calc_light_absorption_average(measurement)
+
+            if average is not None:
+                status = f"{fmt_num(average, 3)} м-1"
+            else:
+                status = "соответствует"
+
+            add_direct_result_pair(
+                values,
+                "result_a_21_8",
+                status,
+                CONCLUSIONS["a_21_8"],
+            )
+
+        else:
+            add_direct_result_pair(
+                values,
+                "result_a_21_7",
+                "не применяется",
+                "-",
+            )
+
+            add_direct_result_pair(
+                values,
+                "result_a_21_8",
+                "не применяется",
+                "-",
+            )
+
     # А.22.5.* — газобаллонное оборудование.
-    # Если ГБО есть — соответствует.
-    # Если ГБО нет — не применяется и заключение "-".
     gas_equipment_present = is_true(
         getattr(measurement, "gas_equipment_present", None)
     )
@@ -564,6 +783,397 @@ def build_dynamic_result_values(protocol, measurement, light):
     )
 
     return values
+
+
+# =========================
+# Передние ПТФ: А.8.10.1–А.8.10.3
+# =========================
+
+def build_front_fog_values(light):
+    front_fog_present = is_positive_count(
+        getattr(light, "front_fog_count", None)
+    )
+
+    fog_light_left_distance = getattr(light, "fog_light_left_distance_mm", None)
+    fog_light_right_distance = getattr(light, "fog_light_right_distance_mm", None)
+
+    fog_light_upper_point = getattr(light, "fog_light_upper_point_mm", None)
+    fog_light_lower_point = getattr(light, "fog_light_lower_point_mm", None)
+
+    left_distance = value_with_unit_or_dash(
+        front_fog_present,
+        fog_light_left_distance,
+        2,
+        "мм",
+    )
+    right_distance = value_with_unit_or_dash(
+        front_fog_present,
+        fog_light_right_distance,
+        2,
+        "мм",
+    )
+
+    left_distance_u = uncertainty_with_unit_or_dash(
+        front_fog_present,
+        fog_light_left_distance,
+        "0,29",
+        "мм",
+    )
+    right_distance_u = uncertainty_with_unit_or_dash(
+        front_fog_present,
+        fog_light_right_distance,
+        "0,29",
+        "мм",
+    )
+
+    lower_point = value_with_unit_or_dash(
+        front_fog_present,
+        fog_light_lower_point,
+        2,
+        "мм",
+    )
+    upper_point = value_with_unit_or_dash(
+        front_fog_present,
+        fog_light_upper_point,
+        2,
+        "мм",
+    )
+
+    lower_point_u = uncertainty_with_unit_or_dash(
+        front_fog_present,
+        fog_light_lower_point,
+        "0,29",
+        "мм",
+    )
+    upper_point_u = uncertainty_with_unit_or_dash(
+        front_fog_present,
+        fog_light_upper_point,
+        "0,29",
+        "мм",
+    )
+
+    return {
+        "fog_light_left_distance_8_10_1": left_distance,
+        "fog_light_right_distance_8_10_1": right_distance,
+        "u_fog_light_left_distance_8_10_1": left_distance_u,
+        "u_fog_light_right_distance_8_10_1": right_distance_u,
+
+        "fog_light_lower_point_8_10_2": lower_point,
+        "fog_light_upper_point_8_10_2": upper_point,
+        "u_fog_light_lower_point_8_10_2": lower_point_u,
+        "u_fog_light_upper_point_8_10_2": upper_point_u,
+
+        "full_result_a_8_10_1": build_full_result_text(
+            front_fog_present,
+            CONCLUSIONS["a_8_10_1"],
+            "не более 400 мм",
+            f"Левая {left_distance} ± {left_distance_u}\n"
+            f"Правая {right_distance} ± {right_distance_u}",
+        ),
+
+        "full_result_a_8_10_2": build_full_result_text(
+            front_fog_present,
+            CONCLUSIONS["a_8_10_2"],
+            "не менее 250 мм и не более 800 мм",
+            f"Левая нижняя граница: {lower_point} ± {lower_point_u}\n"
+            f"Левая верхняя граница: {upper_point} ± {upper_point_u}\n"
+            f"Правая нижняя граница: {lower_point} ± {lower_point_u}\n"
+            f"Правая верхняя граница: {upper_point} ± {upper_point_u}",
+        ),
+
+        "full_result_a_8_10_3": build_full_result_text(
+            front_fog_present,
+            CONCLUSIONS["a_8_10_3"],
+        ),
+    }
+
+
+# =========================
+# Задние ПТФ: А.8.13.2
+# =========================
+
+def build_rear_fog_values(light):
+    rear_fog_present = is_positive_count(
+        getattr(light, "rear_fog_count", None)
+    )
+
+    rear_fog_upper_point = getattr(light, "rear_fog_upper_point_mm", None)
+    rear_fog_lower_point = getattr(light, "rear_fog_lower_point_mm", None)
+
+    upper_point = value_with_unit_or_dash(
+        rear_fog_present,
+        rear_fog_upper_point,
+        2,
+        "мм",
+    )
+
+    lower_point = value_with_unit_or_dash(
+        rear_fog_present,
+        rear_fog_lower_point,
+        2,
+        "мм",
+    )
+
+    upper_point_u = uncertainty_with_unit_or_dash(
+        rear_fog_present,
+        rear_fog_upper_point,
+        "0,29",
+        "мм",
+    )
+
+    lower_point_u = uncertainty_with_unit_or_dash(
+        rear_fog_present,
+        rear_fog_lower_point,
+        "0,29",
+        "мм",
+    )
+
+    return {
+        "rear_fog_upper_point_8_13_2": upper_point,
+        "rear_fog_lower_point_8_13_2": lower_point,
+        "u_rear_fog_upper_point_8_13_2": upper_point_u,
+        "u_rear_fog_lower_point_8_13_2": lower_point_u,
+
+        "full_result_a_8_13_2": build_full_result_text(
+            rear_fog_present,
+            CONCLUSIONS["a_8_13_2"],
+            "не менее 250 мм и не более 1000 мм",
+            f"Верхняя граница: {upper_point} ± {upper_point_u}\n"
+            f"Нижняя граница: {lower_point} ± {lower_point_u}",
+        ),
+    }
+
+
+# =========================
+# Сезонная глубина протектора
+# =========================
+
+def build_tire_depth_values(protocol, measurement):
+    tire_depth_fl_mm = getattr(measurement, "tire_depth_fl_mm", None)
+    tire_depth_fr_mm = getattr(measurement, "tire_depth_fr_mm", None)
+    tire_depth_rl_mm = getattr(measurement, "tire_depth_rl_mm", None)
+    tire_depth_rr_mm = getattr(measurement, "tire_depth_rr_mm", None)
+
+    is_summer = protocol.tire_season == "summer"
+    is_winter = protocol.tire_season == "winter"
+
+    summer_fl = get_tire_depth_value(protocol, tire_depth_fl_mm, "summer")
+    summer_fr = get_tire_depth_value(protocol, tire_depth_fr_mm, "summer")
+    summer_rl = get_tire_depth_value(protocol, tire_depth_rl_mm, "summer")
+    summer_rr = get_tire_depth_value(protocol, tire_depth_rr_mm, "summer")
+
+    summer_u_fl = get_tire_depth_uncertainty(protocol, tire_depth_fl_mm, "summer")
+    summer_u_fr = get_tire_depth_uncertainty(protocol, tire_depth_fr_mm, "summer")
+    summer_u_rl = get_tire_depth_uncertainty(protocol, tire_depth_rl_mm, "summer")
+    summer_u_rr = get_tire_depth_uncertainty(protocol, tire_depth_rr_mm, "summer")
+
+    winter_fl = get_tire_depth_value(protocol, tire_depth_fl_mm, "winter")
+    winter_fr = get_tire_depth_value(protocol, tire_depth_fr_mm, "winter")
+    winter_rl = get_tire_depth_value(protocol, tire_depth_rl_mm, "winter")
+    winter_rr = get_tire_depth_value(protocol, tire_depth_rr_mm, "winter")
+
+    winter_u_fl = get_tire_depth_uncertainty(protocol, tire_depth_fl_mm, "winter")
+    winter_u_fr = get_tire_depth_uncertainty(protocol, tire_depth_fr_mm, "winter")
+    winter_u_rl = get_tire_depth_uncertainty(protocol, tire_depth_rl_mm, "winter")
+    winter_u_rr = get_tire_depth_uncertainty(protocol, tire_depth_rr_mm, "winter")
+
+    return {
+        # А.10.7.2 — летние шины
+        "tire_depth_fl_10_7_2": summer_fl,
+        "tire_depth_fr_10_7_2": summer_fr,
+        "tire_depth_rl_10_7_2": summer_rl,
+        "tire_depth_rr_10_7_2": summer_rr,
+
+        "u_tire_depth_fl_10_7_2": summer_u_fl,
+        "u_tire_depth_fr_10_7_2": summer_u_fr,
+        "u_tire_depth_rl_10_7_2": summer_u_rl,
+        "u_tire_depth_rr_10_7_2": summer_u_rr,
+
+        "full_result_a_10_7_2": build_tire_depth_result_text(
+            is_summer,
+            CONCLUSIONS["a_10_7_2"],
+            "не менее 1,6 мм",
+            [
+                ("Переднее левое", summer_fl, summer_u_fl),
+                ("Переднее правое", summer_fr, summer_u_fr),
+                ("Заднее левое", summer_rl, summer_u_rl),
+                ("Заднее правое", summer_rr, summer_u_rr),
+            ],
+        ),
+
+        # А.10.7.3 — зимние шины
+        "tire_depth_fl_10_7_3": winter_fl,
+        "tire_depth_fr_10_7_3": winter_fr,
+        "tire_depth_rl_10_7_3": winter_rl,
+        "tire_depth_rr_10_7_3": winter_rr,
+
+        "u_tire_depth_fl_10_7_3": winter_u_fl,
+        "u_tire_depth_fr_10_7_3": winter_u_fr,
+        "u_tire_depth_rl_10_7_3": winter_u_rl,
+        "u_tire_depth_rr_10_7_3": winter_u_rr,
+
+        "full_result_a_10_7_3": build_tire_depth_result_text(
+            is_winter,
+            CONCLUSIONS["a_10_7_3"],
+            "не должно быть менее 4,0 мм",
+            [
+                ("Переднее левое", winter_fl, winter_u_fl),
+                ("Переднее правое", winter_fr, winter_u_fr),
+                ("Заднее левое", winter_rl, winter_u_rl),
+                ("Заднее правое", winter_rr, winter_u_rr),
+            ],
+        ),
+    }
+
+
+# =========================
+# Светозащитная полоса: А.11.8
+# =========================
+
+def build_sun_strip_values(measurement):
+    sun_strip_width = getattr(measurement, "sun_strip_width_mm", None)
+    sun_strip_present = is_positive_count(sun_strip_width)
+
+    if sun_strip_present:
+        sun_strip_value = f"{fmt_num(sun_strip_width, 2)} мм"
+        sun_strip_uncertainty = "0,19 мм"
+        full_result = build_full_result_text(
+            True,
+            CONCLUSIONS["a_11_8_sun_strip"],
+            "не более 140,00 мм",
+            f"{fmt_num(sun_strip_width, 2)} мм ± 0,19 мм",
+        )
+    else:
+        sun_strip_value = "отсутствие"
+        sun_strip_uncertainty = "-"
+        full_result = "-"
+
+    return {
+        "sun_strip_width_11_8": sun_strip_value,
+        "u_sun_strip_width_11_8": sun_strip_uncertainty,
+        "full_result_a_11_8_sun_strip": full_result,
+    }
+
+
+# =========================
+# Экология: А.21.7–А.21.9
+# =========================
+
+def build_eco_values(protocol, measurement):
+    fuel_type = getattr(measurement, "fuel_type", None)
+    mileage = decimal_value(getattr(measurement, "mileage_km", None))
+
+    mileage_is_3000_or_more = mileage is not None and mileage >= 3000
+
+    co_applicable = mileage_is_3000_or_more and is_fuel_petrol_like(fuel_type)
+    diesel_applicable = mileage_is_3000_or_more and is_fuel_diesel(fuel_type)
+
+    co_min = getattr(measurement, "co_min_pct", None)
+    co_max = getattr(measurement, "co_max_pct", None)
+
+    light_absorption_average = calc_light_absorption_average(measurement)
+
+    if mileage is None:
+        mileage_21_9 = "не указано"
+    elif mileage >= 3000:
+        mileage_21_9 = "более 3000 км"
+    else:
+        mileage_21_9 = "менее 3000 км"
+
+    return {
+        # А.21.7 — CO
+        "co_min_21_7": value_if_applicable(co_applicable, co_min, 2),
+        "co_max_21_7": value_if_applicable(co_applicable, co_max, 2),
+
+        "co_min_21_7_with_unit": value_with_unit_or_dash(
+            co_applicable,
+            co_min,
+            2,
+            "%",
+        ),
+        "co_max_21_7_with_unit": value_with_unit_or_dash(
+            co_applicable,
+            co_max,
+            2,
+            "%",
+        ),
+
+        "u_co_min_21_7": uncertainty_if_applicable(
+            co_applicable,
+            co_min,
+            "0,19",
+        ),
+        "u_co_max_21_7": uncertainty_if_applicable(
+            co_applicable,
+            co_max,
+            "0,19",
+        ),
+
+        "co_min_result_21_7": result_with_uncertainty_if_applicable(
+            co_applicable,
+            co_min,
+            "0,19",
+            2,
+            "%",
+        ),
+        "co_max_result_21_7": result_with_uncertainty_if_applicable(
+            co_applicable,
+            co_max,
+            "0,19",
+            2,
+            "%",
+        ),
+
+        "full_result_a_21_7": build_full_result_text(
+            co_applicable,
+            CONCLUSIONS["a_21_7"],
+            "Минимальная - не более 0,3 %\nПовышенная - не более 0,2 %",
+            f"Минимальная - {result_with_uncertainty_if_applicable(co_applicable, co_min, '0,19', 2, '%')}\n"
+            f"Повышенная - {result_with_uncertainty_if_applicable(co_applicable, co_max, '0,19', 2, '%')}",
+        ),
+
+        # А.21.8 — дымность дизеля
+        "light_absorption_avg_21_8": value_if_applicable(
+            diesel_applicable,
+            light_absorption_average,
+            3,
+        ),
+        "light_absorption_avg_21_8_with_unit": value_with_unit_or_dash(
+            diesel_applicable,
+            light_absorption_average,
+            3,
+            "м-1",
+        ),
+        "u_light_absorption_avg_21_8": uncertainty_if_applicable(
+            diesel_applicable,
+            light_absorption_average,
+            "0,048",
+        ),
+        "light_absorption_result_21_8": result_with_uncertainty_if_applicable(
+            diesel_applicable,
+            light_absorption_average,
+            "0,048",
+            3,
+            "м-1",
+        ),
+
+        "full_result_a_21_8": build_full_result_text(
+            diesel_applicable,
+            CONCLUSIONS["a_21_8"],
+            "не более 1,5 м-1",
+            result_with_uncertainty_if_applicable(
+                diesel_applicable,
+                light_absorption_average,
+                "0,048",
+                3,
+                "м-1",
+            ),
+        ),
+
+        # А.21.9 — пробег
+        "mileage_21_9": mileage_21_9,
+        "full_result_a_21_9": CONCLUSIONS["a_21_9"] if mileage is not None and mileage >= 3000 else "-",
+    }
 
 
 # =========================
@@ -612,14 +1222,46 @@ def debug_docx_context(context, protocol):
     print(f"protocol_id: {protocol.id}")
 
     keys = [
+        "brand_name",
+        "commercial_name",
+
+        "fog_light_left_distance_8_10_1",
+        "fog_light_right_distance_8_10_1",
+        "fog_light_lower_point_8_10_2",
+        "fog_light_upper_point_8_10_2",
+        "full_result_a_8_10_1",
+        "full_result_a_8_10_2",
+        "result_a_8_10_3_status",
+        "result_a_8_10_3_conclusion",
+
+        "tire_season_label",
+        "tire_depth_fl_10_7_2",
+        "tire_depth_fr_10_7_2",
+        "tire_depth_rl_10_7_2",
+        "tire_depth_rr_10_7_2",
+        "tire_depth_fl_10_7_3",
+        "tire_depth_fr_10_7_3",
+        "tire_depth_rl_10_7_3",
+        "tire_depth_rr_10_7_3",
+
+        "mileage_21_9",
+        "co_min_21_7_with_unit",
+        "co_max_21_7_with_unit",
+        "full_result_a_21_7",
+        "light_absorption_avg_21_8_with_unit",
+        "light_absorption_result_21_8",
+        "full_result_a_21_8",
+        "result_a_21_7_status",
+        "result_a_21_7_conclusion",
+        "result_a_21_8_status",
+        "result_a_21_8_conclusion",
+        "result_a_21_9_status",
+        "result_a_21_9_conclusion",
+
         "exhaust_noise_constant_db",
         "u_exhaust_noise_constant_db",
         "exhaust_noise_deceleration_db",
         "u_exhaust_noise_deceleration_db",
-        "result_a_8_10_3_status",
-        "result_a_8_10_3_conclusion",
-        "result_a_21_9_status",
-        "result_a_21_9_conclusion",
     ]
 
     for key in keys:
@@ -650,8 +1292,8 @@ def build_protocol_docx_context(protocol):
         # =========================
         # Таблица 1.1
         # =========================
-        "brand_name": fmt_text(protocol.brand_name),
-        "commercial_name": fmt_text(protocol.commercial_name),
+        "brand_name": fmt_text(protocol.brand_name).upper(),
+        "commercial_name": fmt_text(protocol.commercial_name).upper(),
         "body_type": fmt_text(protocol.body_type),
         "vin": fmt_text(protocol.vin),
         "registration_number": fmt_text(protocol.registration_number, "отсутствует"),
@@ -1076,6 +1718,11 @@ def build_protocol_docx_context(protocol):
         ),
     }
 
+    context.update(build_tire_depth_values(protocol, measurement))
+    context.update(build_eco_values(protocol, measurement))
+    context.update(build_front_fog_values(light))
+    context.update(build_rear_fog_values(light))
+    context.update(build_sun_strip_values(measurement))
     context.update(build_dynamic_result_values(protocol, measurement, light))
     context.update(build_calculated_values(protocol))
     context.update(build_uncertainty_values(protocol))

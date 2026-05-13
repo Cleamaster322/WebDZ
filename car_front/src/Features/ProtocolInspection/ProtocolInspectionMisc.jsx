@@ -51,6 +51,48 @@ function ProtocolInspectionMisc({
             </Grid>
 
             <Typography variant="h6" sx={subsectionTitleSx}>
+                Остаточная глубина рисунка протектора
+            </Typography>
+
+            <Grid container spacing={2} sx={{mb: 3}}>
+                {renderField({
+                    form,
+                    handleChange,
+                    textFieldSx,
+                    label: "Левое переднее, мм",
+                    name: "tire_depth_fl_mm",
+                    md: 3,
+                })}
+
+                {renderField({
+                    form,
+                    handleChange,
+                    textFieldSx,
+                    label: "Правое переднее, мм",
+                    name: "tire_depth_fr_mm",
+                    md: 3,
+                })}
+
+                {renderField({
+                    form,
+                    handleChange,
+                    textFieldSx,
+                    label: "Левое заднее, мм",
+                    name: "tire_depth_rl_mm",
+                    md: 3,
+                })}
+
+                {renderField({
+                    form,
+                    handleChange,
+                    textFieldSx,
+                    label: "Правое заднее, мм",
+                    name: "tire_depth_rr_mm",
+                    md: 3,
+                })}
+            </Grid>
+
+            <Typography variant="h6" sx={subsectionTitleSx}>
                 Кузов
             </Typography>
 

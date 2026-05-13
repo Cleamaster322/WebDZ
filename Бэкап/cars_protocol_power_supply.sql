@@ -35,7 +35,7 @@ CREATE TABLE `protocol_power_supply` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `protocol_id` (`protocol_id`),
   CONSTRAINT `protocol_power_supply_ibfk_1` FOREIGN KEY (`protocol_id`) REFERENCES `protocols` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -44,7 +44,7 @@ CREATE TABLE `protocol_power_supply` (
 
 LOCK TABLES `protocol_power_supply` WRITE;
 /*!40000 ALTER TABLE `protocol_power_supply` DISABLE KEYS */;
-INSERT INTO `protocol_power_supply` VALUES (1,1,NULL,NULL,NULL,NULL,NULL,NULL,NULL),(2,2,50,213,219,216,375,377,371);
+INSERT INTO `protocol_power_supply` VALUES (1,1,NULL,NULL,NULL,NULL,NULL,NULL,NULL),(2,2,50,213,219,216,375,377,371),(3,3,50,222,220,218,385,382,380),(4,4,50,222,220,218,385,382,380);
 /*!40000 ALTER TABLE `protocol_power_supply` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
@@ -57,4 +57,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-05-08 17:43:52
+-- Dump completed on 2026-05-13 21:31:05
