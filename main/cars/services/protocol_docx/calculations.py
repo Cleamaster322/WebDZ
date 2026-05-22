@@ -45,15 +45,6 @@ def sum_decimal(*values):
     return result
 
 
-def mm_to_m(value):
-    number = decimal_value(value)
-
-    if number is None:
-        return None
-
-    return number / Decimal("1000")
-
-
 def root_sum_squares(*values):
     """
     sqrt(x1^2 + x2^2 + ...)
@@ -129,6 +120,33 @@ def expanded_uncertainty_from_relative_error(value, percent):
     return expanded_from_standard(standard_u)
 
 
+def get_vehicle_mass_for_brake_calc(measurement):
+    """
+    Масса для расчета удельной тормозной силы.
+
+    Приоритет:
+    1) сумма нагрузок на ось по весам;
+    2) масса ТС;
+    3) None, если данных нет.
+    """
+    axle_mass_kg = sum_decimal(
+        get_value(measurement, "axle1_load_kg"),
+        get_value(measurement, "axle2_load_kg"),
+    )
+
+    if axle_mass_kg is not None and axle_mass_kg != 0:
+        return axle_mass_kg
+
+    vehicle_weight_kg = decimal_value(
+        get_value(measurement, "vehicle_weight_kg")
+    )
+
+    if vehicle_weight_kg is not None and vehicle_weight_kg != 0:
+        return vehicle_weight_kg
+
+    return None
+
+
 # =========================
 # Расчётные значения
 # =========================
@@ -141,7 +159,10 @@ def calc_service_brake_specific_force(brake, measurement):
 
     F_sum — сумма тормозных сил, кН.
     W — вес ТС, кН.
-    W = (stand_axle1_load_kg + stand_axle2_load_kg) * 9.81 / 1000
+
+    Массу берем так:
+    1) axle1_load_kg + axle2_load_kg;
+    2) если нагрузок на оси нет — vehicle_weight_kg.
     """
     brake_sum_kn = sum_decimal(
         get_value(brake, "service_brake_front_left_kn"),
@@ -150,10 +171,7 @@ def calc_service_brake_specific_force(brake, measurement):
         get_value(brake, "service_brake_rear_right_kn"),
     )
 
-    mass_kg = sum_decimal(
-        get_value(measurement, "stand_axle1_load_kg"),
-        get_value(measurement, "stand_axle2_load_kg"),
-    )
+    mass_kg = get_vehicle_mass_for_brake_calc(measurement)
 
     if brake_sum_kn is None or mass_kg is None or mass_kg == 0:
         return None
@@ -166,16 +184,22 @@ def calc_service_brake_specific_force(brake, measurement):
 def calc_parking_brake_specific_force(brake, measurement):
     """
     Удельная тормозная сила стояночной тормозной системы.
+
+    Z = F_sum / W
+
+    F_sum — сумма тормозных сил, кН.
+    W — вес ТС, кН.
+
+    Массу берем так:
+    1) axle1_load_kg + axle2_load_kg;
+    2) если нагрузок на оси нет — vehicle_weight_kg.
     """
     brake_sum_kn = sum_decimal(
         get_value(brake, "parking_brake_left_kn"),
         get_value(brake, "parking_brake_right_kn"),
     )
 
-    mass_kg = sum_decimal(
-        get_value(measurement, "stand_axle1_load_kg"),
-        get_value(measurement, "stand_axle2_load_kg"),
-    )
+    mass_kg = get_vehicle_mass_for_brake_calc(measurement)
 
     if brake_sum_kn is None or mass_kg is None or mass_kg == 0:
         return None
@@ -225,10 +249,6 @@ def build_calculated_values(protocol):
         "calc_parking_brake_specific_force": fmt_num(parking_specific, 2),
         "calc_total_high_beam_cd": fmt_num(total_high_beam, 1),
         "calc_light_absorption_average": fmt_num(light_absorption_average, 2),
-
-        "vehicle_length_m": fmt_num(mm_to_m(get_value(measurement, "vehicle_length_mm")), 3),
-        "vehicle_width_m": fmt_num(mm_to_m(get_value(measurement, "vehicle_width_mm")), 3),
-        "vehicle_height_m": fmt_num(mm_to_m(get_value(measurement, "vehicle_height_mm")), 3),
     }
 
 
@@ -263,17 +283,129 @@ def u_steering_backlash_deg():
     return expanded_uncertainty_from_abs_error(Decimal("0.5"))
 
 
+def linear_abs_error_by_value_mm(value):
+    """
+    Автоматический выбор абсолютной погрешности линейного измерения
+    по диапазону измеренного значения.
+
+    Используется для геометрических размеров световых приборов.
+
+    Диапазоны:
+    0–9 мм        -> Δ = 0.15 мм
+    10–99 мм      -> Δ = 0.20 мм
+    100–5000 мм   -> Δ = 0.30 мм
+
+    Даже если в исходной таблице верхний диапазон указан до 2 м,
+    в проекте принимаем диапазон до 5000 мм.
+    """
+    value = decimal_value(value)
+
+    if value is None:
+        return None
+
+    value = abs(value)
+
+    if value <= Decimal("9"):
+        return Decimal("0.15")
+
+    if value <= Decimal("99"):
+        return Decimal("0.20")
+
+    return Decimal("0.30")
+
+def rgk_r5_vehicle_abs_error_mm(value):
+    """
+    Абсолютная погрешность рулетки RGK R-5 для габаритных размеров ТС.
+
+    Логика по Excel:
+    - значение до 1 м:
+        0–9 мм      -> Δ = 0.15 мм
+        10–99 мм    -> Δ = 0.20 мм
+        100–999 мм  -> Δ = 0.30 мм
+
+    - значение от 1 м и выше:
+        Δ = 0.3 + 0.15 * (N - 1)
+
+      где N — нижняя граница метрового интервала.
+
+      Примеры:
+      1435 мм -> интервал 1–2 м -> N = 1 -> Δ = 0.30 мм
+      1780 мм -> интервал 1–2 м -> N = 1 -> Δ = 0.30 мм
+      4640 мм -> интервал 4–5 м -> N = 4 -> Δ = 0.75 мм
+    """
+    value = decimal_value(value)
+
+    if value is None:
+        return None
+
+    value = abs(value)
+
+    if value <= Decimal("9"):
+        return Decimal("0.15")
+
+    if value <= Decimal("99"):
+        return Decimal("0.20")
+
+    if value < Decimal("1000"):
+        return Decimal("0.30")
+
+    meters_floor = int(value // Decimal("1000"))
+
+    if meters_floor < 1:
+        meters_floor = 1
+
+    return Decimal("0.3") + Decimal("0.15") * (Decimal(meters_floor) - Decimal("1"))
+
+
+def u_rgk_r5_vehicle_mm(value):
+    """
+    Расширенная неопределенность габаритного размера ТС.
+
+    U = 1.65 * Δ / sqrt(3)
+    """
+    abs_error = rgk_r5_vehicle_abs_error_mm(value)
+
+    if abs_error is None:
+        return None
+
+    return expanded_uncertainty_from_abs_error(abs_error)
+
+def u_linear_by_value_mm(value):
+    """
+    Расширенная неопределенность линейного измерения
+    с автоматическим выбором базы Δ.
+
+    U = 1.65 * Δ / sqrt(3)
+
+    Примеры:
+    value = 0 мм:
+        Δ = 0.15 мм
+        U = 1.65 * 0.15 / sqrt(3) = 0.1429... ≈ 0.14 мм
+
+    value = 50 мм:
+        Δ = 0.20 мм
+        U = 1.65 * 0.20 / sqrt(3) = 0.1905... ≈ 0.19 мм
+
+    value = 150 мм:
+        Δ = 0.30 мм
+        U = 1.65 * 0.30 / sqrt(3) = 0.2857... ≈ 0.29 мм
+    """
+    abs_error = linear_abs_error_by_value_mm(value)
+
+    if abs_error is None:
+        return None
+
+    return expanded_uncertainty_from_abs_error(abs_error)
+
+
 def u_linear_03_mm():
     """
-    Линейные измерения:
+    Фиксированная линейная неопределенность:
     Δ = ±0.3 мм
-    U = 1.65 * 0.3 / sqrt(3) = 0.286 ≈ 0.3 мм
+    U = 1.65 * 0.3 / sqrt(3) = 0.286 ≈ 0.29 мм
 
-    Используется:
-    - геометрия световых приборов
-    - расстояние бампера
-    - выступающие элементы
-    - светозащитная полоса
+    Оставлена для тех пунктов, где по Excel/методике нужна именно
+    фиксированная база 0.3 мм, а не автоподбор по диапазону.
     """
     return expanded_uncertainty_from_abs_error(Decimal("0.3"))
 
@@ -288,21 +420,6 @@ def u_linear_02_mm():
     """
     return expanded_uncertainty_from_abs_error(Decimal("0.2"))
 
-
-def u_linear_015_standard_mm():
-    """
-    Стандартная неопределенность для расстояния от дополнительного
-    сигнала торможения до нижнего края внешней поверхности/покрытия
-    заднего стекла.
-
-    Excel:
-    E590 = F583 / sqrt(3)
-    F583 = 0.15 мм
-
-    В итоговой таблице Excel используется напрямую F799 = 0.0866...,
-    без умножения на k = 1.65.
-    """
-    return standard_uncertainty_from_abs_error(Decimal("0.15"))
 
 def u_bumper_distance_mm():
     """
@@ -332,6 +449,7 @@ def u_protruding_elements_mm():
     U = 1.65 * 0.10 / sqrt(3) = 0.0952... ≈ 0.10 мм
     """
     return expanded_uncertainty_from_abs_error(Decimal("0.10"))
+
 
 def u_tire_depth_mm():
     """
@@ -406,58 +524,28 @@ def u_light_absorption_m_1():
 # Габариты, масса
 # =========================
 
-def u_vehicle_length_mm():
+def u_vehicle_length_mm(value):
     """
-    Габаритная длина:
-    Δ = ±0.75 мм
-    U = 1.65 * 0.75 / sqrt(3) = 0.714 ≈ 0.7 мм
+    Неопределенность габаритной длины ТС.
+    Средство измерения: рулетка RGK R-5.
     """
-    return expanded_uncertainty_from_abs_error(Decimal("0.75"))
+    return u_rgk_r5_vehicle_mm(value)
 
 
-def u_vehicle_width_mm():
+def u_vehicle_width_mm(value):
     """
-    Габаритная ширина:
-    Δ = ±0.3 мм
-    U = 1.65 * 0.3 / sqrt(3) = 0.286 ≈ 0.3 мм
+    Неопределенность габаритной ширины ТС.
+    Средство измерения: рулетка RGK R-5.
     """
-    return expanded_uncertainty_from_abs_error(Decimal("0.3"))
+    return u_rgk_r5_vehicle_mm(value)
 
 
-def u_vehicle_height_mm():
+def u_vehicle_height_mm(value):
     """
-    Габаритная высота:
-    Δ = ±1.0 мм
-    U = 1.65 * 1.0 / sqrt(3) = 0.953 ≈ 1.0 мм
+    Неопределенность габаритной высоты ТС.
+    Средство измерения: рулетка RGK R-5.
     """
-    return expanded_uncertainty_from_abs_error(Decimal("1.0"))
-
-
-def u_vehicle_length_m():
-    value = u_vehicle_length_mm()
-
-    if value is None:
-        return None
-
-    return value / Decimal("1000")
-
-
-def u_vehicle_width_m():
-    value = u_vehicle_width_mm()
-
-    if value is None:
-        return None
-
-    return value / Decimal("1000")
-
-
-def u_vehicle_height_m():
-    value = u_vehicle_height_mm()
-
-    if value is None:
-        return None
-
-    return value / Decimal("1000")
+    return u_rgk_r5_vehicle_mm(value)
 
 
 def u_scale_kg():
@@ -530,7 +618,7 @@ def calc_service_brake_specific_force_uncertainty(brake, measurement):
 
     где:
     P1..P4 — тормозные силы, Н
-    m — масса по стенду, кг
+    m — масса, кг
     g = 9.800
 
     u(R) = sqrt(
@@ -540,6 +628,10 @@ def calc_service_brake_specific_force_uncertainty(brake, measurement):
     )
 
     U = 1.65 * u(R)
+
+    Массу берем так же, как в расчете:
+    1) axle1_load_kg + axle2_load_kg;
+    2) если нагрузок на оси нет — vehicle_weight_kg.
     """
     forces_kn = [
         decimal_value(get_value(brake, "service_brake_front_left_kn")),
@@ -550,15 +642,9 @@ def calc_service_brake_specific_force_uncertainty(brake, measurement):
 
     forces_kn = [value for value in forces_kn if value is not None]
 
-    axle1 = decimal_value(get_value(measurement, "stand_axle1_load_kg"))
-    axle2 = decimal_value(get_value(measurement, "stand_axle2_load_kg"))
+    mass_kg = get_vehicle_mass_for_brake_calc(measurement)
 
-    if not forces_kn or axle1 is None or axle2 is None:
-        return None
-
-    mass_kg = axle1 + axle2
-
-    if mass_kg == 0:
+    if not forces_kn or mass_kg is None or mass_kg == 0:
         return None
 
     forces_n = [value * Decimal("1000") for value in forces_kn]
@@ -578,9 +664,9 @@ def calc_service_brake_specific_force_uncertainty(brake, measurement):
     coefficient_mass = (force_sum_n / (mass_kg * mass_kg * G)) ** 2
 
     standard_u = (
-            coefficient_force * u_forces_squared_sum
-            +
-            coefficient_mass * (u_mass ** 2)
+        coefficient_force * u_forces_squared_sum
+        +
+        coefficient_mass * (u_mass ** 2)
     ).sqrt()
 
     return expanded_from_standard(standard_u)
@@ -591,6 +677,10 @@ def calc_parking_brake_specific_force_uncertainty(brake, measurement):
     Неопределенность удельной тормозной силы стояночной тормозной системы.
 
     R = (P_left + P_right) / (m * g)
+
+    Массу берем так же, как в расчете:
+    1) axle1_load_kg + axle2_load_kg;
+    2) если нагрузок на оси нет — vehicle_weight_kg.
     """
     forces_kn = [
         decimal_value(get_value(brake, "parking_brake_left_kn")),
@@ -599,15 +689,9 @@ def calc_parking_brake_specific_force_uncertainty(brake, measurement):
 
     forces_kn = [value for value in forces_kn if value is not None]
 
-    axle1 = decimal_value(get_value(measurement, "stand_axle1_load_kg"))
-    axle2 = decimal_value(get_value(measurement, "stand_axle2_load_kg"))
+    mass_kg = get_vehicle_mass_for_brake_calc(measurement)
 
-    if not forces_kn or axle1 is None or axle2 is None:
-        return None
-
-    mass_kg = axle1 + axle2
-
-    if mass_kg == 0:
+    if not forces_kn or mass_kg is None or mass_kg == 0:
         return None
 
     forces_n = [value * Decimal("1000") for value in forces_kn]
@@ -627,9 +711,9 @@ def calc_parking_brake_specific_force_uncertainty(brake, measurement):
     coefficient_mass = (force_sum_n / (mass_kg * mass_kg * G)) ** 2
 
     standard_u = (
-            coefficient_force * u_forces_squared_sum
-            +
-            coefficient_mass * (u_mass ** 2)
+        coefficient_force * u_forces_squared_sum
+        +
+        coefficient_mass * (u_mass ** 2)
     ).sqrt()
 
     return expanded_from_standard(standard_u)
@@ -639,12 +723,12 @@ def brake_difference_pct(left_force, right_force):
     """
     Относительная разность тормозных сил колес оси.
 
-    Excel-логика:
-    D = 100 * (P1 - P2) / P1
+    Главное правило:
+    D = 100 * (max - min) / max
 
     где:
-    P1 — большее значение тормозной силы на оси
-    P2 — меньшее значение тормозной силы на оси
+    max — большее значение тормозной силы на оси;
+    min — меньшее значение тормозной силы на оси.
     """
     left = decimal_value(left_force)
     right = decimal_value(right_force)
@@ -652,34 +736,43 @@ def brake_difference_pct(left_force, right_force):
     if left is None or right is None:
         return None
 
-    p1 = max(left, right)
-    p2 = min(left, right)
+    p_max = max(left, right)
+    p_min = min(left, right)
 
-    if p1 == 0:
+    if p_max == 0:
         return None
 
-    return Decimal("100") * (p1 - p2) / p1
+    return Decimal("100") * (p_max - p_min) / p_max
 
 
 def calc_brake_difference_uncertainty(left_force, right_force):
     """
     Расширенная неопределенность относительной разности тормозных сил колес оси.
 
+    Формула самой разности:
+    D = 100 * (Pmax - Pmin) / Pmax
+
+    где:
+    Pmax — большее значение тормозной силы на оси;
+    Pmin — меньшее значение тормозной силы на оси.
+
     В форме и БД тормозные силы хранятся в кН.
-    В Excel расчет идет в Н, поэтому переводим:
+    В расчете неопределенности переводим:
     кН -> Н
 
-    Excel-логика:
-    P1 — меньшее значение тормозной силы
-    P2 — большее значение тормозной силы
+    D = 100 * (1 - Pmin / Pmax)
 
-    u(P) = 100 * sqrt(
-        ((P2 / P1^2)^2 * u(P1)^2)
+    Частные производные:
+    dD/dPmin = -100 / Pmax
+    dD/dPmax = 100 * Pmin / Pmax^2
+
+    u(D) = sqrt(
+        (-100 / Pmax)^2 * u(Pmin)^2
         +
-        ((1 / P1)^2 * u(P2)^2)
+        (100 * Pmin / Pmax^2)^2 * u(Pmax)^2
     )
 
-    U = 1.65 * u(P)
+    U = 1.65 * u(D)
     """
     left_kn = decimal_value(left_force)
     right_kn = decimal_value(right_force)
@@ -690,24 +783,24 @@ def calc_brake_difference_uncertainty(left_force, right_force):
     left_n = left_kn * Decimal("1000")
     right_n = right_kn * Decimal("1000")
 
-    p1 = min(left_n, right_n)
-    p2 = max(left_n, right_n)
+    p_max = max(left_n, right_n)
+    p_min = min(left_n, right_n)
 
-    if p1 == 0:
+    if p_max == 0:
         return None
 
-    u_p1 = standard_uncertainty_from_relative_error(p1, Decimal("3"))
-    u_p2 = standard_uncertainty_from_relative_error(p2, Decimal("3"))
+    u_p_max = standard_uncertainty_from_relative_error(p_max, Decimal("3"))
+    u_p_min = standard_uncertainty_from_relative_error(p_min, Decimal("3"))
 
-    if u_p1 is None or u_p2 is None:
+    if u_p_max is None or u_p_min is None:
         return None
 
-    coefficient_p1 = p2 / (p1 * p1)
-    coefficient_p2 = Decimal("1") / p1
+    coefficient_p_min = Decimal("100") / p_max
+    coefficient_p_max = Decimal("100") * p_min / (p_max * p_max)
 
-    standard_u = Decimal("100") * root_sum_squares(
-        coefficient_p1 * u_p1,
-        coefficient_p2 * u_p2,
+    standard_u = root_sum_squares(
+        coefficient_p_min * u_p_min,
+        coefficient_p_max * u_p_max,
     )
 
     return expanded_from_standard(standard_u)
@@ -793,13 +886,12 @@ def build_uncertainty_values(protocol=None):
     co_u = u_co_pct()
     noise_u = u_noise_db()
     steering_u = u_steering_backlash_deg()
-    linear_03_u = u_linear_03_mm()
     linear_02_u = u_linear_02_mm()
-    linear_015_standard_u = u_linear_015_standard_mm()
     bumper_distance_u = u_bumper_distance_mm()
     protruding_elements_u = u_protruding_elements_mm()
     tire_depth_u = u_tire_depth_mm()
     glass_u = u_glass_transparency_pct()
+
     speed_by_speedometer_u = u_speed_kmh(
         get_value(measurement, "speed_by_speedometer_kmh")
     )
@@ -807,22 +899,31 @@ def build_uncertainty_values(protocol=None):
     actual_speed_u = u_speed_kmh(
         get_value(measurement, "actual_speed_kmh")
     )
+
     turn_hz_u = u_turn_signal_frequency_hz()
     turn_per_min_u = u_turn_signal_frequency_per_min()
     light_absorption_u = u_light_absorption_m_1()
 
-    length_u_mm = u_vehicle_length_mm()
-    width_u_mm = u_vehicle_width_mm()
-    height_u_mm = u_vehicle_height_mm()
+    length_u_mm = u_vehicle_length_mm(
+        get_value(measurement, "vehicle_length_mm")
+    )
 
-    length_u_m = u_vehicle_length_m()
-    width_u_m = u_vehicle_width_m()
-    height_u_m = u_vehicle_height_m()
+    width_u_mm = u_vehicle_width_mm(
+        get_value(measurement, "vehicle_width_mm")
+    )
+
+    height_u_mm = u_vehicle_height_mm(
+        get_value(measurement, "vehicle_height_mm")
+    )
 
     scale_u = u_scale_kg()
 
-    stand_axle1_u = u_stand_load_kg(get_value(measurement, "stand_axle1_load_kg"))
-    stand_axle2_u = u_stand_load_kg(get_value(measurement, "stand_axle2_load_kg"))
+    stand_axle1_u = u_stand_load_kg(
+        get_value(measurement, "stand_axle1_load_kg")
+    )
+    stand_axle2_u = u_stand_load_kg(
+        get_value(measurement, "stand_axle2_load_kg")
+    )
 
     service_control_force_axle1_u = u_control_force_n(
         get_value(brake, "service_brake_control_force_axle1_n")
@@ -885,13 +986,6 @@ def build_uncertainty_values(protocol=None):
         "u_vehicle_height_mm": fmt_num(height_u_mm, 1),
 
         # =========================
-        # Габариты в метрах
-        # =========================
-        "u_vehicle_length_m": fmt_num(length_u_m, 4),
-        "u_vehicle_width_m": fmt_num(width_u_m, 4),
-        "u_vehicle_height_m": fmt_num(height_u_m, 4),
-
-        # =========================
         # Масса и оси по весам
         # =========================
         "u_vehicle_weight_kg": fmt_num(scale_u, 0),
@@ -919,26 +1013,81 @@ def build_uncertainty_values(protocol=None):
 
         # =========================
         # Геометрия света
+        # Автоподбор Δ:
+        # 0–9 мм -> 0.15
+        # 10–99 мм -> 0.20
+        # 100–5000 мм -> 0.30
         # =========================
-        "u_low_beam_lower_point_mm": fmt_num(linear_03_u, 2),
-        "u_low_beam_upper_point_mm": fmt_num(linear_03_u, 2),
+        "u_low_beam_lower_point_mm": fmt_num(
+            u_linear_by_value_mm(get_value(light, "low_beam_lower_point_mm")),
+            2,
+        ),
+        "u_low_beam_upper_point_mm": fmt_num(
+            u_linear_by_value_mm(get_value(light, "low_beam_upper_point_mm")),
+            2,
+        ),
 
-        "u_fog_light_left_distance_mm": fmt_num(linear_03_u, 2),
-        "u_fog_light_right_distance_mm": fmt_num(linear_03_u, 2),
-        "u_fog_light_lower_point_mm": fmt_num(linear_03_u, 2),
-        "u_fog_light_upper_point_mm": fmt_num(linear_03_u, 2),
+        "u_fog_light_left_distance_mm": fmt_num(
+            u_linear_by_value_mm(get_value(light, "fog_light_left_distance_mm")),
+            2,
+        ),
+        "u_fog_light_right_distance_mm": fmt_num(
+            u_linear_by_value_mm(get_value(light, "fog_light_right_distance_mm")),
+            2,
+        ),
+        "u_fog_light_lower_point_mm": fmt_num(
+            u_linear_by_value_mm(get_value(light, "fog_light_lower_point_mm")),
+            2,
+        ),
+        "u_fog_light_upper_point_mm": fmt_num(
+            u_linear_by_value_mm(get_value(light, "fog_light_upper_point_mm")),
+            2,
+        ),
 
-        "u_brake_signal_left_distance_mm": fmt_num(linear_03_u, 2),
-        "u_brake_signal_right_distance_mm": fmt_num(linear_03_u, 2),
-        "u_brake_signal_lower_point_mm": fmt_num(linear_03_u, 2),
-        "u_brake_signal_upper_point_mm": fmt_num(linear_03_u, 2),
+        "u_brake_signal_left_distance_mm": fmt_num(
+            u_linear_by_value_mm(get_value(light, "brake_signal_left_distance_mm")),
+            2,
+        ),
+        "u_brake_signal_right_distance_mm": fmt_num(
+            u_linear_by_value_mm(get_value(light, "brake_signal_right_distance_mm")),
+            2,
+        ),
+        "u_brake_signal_lower_point_mm": fmt_num(
+            u_linear_by_value_mm(get_value(light, "brake_signal_lower_point_mm")),
+            2,
+        ),
+        "u_brake_signal_upper_point_mm": fmt_num(
+            u_linear_by_value_mm(get_value(light, "brake_signal_upper_point_mm")),
+            2,
+        ),
 
-        "u_additional_brake_signal_from_support_surface_mm": fmt_num(linear_03_u, 2),
-        "u_additional_brake_signal_from_glass_edge_mm": fmt_num(linear_015_standard_u, 2),
-        "u_additional_brake_signal_optical_center_shift_mm": fmt_num(linear_03_u, 2),
+        "u_additional_brake_signal_from_support_surface_mm": fmt_num(
+            u_linear_by_value_mm(
+                get_value(light, "additional_brake_signal_from_support_surface_mm")
+            ),
+            2,
+        ),
+        "u_additional_brake_signal_from_glass_edge_mm": fmt_num(
+            u_linear_by_value_mm(
+                get_value(light, "additional_brake_signal_from_glass_edge_mm")
+            ),
+            2,
+        ),
+        "u_additional_brake_signal_optical_center_shift_mm": fmt_num(
+            u_linear_by_value_mm(
+                get_value(light, "additional_brake_signal_optical_center_shift_mm")
+            ),
+            2,
+        ),
 
-        "u_rear_fog_upper_point_mm": fmt_num(linear_03_u, 2),
-        "u_rear_fog_lower_point_mm": fmt_num(linear_03_u, 2),
+        "u_rear_fog_upper_point_mm": fmt_num(
+            u_linear_by_value_mm(get_value(light, "rear_fog_upper_point_mm")),
+            2,
+        ),
+        "u_rear_fog_lower_point_mm": fmt_num(
+            u_linear_by_value_mm(get_value(light, "rear_fog_lower_point_mm")),
+            2,
+        ),
 
         # =========================
         # Сила света

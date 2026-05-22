@@ -1016,15 +1016,9 @@ def create_protocol(request):
         data = request.data.copy()
         data['user'] = request.user.id
 
-        if not data.get('protocol_number'):
-            today_str = date.today().strftime('%Y%m%d')
-            prefix = f"TMP-{request.user.id}-{today_str}"
-
-            existing_count = Protocol.objects.filter(
-                protocol_number__startswith=prefix
-            ).count()
-
-            data['protocol_number'] = f"{prefix}-{existing_count + 1:04d}"
+        # Номер протокола теперь формируется после создания,
+        # потому что нужен id протокола.
+        data.pop('protocol_number', None)
 
         if not data.get('protocol_date'):
             data['protocol_date'] = str(date.today())
@@ -1042,6 +1036,10 @@ def create_protocol(request):
 
         if serializer.is_valid():
             protocol = serializer.save()
+
+            protocol.protocol_number = str(protocol.id).zfill(5)
+            protocol.save(update_fields=['protocol_number'])
+
             return Response(
                 ProtocolSerializer(protocol).data,
                 status=status.HTTP_201_CREATED

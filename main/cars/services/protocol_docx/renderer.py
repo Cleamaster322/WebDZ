@@ -5,7 +5,7 @@ from docx import Document
 from docx.shared import Inches
 
 
-PLACEHOLDER_RE = re.compile(r"\{\{\s*([a-zA-Z0-9_]+)\s*\}\}")
+
 
 
 IMAGE_PLACEHOLDERS = {
@@ -14,6 +14,10 @@ IMAGE_PLACEHOLDERS = {
     "photo_noise_test",
 }
 
+
+# =========================
+# Paragraph / table iterators
+# =========================
 
 def iter_paragraphs(document):
     for paragraph in document.paragraphs:
@@ -48,6 +52,155 @@ def iter_table_paragraphs(table):
             for nested_table in cell.tables:
                 yield from iter_table_paragraphs(nested_table)
 
+
+def iter_document_tables(document):
+    for table in document.tables:
+        yield table
+
+    for section in document.sections:
+        header = section.header
+        footer = section.footer
+
+        for table in header.tables:
+            yield table
+
+        for table in footer.tables:
+            yield table
+
+
+# =========================
+# Conditional table rows
+# =========================
+
+def get_row_text(row):
+    parts = []
+
+    for cell in row.cells:
+        for paragraph in cell.paragraphs:
+            parts.append(paragraph.text)
+
+    return "\n".join(parts)
+
+
+def delete_table_row(row):
+    tr = row._tr
+    tr.getparent().remove(tr)
+
+
+def context_value_to_bool(value):
+    """
+    Приводит значение из context к boolean.
+
+    Нормально работает для:
+    True / False
+    1 / 0
+    "true" / "false"
+    "yes" / "no"
+    "1" / "0"
+    """
+    if value is True:
+        return True
+
+    if value is False:
+        return False
+
+    if value is None:
+        return False
+
+    if isinstance(value, (int, float)):
+        return value != 0
+
+    text = str(value).strip().lower()
+
+    if text in ["", "0", "false", "none", "null", "no", "нет", "не применяется", "-"]:
+        return False
+
+    return True
+
+
+def evaluate_tr_condition(expression, context):
+    """
+    Минимальный обработчик условий для таблиц.
+
+    Поддерживает:
+    {%tr if parking_light_present %}
+    {%tr if not parking_light_present %}
+
+    Специально не используем eval, чтобы не выполнять произвольный код.
+    """
+    expression = str(expression).strip()
+
+    if expression.startswith("not "):
+        variable_name = expression[4:].strip()
+        return not context_value_to_bool(context.get(variable_name))
+
+    return context_value_to_bool(context.get(expression))
+
+
+def process_table_conditions(table, context):
+    """
+    Обрабатывает условные строки таблицы вида:
+
+    {%tr if parking_light_present %}
+        строка или несколько строк
+    {%tr endif %}
+
+    {%tr if not parking_light_present %}
+        строка или несколько строк
+    {%tr endif %}
+
+    Служебные строки с {%tr ... %} всегда удаляются.
+    Строки внутри блока удаляются, если условие False.
+    """
+    rows = list(table.rows)
+    condition_stack = []
+    rows_to_delete = []
+
+    for row in rows:
+        row_text = get_row_text(row)
+
+        if_match = TR_IF_RE.search(row_text)
+        endif_match = TR_ENDIF_RE.search(row_text)
+
+        if if_match:
+            parent_active = all(condition_stack) if condition_stack else True
+            condition_result = evaluate_tr_condition(if_match.group(1), context)
+            condition_stack.append(parent_active and condition_result)
+
+            rows_to_delete.append(row)
+            continue
+
+        if endif_match:
+            if condition_stack:
+                condition_stack.pop()
+
+            rows_to_delete.append(row)
+            continue
+
+        if condition_stack and not all(condition_stack):
+            rows_to_delete.append(row)
+
+    for row in rows_to_delete:
+        try:
+            delete_table_row(row)
+        except Exception:
+            pass
+
+    # После удаления строк обрабатываем вложенные таблицы в оставшихся строках.
+    for row in list(table.rows):
+        for cell in row.cells:
+            for nested_table in cell.tables:
+                process_table_conditions(nested_table, context)
+
+
+def process_document_conditions(document, context):
+    for table in iter_document_tables(document):
+        process_table_conditions(table, context)
+
+
+# =========================
+# Placeholder replacement
+# =========================
 
 def build_run_ranges(paragraph):
     ranges = []
@@ -140,9 +293,18 @@ def try_add_picture(run, image_path):
         return
 
 
+# =========================
+# Main render
+# =========================
+
 def render_protocol_docx(template_path, output_path, context):
     document = Document(template_path)
 
+    # 1. Сначала обрабатываем условные строки таблиц:
+    #    {%tr if ... %} / {%tr endif %}
+    process_document_conditions(document, context)
+
+    # 2. Потом заменяем обычные {{ placeholders }}
     for paragraph in iter_paragraphs(document):
         replace_placeholder_in_paragraph(paragraph, context)
 

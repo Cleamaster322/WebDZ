@@ -3,6 +3,29 @@ from django.db import models
 
 
 # =========================
+# Общие mixin-классы
+# =========================
+
+class DashFieldsMixin(models.Model):
+    """
+    Хранит список полей, в которых пользователь явно поставил прочерк "-".
+
+    Логика:
+    - значение поля в БД остается NULL;
+    - если имя поля есть в dash_fields, frontend при загрузке показывает "-";
+    - если значение NULL и имени поля нет в dash_fields, frontend показывает пустую строку.
+
+    Это нужно, чтобы отличать:
+    1) поле ещё не заполняли;
+    2) пользователь сознательно поставил прочерк.
+    """
+    dash_fields = models.JSONField(default=list, blank=True)
+
+    class Meta:
+        abstract = True
+
+
+# =========================
 # Автомобильный справочник
 # =========================
 
@@ -66,7 +89,7 @@ class Configuration(models.Model):
         db_table = 'configurations'
 
     def __str__(self):
-        return self.name
+        return self.name or f"Configuration #{self.id}"
 
 
 class CarData(models.Model):
@@ -141,11 +164,12 @@ class CarData(models.Model):
     def __str__(self):
         return f"{self.configuration.name} - {self.fuel_type}"
 
+
 # =========================
 # Протокол
 # =========================
 
-class Protocol(models.Model):
+class Protocol(DashFieldsMixin, models.Model):
     STATUS_CHOICES = [
         ('draft', 'Черновик'),
         ('in_progress', 'В работе'),
@@ -228,11 +252,12 @@ class Protocol(models.Model):
     def __str__(self):
         return self.protocol_number or f"Protocol #{self.id}"
 
+
 # =========================
 # ProtocolMeasurement
 # =========================
 
-class ProtocolMeasurement(models.Model):
+class ProtocolMeasurement(DashFieldsMixin, models.Model):
     WHEEL_FORMULA_CHOICES = [
         ('4x2_front', '4x2 передний'),
         ('4x2_rear', '4x2 задний'),
@@ -286,12 +311,7 @@ class ProtocolMeasurement(models.Model):
     )
 
     # Конструктив
-    wheel_formula = models.CharField(
-        max_length=20,
-        choices=WHEEL_FORMULA_CHOICES,
-        blank=True,
-        null=True
-    )
+    wheel_formula = models.CharField(max_length=20, choices=WHEEL_FORMULA_CHOICES, blank=True, null=True)
     mufflers_count = models.IntegerField(blank=True, null=True)
     seats_count = models.CharField(max_length=50, blank=True, null=True)
     steps_present = models.BooleanField(blank=True, null=True)
@@ -299,25 +319,10 @@ class ProtocolMeasurement(models.Model):
     # Двигатель
     engine_model = models.CharField(max_length=255, blank=True, null=True)
     engine_power_kw = models.IntegerField(blank=True, null=True)
-    engine_layout = models.CharField(
-        max_length=20,
-        choices=ENGINE_LAYOUT_CHOICES,
-        blank=True,
-        null=True
-    )
-    cylinder_layout = models.CharField(
-        max_length=20,
-        choices=CYLINDER_LAYOUT_CHOICES,
-        blank=True,
-        null=True
-    )
+    engine_layout = models.CharField(max_length=20, choices=ENGINE_LAYOUT_CHOICES, blank=True, null=True)
+    cylinder_layout = models.CharField(max_length=20, choices=CYLINDER_LAYOUT_CHOICES, blank=True, null=True)
     cylinders_count = models.IntegerField(blank=True, null=True)
-    fuel_type = models.CharField(
-        max_length=20,
-        choices=FUEL_TYPE_CHOICES,
-        blank=True,
-        null=True
-    )
+    fuel_type = models.CharField(max_length=20, choices=FUEL_TYPE_CHOICES, blank=True, null=True)
     turbo_present = models.BooleanField(blank=True, null=True)
 
     # Рулевое управление
@@ -327,12 +332,7 @@ class ProtocolMeasurement(models.Model):
         blank=True,
         null=True
     )
-    steering_backlash_deg = models.DecimalField(
-        max_digits=8,
-        decimal_places=2,
-        blank=True,
-        null=True
-    )
+    steering_backlash_deg = models.DecimalField(max_digits=8, decimal_places=2, blank=True, null=True)
 
     # Трансмиссия
     transmission_type = models.CharField(
@@ -350,12 +350,7 @@ class ProtocolMeasurement(models.Model):
 
     # Кузов и наружные элементы
     bumper_bends_to_body = models.BooleanField(blank=True, null=True)
-    bumper_to_body_distance_mm = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        blank=True,
-        null=True
-    )
+    bumper_to_body_distance_mm = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
 
     opening_roof_present = models.BooleanField(blank=True, null=True)
 
@@ -366,72 +361,22 @@ class ProtocolMeasurement(models.Model):
         null=True
     )
 
-    protruding_elements_doors_mm = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        blank=True,
-        null=True
-    )
-    protruding_elements_other_mm = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        blank=True,
-        null=True
-    )
+    protruding_elements_doors_mm = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    protruding_elements_other_mm = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
 
     # Стекла
-    glass_transparency_right_pct = models.DecimalField(
-        max_digits=6,
-        decimal_places=2,
-        blank=True,
-        null=True
-    )
-    glass_transparency_left_pct = models.DecimalField(
-        max_digits=6,
-        decimal_places=2,
-        blank=True,
-        null=True
-    )
-    glass_transparency_windshield_pct = models.DecimalField(
-        max_digits=6,
-        decimal_places=2,
-        blank=True,
-        null=True
-    )
-    sun_strip_width_mm = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        blank=True,
-        null=True
-    )
+    glass_transparency_right_pct = models.DecimalField(max_digits=6, decimal_places=2, blank=True, null=True)
+    glass_transparency_left_pct = models.DecimalField(max_digits=6, decimal_places=2, blank=True, null=True)
+    glass_transparency_windshield_pct = models.DecimalField(max_digits=6, decimal_places=2, blank=True, null=True)
+    sun_strip_width_mm = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
 
     # Скорость
-    speed_by_speedometer_kmh = models.DecimalField(
-        max_digits=8,
-        decimal_places=2,
-        blank=True,
-        null=True
-    )
-    actual_speed_kmh = models.DecimalField(
-        max_digits=8,
-        decimal_places=2,
-        blank=True,
-        null=True
-    )
+    speed_by_speedometer_kmh = models.DecimalField(max_digits=8, decimal_places=2, blank=True, null=True)
+    actual_speed_kmh = models.DecimalField(max_digits=8, decimal_places=2, blank=True, null=True)
 
     # Шум отработавших газов
-    exhaust_noise_constant_db = models.DecimalField(
-        max_digits=8,
-        decimal_places=2,
-        blank=True,
-        null=True
-    )
-    exhaust_noise_deceleration_db = models.DecimalField(
-        max_digits=8,
-        decimal_places=2,
-        blank=True,
-        null=True
-    )
+    exhaust_noise_constant_db = models.DecimalField(max_digits=8, decimal_places=2, blank=True, null=True)
+    exhaust_noise_deceleration_db = models.DecimalField(max_digits=8, decimal_places=2, blank=True, null=True)
 
     # Содержание CO
     co_min_pct = models.DecimalField(max_digits=8, decimal_places=3, blank=True, null=True)
@@ -460,27 +405,11 @@ class ProtocolMeasurement(models.Model):
     stand_axle2_load_kg = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
 
     # Новые поля под актуальную версию протокола
-    mileage_km = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        blank=True,
-        null=True
-    )
-
-    spare_wheel_present = models.BooleanField(
-        blank=True,
-        null=True
-    )
-
-    steering_lock_present = models.BooleanField(
-        blank=True,
-        null=True
-    )
-
-    gas_equipment_present = models.BooleanField(
-        blank=True,
-        null=True
-    )
+    mileage_km = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    spare_wheel_present = models.BooleanField(blank=True, null=True)
+    steering_lock_present = models.BooleanField(blank=True, null=True)
+    gas_equipment_present = models.BooleanField(blank=True, null=True)
+    glonass_button_present = models.BooleanField(blank=True, null=True)
 
     class Meta:
         db_table = 'protocol_measurements'
@@ -490,7 +419,7 @@ class ProtocolMeasurement(models.Model):
 # ProtocolBrake
 # =========================
 
-class ProtocolBrake(models.Model):
+class ProtocolBrake(DashFieldsMixin, models.Model):
     SERVICE_BRAKE_TYPE_CHOICES = [
         ('disc_disc', 'Дисковая/дисковая'),
         ('disc_drum', 'Дисковая/барабанная'),
@@ -505,6 +434,7 @@ class ProtocolBrake(models.Model):
     ]
 
     id = models.BigAutoField(primary_key=True)
+
     protocol = models.OneToOneField(
         Protocol,
         on_delete=models.CASCADE,
@@ -538,7 +468,7 @@ class ProtocolBrake(models.Model):
 # ProtocolLight
 # =========================
 
-class ProtocolLight(models.Model):
+class ProtocolLight(DashFieldsMixin, models.Model):
     HEADLIGHT_TYPE_CHOICES = [
         ('halogen', 'Галоген'),
         ('xenon', 'Ксенон'),
@@ -605,78 +535,23 @@ class ProtocolLight(models.Model):
     adaptive_front_lighting_color = models.CharField(max_length=50, blank=True, null=True)
 
     # Тип фар
-    headlight_type = models.CharField(
-        max_length=20,
-        choices=HEADLIGHT_TYPE_CHOICES,
-        blank=True,
-        null=True
-    )
+    headlight_type = models.CharField(max_length=20, choices=HEADLIGHT_TYPE_CHOICES, blank=True, null=True)
 
     # Установка фар ближнего света по высоте
-    low_beam_upper_point_mm = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        blank=True,
-        null=True
-    )
-    low_beam_lower_point_mm = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        blank=True,
-        null=True
-    )
+    low_beam_upper_point_mm = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    low_beam_lower_point_mm = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
 
     # Установка ПТФ
-    fog_light_upper_point_mm = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        blank=True,
-        null=True
-    )
-    fog_light_lower_point_mm = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        blank=True,
-        null=True
-    )
-    fog_light_left_distance_mm = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        blank=True,
-        null=True
-    )
-    fog_light_right_distance_mm = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        blank=True,
-        null=True
-    )
+    fog_light_upper_point_mm = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    fog_light_lower_point_mm = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    fog_light_left_distance_mm = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    fog_light_right_distance_mm = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
 
     # Установка основных сигналов торможения
-    brake_signal_upper_point_mm = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        blank=True,
-        null=True
-    )
-    brake_signal_lower_point_mm = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        blank=True,
-        null=True
-    )
-    brake_signal_left_distance_mm = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        blank=True,
-        null=True
-    )
-    brake_signal_right_distance_mm = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        blank=True,
-        null=True
-    )
+    brake_signal_upper_point_mm = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    brake_signal_lower_point_mm = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    brake_signal_left_distance_mm = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    brake_signal_right_distance_mm = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
 
     # Установка дополнительного сигнала торможения
     additional_brake_signal_from_glass_edge_mm = models.DecimalField(
@@ -699,18 +574,8 @@ class ProtocolLight(models.Model):
     )
 
     # Установка задних ПТФ по высоте
-    rear_fog_upper_point_mm = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        blank=True,
-        null=True
-    )
-    rear_fog_lower_point_mm = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        blank=True,
-        null=True
-    )
+    rear_fog_upper_point_mm = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    rear_fog_lower_point_mm = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
 
     # Омыватели фар
     headlight_washer_present = models.BooleanField(blank=True, null=True)
@@ -725,18 +590,8 @@ class ProtocolLight(models.Model):
     right_high_beam_cd = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True)
 
     # Частота мерцания указателей поворота / аварийной сигнализации
-    turn_signal_frequency_per_min = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        blank=True,
-        null=True
-    )
-    turn_signal_frequency_hz = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        blank=True,
-        null=True
-    )
+    turn_signal_frequency_per_min = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    turn_signal_frequency_hz = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
 
     class Meta:
         db_table = 'protocol_lights'
@@ -763,12 +618,14 @@ class ProtocolPhoto(models.Model):
     ]
 
     id = models.BigAutoField(primary_key=True)
+
     protocol = models.ForeignKey(
         Protocol,
         on_delete=models.CASCADE,
         related_name='photos',
         db_column='protocol_id'
     )
+
     photo_type = models.CharField(max_length=50, choices=PHOTO_TYPE_CHOICES, default='other')
     file_path = models.CharField(max_length=500, blank=True, null=True)
     sort_order = models.IntegerField(default=0)
@@ -783,8 +640,9 @@ class ProtocolPhoto(models.Model):
 # ProtocolTestCondition
 # =========================
 
-class ProtocolTestCondition(models.Model):
+class ProtocolTestCondition(DashFieldsMixin, models.Model):
     id = models.BigAutoField(primary_key=True)
+
     protocol = models.OneToOneField(
         Protocol,
         on_delete=models.CASCADE,
@@ -804,8 +662,9 @@ class ProtocolTestCondition(models.Model):
 # ProtocolRoadCondition
 # =========================
 
-class ProtocolRoadCondition(models.Model):
+class ProtocolRoadCondition(DashFieldsMixin, models.Model):
     id = models.BigAutoField(primary_key=True)
+
     protocol = models.OneToOneField(
         Protocol,
         on_delete=models.CASCADE,
@@ -824,8 +683,9 @@ class ProtocolRoadCondition(models.Model):
 # ProtocolPowerSupply
 # =========================
 
-class ProtocolPowerSupply(models.Model):
+class ProtocolPowerSupply(DashFieldsMixin, models.Model):
     id = models.BigAutoField(primary_key=True)
+
     protocol = models.OneToOneField(
         Protocol,
         on_delete=models.CASCADE,

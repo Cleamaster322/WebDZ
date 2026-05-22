@@ -1,5 +1,5 @@
 import {useEffect, useState} from "react";
-import {useNavigate, useParams} from "react-router-dom";
+import {useParams} from "react-router-dom";
 import api from "../shared/api.jsx";
 
 import Box from "@mui/material/Box";
@@ -154,6 +154,8 @@ const initialForm = {
 
     spare_wheel_present: "",
     steering_lock_present: "",
+    gas_equipment_present: "",
+    glonass_button_present: "",
 
     bumper_ends_bent_to_body: "",
     bumper_to_body_distance_mm: "",
@@ -180,6 +182,9 @@ const initialForm = {
     vehicle_length_mm: "",
     vehicle_width_mm: "",
     vehicle_height_mm: "",
+    vehicle_weight_kg: "",
+    axle1_load_kg: "",
+    axle2_load_kg: "",
 
     tire_depth_fl_mm: "",
     tire_depth_rl_mm: "",
@@ -187,8 +192,24 @@ const initialForm = {
     tire_depth_rr_mm: "",
 };
 
-function toFormValue(value) {
-    return value === null || value === undefined ? "" : value;
+function isDashValue(value) {
+    return typeof value === "string" && value.trim() === "-";
+}
+
+function toFormValue(value, dashFields = [], apiFieldName = null) {
+    if (value === null || value === undefined) {
+        if (
+            apiFieldName &&
+            Array.isArray(dashFields) &&
+            dashFields.includes(apiFieldName)
+        ) {
+            return "-";
+        }
+
+        return "";
+    }
+
+    return value;
 }
 
 function booleanToSelect(value) {
@@ -198,7 +219,21 @@ function booleanToSelect(value) {
 }
 
 function emptyToNull(value) {
-    return value === "" ? null : value;
+    if (value === null || value === undefined) {
+        return null;
+    }
+
+    if (typeof value === "string") {
+        const trimmedValue = value.trim();
+
+        if (trimmedValue === "" || trimmedValue === "-") {
+            return null;
+        }
+
+        return trimmedValue;
+    }
+
+    return value;
 }
 
 function stringToBooleanOrNull(value) {
@@ -206,6 +241,185 @@ function stringToBooleanOrNull(value) {
     if (value === "false") return false;
     return null;
 }
+
+function buildDashFields(form, fieldMap) {
+    return fieldMap
+        .filter(({formField}) => isDashValue(form[formField]))
+        .map(({apiField}) => apiField);
+}
+
+const PROTOCOL_DASH_FIELDS = [
+    {formField: "appendix_number", apiField: "appendix_number"},
+    {formField: "brand_name", apiField: "brand_name"},
+    {formField: "commercial_name", apiField: "commercial_name"},
+    {formField: "vin", apiField: "vin"},
+    {formField: "category", apiField: "vehicle_category"},
+    {formField: "body_type", apiField: "body_type"},
+    {formField: "tire_marking_front", apiField: "wheel_marking_front"},
+    {formField: "tire_marking_rear", apiField: "wheel_marking_rear"},
+    {formField: "tire_season", apiField: "tire_season"},
+    {formField: "manufacture_year", apiField: "manufacture_year"},
+    {formField: "color", apiField: "color"},
+];
+
+const TEST_CONDITIONS_DASH_FIELDS = [
+    {formField: "ambient_temp_c", apiField: "ambient_temperature_c"},
+    {formField: "ambient_humidity_pct", apiField: "relative_humidity_pct"},
+    {formField: "atmospheric_pressure_kpa", apiField: "atmospheric_pressure_kpa"},
+];
+
+const ROAD_CONDITIONS_DASH_FIELDS = [
+    {formField: "road_ambient_temp_c", apiField: "road_ambient_temperature_c"},
+    {formField: "road_ambient_humidity_pct", apiField: "road_relative_humidity_pct"},
+];
+
+const POWER_SUPPLY_DASH_FIELDS = [
+    {formField: "electric_frequency_hz", apiField: "frequency_hz"},
+    {formField: "voltage_phase_a_zero", apiField: "phase_a_n_voltage_v"},
+    {formField: "voltage_phase_b_zero", apiField: "phase_b_n_voltage_v"},
+    {formField: "voltage_phase_c_zero", apiField: "phase_c_n_voltage_v"},
+    {formField: "voltage_phase_ab", apiField: "phase_ab_voltage_v"},
+    {formField: "voltage_phase_bc", apiField: "phase_bc_voltage_v"},
+    {formField: "voltage_phase_ac", apiField: "phase_ac_voltage_v"},
+];
+
+const MEASUREMENT_DASH_FIELDS = [
+    {formField: "mileage_km", apiField: "mileage_km"},
+
+    {formField: "wheel_formula", apiField: "wheel_formula"},
+    {formField: "mufflers_count", apiField: "mufflers_count"},
+    {formField: "seats_count", apiField: "seats_count"},
+
+    {formField: "engine_model", apiField: "engine_model"},
+    {formField: "engine_power_kw", apiField: "engine_power_kw"},
+    {formField: "engine_layout", apiField: "engine_layout"},
+    {formField: "cylinder_layout", apiField: "cylinder_layout"},
+    {formField: "cylinders_count", apiField: "cylinders_count"},
+    {formField: "fuel_type", apiField: "fuel_type"},
+
+    {formField: "steering_booster_type", apiField: "steering_booster_type"},
+    {formField: "steering_backlash_deg", apiField: "steering_backlash_deg"},
+    {formField: "transmission_type", apiField: "transmission_type"},
+
+    {formField: "tire_depth_fl_mm", apiField: "tire_depth_fl_mm"},
+    {formField: "tire_depth_fr_mm", apiField: "tire_depth_fr_mm"},
+    {formField: "tire_depth_rl_mm", apiField: "tire_depth_rl_mm"},
+    {formField: "tire_depth_rr_mm", apiField: "tire_depth_rr_mm"},
+
+    {formField: "bumper_to_body_distance_mm", apiField: "bumper_to_body_distance_mm"},
+    {formField: "fuel_leak_prevention_measure", apiField: "fuel_tank_leak_protection_measure"},
+    {formField: "protruding_elements_doors_mm", apiField: "protruding_elements_doors_mm"},
+    {formField: "protruding_elements_other_mm", apiField: "protruding_elements_other_mm"},
+
+    {formField: "glass_transparency_right_pct", apiField: "glass_transparency_right_pct"},
+    {formField: "glass_transparency_left_pct", apiField: "glass_transparency_left_pct"},
+    {formField: "glass_transparency_windshield_pct", apiField: "glass_transparency_windshield_pct"},
+    {formField: "sun_strip_width_mm", apiField: "sun_strip_width_mm"},
+
+    {formField: "speed_by_speedometer_kmh", apiField: "speed_by_speedometer_kmh"},
+    {formField: "actual_speed_kmh", apiField: "actual_speed_kmh"},
+
+    {formField: "exhaust_noise_constant_db", apiField: "exhaust_noise_constant_db"},
+    {formField: "exhaust_noise_deceleration_db", apiField: "exhaust_noise_deceleration_db"},
+    {formField: "co_min_pct", apiField: "co_min_pct"},
+    {formField: "co_max_pct", apiField: "co_max_pct"},
+
+    {formField: "light_absorption_1", apiField: "light_absorption_1"},
+    {formField: "light_absorption_2", apiField: "light_absorption_2"},
+    {formField: "light_absorption_3", apiField: "light_absorption_3"},
+    {formField: "light_absorption_4", apiField: "light_absorption_4"},
+    {formField: "light_absorption_5", apiField: "light_absorption_5"},
+    {formField: "light_absorption_6", apiField: "light_absorption_6"},
+
+    {formField: "vehicle_length_mm", apiField: "vehicle_length_mm"},
+    {formField: "vehicle_width_mm", apiField: "vehicle_width_mm"},
+    {formField: "vehicle_height_mm", apiField: "vehicle_height_mm"},
+    {formField: "vehicle_weight_kg", apiField: "vehicle_weight_kg"},
+
+    {formField: "axle1_load_kg", apiField: "axle1_load_kg"},
+    {formField: "axle2_load_kg", apiField: "axle2_load_kg"},
+];
+
+const BRAKE_DASH_FIELDS = [
+    {formField: "service_brake_type", apiField: "service_brake_type"},
+    {formField: "parking_brake_type", apiField: "parking_brake_type"},
+
+    {formField: "service_brake_control_force_axle1_n", apiField: "service_brake_control_force_axle1_n"},
+    {formField: "service_brake_control_force_axle2_n", apiField: "service_brake_control_force_axle2_n"},
+    {formField: "parking_brake_control_force_n", apiField: "parking_brake_control_force_n"},
+
+    {formField: "axle_1_brake_difference_pct", apiField: "axle_1_brake_difference_pct"},
+    {formField: "axle_2_brake_difference_pct", apiField: "axle_2_brake_difference_pct"},
+
+    {formField: "service_brake_front_left_kn", apiField: "service_brake_front_left_kn"},
+    {formField: "service_brake_front_right_kn", apiField: "service_brake_front_right_kn"},
+    {formField: "service_brake_rear_left_kn", apiField: "service_brake_rear_left_kn"},
+    {formField: "service_brake_rear_right_kn", apiField: "service_brake_rear_right_kn"},
+
+    {formField: "parking_brake_left_kn", apiField: "parking_brake_left_kn"},
+    {formField: "parking_brake_right_kn", apiField: "parking_brake_right_kn"},
+];
+
+const LIGHT_DASH_FIELDS = [
+    {formField: "low_beam_count", apiField: "low_beam_count"},
+    {formField: "low_beam_color", apiField: "low_beam_color"},
+    {formField: "high_beam_count", apiField: "high_beam_count"},
+    {formField: "high_beam_color", apiField: "high_beam_color"},
+    {formField: "front_fog_count", apiField: "front_fog_count"},
+    {formField: "front_fog_color", apiField: "front_fog_color"},
+    {formField: "reverse_light_count", apiField: "reverse_light_count"},
+    {formField: "reverse_light_color", apiField: "reverse_light_color"},
+    {formField: "turn_signal_count", apiField: "turn_signal_count"},
+    {formField: "turn_signal_color", apiField: "turn_signal_color"},
+    {formField: "front_position_light_count", apiField: "front_position_light_count"},
+    {formField: "front_position_light_color", apiField: "front_position_light_color"},
+    {formField: "rear_position_light_count", apiField: "rear_position_light_count"},
+    {formField: "rear_position_light_color", apiField: "rear_position_light_color"},
+    {formField: "main_brake_signal_count", apiField: "main_brake_signal_count"},
+    {formField: "main_brake_signal_color", apiField: "main_brake_signal_color"},
+    {formField: "additional_brake_signal_count", apiField: "additional_brake_signal_count"},
+    {formField: "additional_brake_signal_color", apiField: "additional_brake_signal_color"},
+    {formField: "rear_fog_count", apiField: "rear_fog_count"},
+    {formField: "rear_fog_color", apiField: "rear_fog_color"},
+    {formField: "plate_light_count", apiField: "plate_light_count"},
+    {formField: "plate_light_color", apiField: "plate_light_color"},
+    {formField: "daytime_running_light_count", apiField: "daytime_running_light_count"},
+    {formField: "daytime_running_light_color", apiField: "daytime_running_light_color"},
+
+    {formField: "parking_light_count", apiField: "parking_light_count"},
+    {formField: "parking_light_color", apiField: "parking_light_color"},
+    {formField: "rear_parking_light_count", apiField: "rear_parking_light_count"},
+    {formField: "rear_parking_light_color", apiField: "rear_parking_light_color"},
+    {formField: "adaptive_front_lighting_count", apiField: "adaptive_front_lighting_count"},
+    {formField: "adaptive_front_lighting_color", apiField: "adaptive_front_lighting_color"},
+
+    {formField: "headlight_type", apiField: "headlight_type"},
+
+    {formField: "left_34v_cd", apiField: "left_34v_cd"},
+    {formField: "left_52h_cd", apiField: "left_52h_cd"},
+    {formField: "left_high_beam_cd", apiField: "left_high_beam_cd"},
+    {formField: "right_34v_cd", apiField: "right_34v_cd"},
+    {formField: "right_52h_cd", apiField: "right_52h_cd"},
+    {formField: "right_high_beam_cd", apiField: "right_high_beam_cd"},
+    {formField: "turn_signal_frequency_per_min", apiField: "turn_signal_frequency_per_min"},
+    {formField: "turn_signal_frequency_hz", apiField: "turn_signal_frequency_hz"},
+
+    {formField: "low_beam_upper_point_mm", apiField: "low_beam_upper_point_mm"},
+    {formField: "low_beam_lower_point_mm", apiField: "low_beam_lower_point_mm"},
+    {formField: "fog_light_upper_point_mm", apiField: "fog_light_upper_point_mm"},
+    {formField: "fog_light_lower_point_mm", apiField: "fog_light_lower_point_mm"},
+    {formField: "fog_light_left_distance_mm", apiField: "fog_light_left_distance_mm"},
+    {formField: "fog_light_right_distance_mm", apiField: "fog_light_right_distance_mm"},
+    {formField: "brake_signal_upper_point_mm", apiField: "brake_signal_upper_point_mm"},
+    {formField: "brake_signal_lower_point_mm", apiField: "brake_signal_lower_point_mm"},
+    {formField: "brake_signal_left_distance_mm", apiField: "brake_signal_left_distance_mm"},
+    {formField: "brake_signal_right_distance_mm", apiField: "brake_signal_right_distance_mm"},
+    {formField: "additional_brake_signal_from_glass_edge_mm", apiField: "additional_brake_signal_from_glass_edge_mm"},
+    {formField: "additional_brake_signal_from_support_surface_mm", apiField: "additional_brake_signal_from_support_surface_mm"},
+    {formField: "additional_brake_signal_optical_center_shift_mm", apiField: "additional_brake_signal_optical_center_shift_mm"},
+    {formField: "rear_fog_upper_point_mm", apiField: "rear_fog_upper_point_mm"},
+    {formField: "rear_fog_lower_point_mm", apiField: "rear_fog_lower_point_mm"},
+];
 
 function mapProtocolToForm(data) {
     const protocol = data || {};
@@ -216,165 +430,175 @@ function mapProtocolToForm(data) {
     const roadConditions = protocol.road_conditions || {};
     const powerSupply = protocol.power_supply || {};
 
+    const protocolDashFields = protocol.dash_fields || [];
+    const measurementDashFields = measurement.dash_fields || [];
+    const brakeDashFields = brake.dash_fields || [];
+    const lightDashFields = light.dash_fields || [];
+    const testConditionsDashFields = testConditions.dash_fields || [];
+    const roadConditionsDashFields = roadConditions.dash_fields || [];
+    const powerSupplyDashFields = powerSupply.dash_fields || [];
+
     return {
         ...initialForm,
 
-        appendix_number: toFormValue(protocol.appendix_number),
+        appendix_number: toFormValue(protocol.appendix_number, protocolDashFields, "appendix_number"),
 
-        ambient_temp_c: toFormValue(testConditions.ambient_temperature_c),
-        ambient_humidity_pct: toFormValue(testConditions.relative_humidity_pct),
-        atmospheric_pressure_kpa: toFormValue(testConditions.atmospheric_pressure_kpa),
+        ambient_temp_c: toFormValue(testConditions.ambient_temperature_c, testConditionsDashFields, "ambient_temperature_c"),
+        ambient_humidity_pct: toFormValue(testConditions.relative_humidity_pct, testConditionsDashFields, "relative_humidity_pct"),
+        atmospheric_pressure_kpa: toFormValue(testConditions.atmospheric_pressure_kpa, testConditionsDashFields, "atmospheric_pressure_kpa"),
 
-        road_ambient_temp_c: toFormValue(roadConditions.road_ambient_temperature_c),
-        road_ambient_humidity_pct: toFormValue(roadConditions.road_relative_humidity_pct),
+        road_ambient_temp_c: toFormValue(roadConditions.road_ambient_temperature_c, roadConditionsDashFields, "road_ambient_temperature_c"),
+        road_ambient_humidity_pct: toFormValue(roadConditions.road_relative_humidity_pct, roadConditionsDashFields, "road_relative_humidity_pct"),
 
-        electric_frequency_hz: toFormValue(powerSupply.frequency_hz),
-        voltage_phase_a_zero: toFormValue(powerSupply.phase_a_n_voltage_v),
-        voltage_phase_b_zero: toFormValue(powerSupply.phase_b_n_voltage_v),
-        voltage_phase_c_zero: toFormValue(powerSupply.phase_c_n_voltage_v),
-        voltage_phase_ab: toFormValue(powerSupply.phase_ab_voltage_v),
-        voltage_phase_bc: toFormValue(powerSupply.phase_bc_voltage_v),
-        voltage_phase_ac: toFormValue(powerSupply.phase_ac_voltage_v),
+        electric_frequency_hz: toFormValue(powerSupply.frequency_hz, powerSupplyDashFields, "frequency_hz"),
+        voltage_phase_a_zero: toFormValue(powerSupply.phase_a_n_voltage_v, powerSupplyDashFields, "phase_a_n_voltage_v"),
+        voltage_phase_b_zero: toFormValue(powerSupply.phase_b_n_voltage_v, powerSupplyDashFields, "phase_b_n_voltage_v"),
+        voltage_phase_c_zero: toFormValue(powerSupply.phase_c_n_voltage_v, powerSupplyDashFields, "phase_c_n_voltage_v"),
+        voltage_phase_ab: toFormValue(powerSupply.phase_ab_voltage_v, powerSupplyDashFields, "phase_ab_voltage_v"),
+        voltage_phase_bc: toFormValue(powerSupply.phase_bc_voltage_v, powerSupplyDashFields, "phase_bc_voltage_v"),
+        voltage_phase_ac: toFormValue(powerSupply.phase_ac_voltage_v, powerSupplyDashFields, "phase_ac_voltage_v"),
 
-        brand_name: toFormValue(protocol.brand_name),
-        commercial_name: toFormValue(protocol.commercial_name),
-        vin: toFormValue(protocol.vin),
-        category: toFormValue(protocol.vehicle_category),
-        body_type: toFormValue(protocol.body_type),
-        mileage_km: toFormValue(measurement.mileage_km),
-        tire_marking_front: toFormValue(protocol.wheel_marking_front),
-        tire_marking_rear: toFormValue(protocol.wheel_marking_rear),
-        tire_season: toFormValue(protocol.tire_season),
+        brand_name: toFormValue(protocol.brand_name, protocolDashFields, "brand_name"),
+        commercial_name: toFormValue(protocol.commercial_name, protocolDashFields, "commercial_name"),
+        vin: toFormValue(protocol.vin, protocolDashFields, "vin"),
+        category: toFormValue(protocol.vehicle_category, protocolDashFields, "vehicle_category"),
+        body_type: toFormValue(protocol.body_type, protocolDashFields, "body_type"),
+        mileage_km: toFormValue(measurement.mileage_km, measurementDashFields, "mileage_km"),
+        tire_marking_front: toFormValue(protocol.wheel_marking_front, protocolDashFields, "wheel_marking_front"),
+        tire_marking_rear: toFormValue(protocol.wheel_marking_rear, protocolDashFields, "wheel_marking_rear"),
+        tire_season: toFormValue(protocol.tire_season, protocolDashFields, "tire_season"),
         tire_spikes_present: booleanToSelect(protocol.has_spikes),
-        manufacture_year: toFormValue(protocol.manufacture_year),
-        color: toFormValue(protocol.color),
+        manufacture_year: toFormValue(protocol.manufacture_year, protocolDashFields, "manufacture_year"),
+        color: toFormValue(protocol.color, protocolDashFields, "color"),
 
-        wheel_formula: toFormValue(measurement.wheel_formula),
-        mufflers_count: toFormValue(measurement.mufflers_count),
-        seats_count: toFormValue(measurement.seats_count),
+        wheel_formula: toFormValue(measurement.wheel_formula, measurementDashFields, "wheel_formula"),
+        mufflers_count: toFormValue(measurement.mufflers_count, measurementDashFields, "mufflers_count"),
+        seats_count: toFormValue(measurement.seats_count, measurementDashFields, "seats_count"),
         side_steps_present: booleanToSelect(measurement.steps_present),
 
-        engine_model: toFormValue(measurement.engine_model),
-        engine_power_kw: toFormValue(measurement.engine_power_kw),
-        engine_layout: toFormValue(measurement.engine_layout),
-        cylinder_layout: toFormValue(measurement.cylinder_layout),
-        cylinders_count: toFormValue(measurement.cylinders_count),
-        fuel_type: toFormValue(measurement.fuel_type),
+        engine_model: toFormValue(measurement.engine_model, measurementDashFields, "engine_model"),
+        engine_power_kw: toFormValue(measurement.engine_power_kw, measurementDashFields, "engine_power_kw"),
+        engine_layout: toFormValue(measurement.engine_layout, measurementDashFields, "engine_layout"),
+        cylinder_layout: toFormValue(measurement.cylinder_layout, measurementDashFields, "cylinder_layout"),
+        cylinders_count: toFormValue(measurement.cylinders_count, measurementDashFields, "cylinders_count"),
+        fuel_type: toFormValue(measurement.fuel_type, measurementDashFields, "fuel_type"),
         turbo_present: booleanToSelect(measurement.turbo_present),
 
-        steering_booster_type: toFormValue(measurement.steering_booster_type),
-        steering_backlash_deg: toFormValue(measurement.steering_backlash_deg),
-        transmission_type: toFormValue(measurement.transmission_type),
+        steering_booster_type: toFormValue(measurement.steering_booster_type, measurementDashFields, "steering_booster_type"),
+        steering_backlash_deg: toFormValue(measurement.steering_backlash_deg, measurementDashFields, "steering_backlash_deg"),
+        transmission_type: toFormValue(measurement.transmission_type, measurementDashFields, "transmission_type"),
 
-        service_brake_type: toFormValue(brake.service_brake_type),
-        parking_brake_type: toFormValue(brake.parking_brake_type),
-        service_brake_control_force_axle1_n: toFormValue(brake.service_brake_control_force_axle1_n),
-        service_brake_control_force_axle2_n: toFormValue(brake.service_brake_control_force_axle2_n),
-        parking_brake_control_force_n: toFormValue(brake.parking_brake_control_force_n),
-        axle_1_brake_difference_pct: toFormValue(brake.axle_1_brake_difference_pct),
-        axle_2_brake_difference_pct: toFormValue(brake.axle_2_brake_difference_pct),
-        service_brake_front_left_kn: toFormValue(brake.service_brake_front_left_kn),
-        service_brake_front_right_kn: toFormValue(brake.service_brake_front_right_kn),
-        service_brake_rear_left_kn: toFormValue(brake.service_brake_rear_left_kn),
-        service_brake_rear_right_kn: toFormValue(brake.service_brake_rear_right_kn),
-        parking_brake_left_kn: toFormValue(brake.parking_brake_left_kn),
-        parking_brake_right_kn: toFormValue(brake.parking_brake_right_kn),
+        service_brake_type: toFormValue(brake.service_brake_type, brakeDashFields, "service_brake_type"),
+        parking_brake_type: toFormValue(brake.parking_brake_type, brakeDashFields, "parking_brake_type"),
+        service_brake_control_force_axle1_n: toFormValue(brake.service_brake_control_force_axle1_n, brakeDashFields, "service_brake_control_force_axle1_n"),
+        service_brake_control_force_axle2_n: toFormValue(brake.service_brake_control_force_axle2_n, brakeDashFields, "service_brake_control_force_axle2_n"),
+        parking_brake_control_force_n: toFormValue(brake.parking_brake_control_force_n, brakeDashFields, "parking_brake_control_force_n"),
+        axle_1_brake_difference_pct: toFormValue(brake.axle_1_brake_difference_pct, brakeDashFields, "axle_1_brake_difference_pct"),
+        axle_2_brake_difference_pct: toFormValue(brake.axle_2_brake_difference_pct, brakeDashFields, "axle_2_brake_difference_pct"),
+        service_brake_front_left_kn: toFormValue(brake.service_brake_front_left_kn, brakeDashFields, "service_brake_front_left_kn"),
+        service_brake_front_right_kn: toFormValue(brake.service_brake_front_right_kn, brakeDashFields, "service_brake_front_right_kn"),
+        service_brake_rear_left_kn: toFormValue(brake.service_brake_rear_left_kn, brakeDashFields, "service_brake_rear_left_kn"),
+        service_brake_rear_right_kn: toFormValue(brake.service_brake_rear_right_kn, brakeDashFields, "service_brake_rear_right_kn"),
+        parking_brake_left_kn: toFormValue(brake.parking_brake_left_kn, brakeDashFields, "parking_brake_left_kn"),
+        parking_brake_right_kn: toFormValue(brake.parking_brake_right_kn, brakeDashFields, "parking_brake_right_kn"),
 
-        low_beam_count: toFormValue(light.low_beam_count),
-        low_beam_color: toFormValue(light.low_beam_color),
-        high_beam_count: toFormValue(light.high_beam_count),
-        high_beam_color: toFormValue(light.high_beam_color),
-        front_fog_count: toFormValue(light.front_fog_count),
-        front_fog_color: toFormValue(light.front_fog_color),
-        reverse_light_count: toFormValue(light.reverse_light_count),
-        reverse_light_color: toFormValue(light.reverse_light_color),
-        turn_signal_count: toFormValue(light.turn_signal_count),
-        turn_signal_color: toFormValue(light.turn_signal_color),
-        front_position_light_count: toFormValue(light.front_position_light_count),
-        front_position_light_color: toFormValue(light.front_position_light_color),
-        rear_position_light_count: toFormValue(light.rear_position_light_count),
-        rear_position_light_color: toFormValue(light.rear_position_light_color),
-        main_brake_signal_count: toFormValue(light.main_brake_signal_count),
-        main_brake_signal_color: toFormValue(light.main_brake_signal_color),
-        additional_brake_signal_count: toFormValue(light.additional_brake_signal_count),
-        additional_brake_signal_color: toFormValue(light.additional_brake_signal_color),
-        rear_fog_count: toFormValue(light.rear_fog_count),
-        rear_fog_color: toFormValue(light.rear_fog_color),
-        plate_light_count: toFormValue(light.plate_light_count),
-        plate_light_color: toFormValue(light.plate_light_color),
-        daytime_running_light_count: toFormValue(light.daytime_running_light_count),
-        daytime_running_light_color: toFormValue(light.daytime_running_light_color),
-        parking_light_count: toFormValue(light.parking_light_count),
-        parking_light_color: toFormValue(light.parking_light_color),
-        rear_parking_light_count: toFormValue(light.rear_parking_light_count),
-        rear_parking_light_color: toFormValue(light.rear_parking_light_color),
-        adaptive_front_lighting_count: toFormValue(light.adaptive_front_lighting_count),
-        adaptive_front_lighting_color: toFormValue(light.adaptive_front_lighting_color),
+        low_beam_count: toFormValue(light.low_beam_count, lightDashFields, "low_beam_count"),
+        low_beam_color: toFormValue(light.low_beam_color, lightDashFields, "low_beam_color"),
+        high_beam_count: toFormValue(light.high_beam_count, lightDashFields, "high_beam_count"),
+        high_beam_color: toFormValue(light.high_beam_color, lightDashFields, "high_beam_color"),
+        front_fog_count: toFormValue(light.front_fog_count, lightDashFields, "front_fog_count"),
+        front_fog_color: toFormValue(light.front_fog_color, lightDashFields, "front_fog_color"),
+        reverse_light_count: toFormValue(light.reverse_light_count, lightDashFields, "reverse_light_count"),
+        reverse_light_color: toFormValue(light.reverse_light_color, lightDashFields, "reverse_light_color"),
+        turn_signal_count: toFormValue(light.turn_signal_count, lightDashFields, "turn_signal_count"),
+        turn_signal_color: toFormValue(light.turn_signal_color, lightDashFields, "turn_signal_color"),
+        front_position_light_count: toFormValue(light.front_position_light_count, lightDashFields, "front_position_light_count"),
+        front_position_light_color: toFormValue(light.front_position_light_color, lightDashFields, "front_position_light_color"),
+        rear_position_light_count: toFormValue(light.rear_position_light_count, lightDashFields, "rear_position_light_count"),
+        rear_position_light_color: toFormValue(light.rear_position_light_color, lightDashFields, "rear_position_light_color"),
+        main_brake_signal_count: toFormValue(light.main_brake_signal_count, lightDashFields, "main_brake_signal_count"),
+        main_brake_signal_color: toFormValue(light.main_brake_signal_color, lightDashFields, "main_brake_signal_color"),
+        additional_brake_signal_count: toFormValue(light.additional_brake_signal_count, lightDashFields, "additional_brake_signal_count"),
+        additional_brake_signal_color: toFormValue(light.additional_brake_signal_color, lightDashFields, "additional_brake_signal_color"),
+        rear_fog_count: toFormValue(light.rear_fog_count, lightDashFields, "rear_fog_count"),
+        rear_fog_color: toFormValue(light.rear_fog_color, lightDashFields, "rear_fog_color"),
+        plate_light_count: toFormValue(light.plate_light_count, lightDashFields, "plate_light_count"),
+        plate_light_color: toFormValue(light.plate_light_color, lightDashFields, "plate_light_color"),
+        daytime_running_light_count: toFormValue(light.daytime_running_light_count, lightDashFields, "daytime_running_light_count"),
+        daytime_running_light_color: toFormValue(light.daytime_running_light_color, lightDashFields, "daytime_running_light_color"),
 
-        headlight_type: toFormValue(light.headlight_type),
+        parking_light_count: toFormValue(light.parking_light_count, lightDashFields, "parking_light_count"),
+        parking_light_color: toFormValue(light.parking_light_color, lightDashFields, "parking_light_color"),
+        rear_parking_light_count: toFormValue(light.rear_parking_light_count, lightDashFields, "rear_parking_light_count"),
+        rear_parking_light_color: toFormValue(light.rear_parking_light_color, lightDashFields, "rear_parking_light_color"),
+        adaptive_front_lighting_count: toFormValue(light.adaptive_front_lighting_count, lightDashFields, "adaptive_front_lighting_count"),
+        adaptive_front_lighting_color: toFormValue(light.adaptive_front_lighting_color, lightDashFields, "adaptive_front_lighting_color"),
+
+        headlight_type: toFormValue(light.headlight_type, lightDashFields, "headlight_type"),
         headlight_washer_present: booleanToSelect(light.headlight_washer_present),
 
-        left_34v_cd: toFormValue(light.left_34v_cd),
-        left_52h_cd: toFormValue(light.left_52h_cd),
-        left_high_beam_cd: toFormValue(light.left_high_beam_cd),
-        right_34v_cd: toFormValue(light.right_34v_cd),
-        right_52h_cd: toFormValue(light.right_52h_cd),
-        right_high_beam_cd: toFormValue(light.right_high_beam_cd),
-        turn_signal_frequency_per_min: toFormValue(light.turn_signal_frequency_per_min),
-        turn_signal_frequency_hz: toFormValue(light.turn_signal_frequency_hz),
+        left_34v_cd: toFormValue(light.left_34v_cd, lightDashFields, "left_34v_cd"),
+        left_52h_cd: toFormValue(light.left_52h_cd, lightDashFields, "left_52h_cd"),
+        left_high_beam_cd: toFormValue(light.left_high_beam_cd, lightDashFields, "left_high_beam_cd"),
+        right_34v_cd: toFormValue(light.right_34v_cd, lightDashFields, "right_34v_cd"),
+        right_52h_cd: toFormValue(light.right_52h_cd, lightDashFields, "right_52h_cd"),
+        right_high_beam_cd: toFormValue(light.right_high_beam_cd, lightDashFields, "right_high_beam_cd"),
+        turn_signal_frequency_per_min: toFormValue(light.turn_signal_frequency_per_min, lightDashFields, "turn_signal_frequency_per_min"),
+        turn_signal_frequency_hz: toFormValue(light.turn_signal_frequency_hz, lightDashFields, "turn_signal_frequency_hz"),
 
-        low_beam_upper_point_mm: toFormValue(light.low_beam_upper_point_mm),
-        low_beam_lower_point_mm: toFormValue(light.low_beam_lower_point_mm),
-        fog_light_upper_point_mm: toFormValue(light.fog_light_upper_point_mm),
-        fog_light_lower_point_mm: toFormValue(light.fog_light_lower_point_mm),
-        fog_light_left_distance_mm: toFormValue(light.fog_light_left_distance_mm),
-        fog_light_right_distance_mm: toFormValue(light.fog_light_right_distance_mm),
-        brake_signal_upper_point_mm: toFormValue(light.brake_signal_upper_point_mm),
-        brake_signal_lower_point_mm: toFormValue(light.brake_signal_lower_point_mm),
-        brake_signal_left_distance_mm: toFormValue(light.brake_signal_left_distance_mm),
-        brake_signal_right_distance_mm: toFormValue(light.brake_signal_right_distance_mm),
-        additional_brake_signal_from_glass_edge_mm: toFormValue(light.additional_brake_signal_from_glass_edge_mm),
-        additional_brake_signal_from_support_surface_mm: toFormValue(light.additional_brake_signal_from_support_surface_mm),
-        additional_brake_signal_optical_center_shift_mm: toFormValue(light.additional_brake_signal_optical_center_shift_mm),
-        rear_fog_upper_point_mm: toFormValue(light.rear_fog_upper_point_mm),
-        rear_fog_lower_point_mm: toFormValue(light.rear_fog_lower_point_mm),
+        low_beam_upper_point_mm: toFormValue(light.low_beam_upper_point_mm, lightDashFields, "low_beam_upper_point_mm"),
+        low_beam_lower_point_mm: toFormValue(light.low_beam_lower_point_mm, lightDashFields, "low_beam_lower_point_mm"),
+        fog_light_upper_point_mm: toFormValue(light.fog_light_upper_point_mm, lightDashFields, "fog_light_upper_point_mm"),
+        fog_light_lower_point_mm: toFormValue(light.fog_light_lower_point_mm, lightDashFields, "fog_light_lower_point_mm"),
+        fog_light_left_distance_mm: toFormValue(light.fog_light_left_distance_mm, lightDashFields, "fog_light_left_distance_mm"),
+        fog_light_right_distance_mm: toFormValue(light.fog_light_right_distance_mm, lightDashFields, "fog_light_right_distance_mm"),
+        brake_signal_upper_point_mm: toFormValue(light.brake_signal_upper_point_mm, lightDashFields, "brake_signal_upper_point_mm"),
+        brake_signal_lower_point_mm: toFormValue(light.brake_signal_lower_point_mm, lightDashFields, "brake_signal_lower_point_mm"),
+        brake_signal_left_distance_mm: toFormValue(light.brake_signal_left_distance_mm, lightDashFields, "brake_signal_left_distance_mm"),
+        brake_signal_right_distance_mm: toFormValue(light.brake_signal_right_distance_mm, lightDashFields, "brake_signal_right_distance_mm"),
+        additional_brake_signal_from_glass_edge_mm: toFormValue(light.additional_brake_signal_from_glass_edge_mm, lightDashFields, "additional_brake_signal_from_glass_edge_mm"),
+        additional_brake_signal_from_support_surface_mm: toFormValue(light.additional_brake_signal_from_support_surface_mm, lightDashFields, "additional_brake_signal_from_support_surface_mm"),
+        additional_brake_signal_optical_center_shift_mm: toFormValue(light.additional_brake_signal_optical_center_shift_mm, lightDashFields, "additional_brake_signal_optical_center_shift_mm"),
+        rear_fog_upper_point_mm: toFormValue(light.rear_fog_upper_point_mm, lightDashFields, "rear_fog_upper_point_mm"),
+        rear_fog_lower_point_mm: toFormValue(light.rear_fog_lower_point_mm, lightDashFields, "rear_fog_lower_point_mm"),
 
         spare_wheel_present: booleanToSelect(measurement.spare_wheel_present),
         steering_lock_present: booleanToSelect(measurement.steering_lock_present),
         gas_equipment_present: booleanToSelect(measurement.gas_equipment_present),
+        glonass_button_present: booleanToSelect(measurement.glonass_button_present),
 
-        tire_depth_fl_mm: toFormValue(measurement.tire_depth_fl_mm),
-        tire_depth_rl_mm: toFormValue(measurement.tire_depth_rl_mm),
-        tire_depth_fr_mm: toFormValue(measurement.tire_depth_fr_mm),
-        tire_depth_rr_mm: toFormValue(measurement.tire_depth_rr_mm),
+        tire_depth_fl_mm: toFormValue(measurement.tire_depth_fl_mm, measurementDashFields, "tire_depth_fl_mm"),
+        tire_depth_rl_mm: toFormValue(measurement.tire_depth_rl_mm, measurementDashFields, "tire_depth_rl_mm"),
+        tire_depth_fr_mm: toFormValue(measurement.tire_depth_fr_mm, measurementDashFields, "tire_depth_fr_mm"),
+        tire_depth_rr_mm: toFormValue(measurement.tire_depth_rr_mm, measurementDashFields, "tire_depth_rr_mm"),
         bumper_ends_bent_to_body: booleanToSelect(measurement.bumper_bends_to_body),
-        bumper_to_body_distance_mm: toFormValue(measurement.bumper_to_body_distance_mm),
+        bumper_to_body_distance_mm: toFormValue(measurement.bumper_to_body_distance_mm, measurementDashFields, "bumper_to_body_distance_mm"),
         opening_roof_present: booleanToSelect(measurement.opening_roof_present),
-        fuel_leak_prevention_measure: toFormValue(measurement.fuel_tank_leak_protection_measure),
-        protruding_elements_doors_mm: toFormValue(measurement.protruding_elements_doors_mm),
-        protruding_elements_other_mm: toFormValue(measurement.protruding_elements_other_mm),
-        glass_transparency_right_pct: toFormValue(measurement.glass_transparency_right_pct),
-        glass_transparency_left_pct: toFormValue(measurement.glass_transparency_left_pct),
-        glass_transparency_windshield_pct: toFormValue(measurement.glass_transparency_windshield_pct),
-        sun_strip_width_mm: toFormValue(measurement.sun_strip_width_mm),
-        speed_by_speedometer_kmh: toFormValue(measurement.speed_by_speedometer_kmh),
-        actual_speed_kmh: toFormValue(measurement.actual_speed_kmh),
-        exhaust_noise_constant_db: toFormValue(measurement.exhaust_noise_constant_db),
-        exhaust_noise_deceleration_db: toFormValue(measurement.exhaust_noise_deceleration_db),
-        co_min_pct: toFormValue(measurement.co_min_pct),
-        co_max_pct: toFormValue(measurement.co_max_pct),
-        light_absorption_1: toFormValue(measurement.light_absorption_1),
-        light_absorption_2: toFormValue(measurement.light_absorption_2),
-        light_absorption_3: toFormValue(measurement.light_absorption_3),
-        light_absorption_4: toFormValue(measurement.light_absorption_4),
-        light_absorption_5: toFormValue(measurement.light_absorption_5),
-        light_absorption_6: toFormValue(measurement.light_absorption_6),
-        vehicle_length_mm: toFormValue(measurement.vehicle_length_mm),
-        vehicle_width_mm: toFormValue(measurement.vehicle_width_mm),
-        vehicle_height_mm: toFormValue(measurement.vehicle_height_mm),
-        vehicle_weight_kg: toFormValue(measurement.vehicle_weight_kg),
-        axle1_load_kg: toFormValue(measurement.axle1_load_kg),
-        axle2_load_kg: toFormValue(measurement.axle2_load_kg),
+        fuel_leak_prevention_measure: toFormValue(measurement.fuel_tank_leak_protection_measure, measurementDashFields, "fuel_tank_leak_protection_measure"),
+        protruding_elements_doors_mm: toFormValue(measurement.protruding_elements_doors_mm, measurementDashFields, "protruding_elements_doors_mm"),
+        protruding_elements_other_mm: toFormValue(measurement.protruding_elements_other_mm, measurementDashFields, "protruding_elements_other_mm"),
+        glass_transparency_right_pct: toFormValue(measurement.glass_transparency_right_pct, measurementDashFields, "glass_transparency_right_pct"),
+        glass_transparency_left_pct: toFormValue(measurement.glass_transparency_left_pct, measurementDashFields, "glass_transparency_left_pct"),
+        glass_transparency_windshield_pct: toFormValue(measurement.glass_transparency_windshield_pct, measurementDashFields, "glass_transparency_windshield_pct"),
+        sun_strip_width_mm: toFormValue(measurement.sun_strip_width_mm, measurementDashFields, "sun_strip_width_mm"),
+        speed_by_speedometer_kmh: toFormValue(measurement.speed_by_speedometer_kmh, measurementDashFields, "speed_by_speedometer_kmh"),
+        actual_speed_kmh: toFormValue(measurement.actual_speed_kmh, measurementDashFields, "actual_speed_kmh"),
+        exhaust_noise_constant_db: toFormValue(measurement.exhaust_noise_constant_db, measurementDashFields, "exhaust_noise_constant_db"),
+        exhaust_noise_deceleration_db: toFormValue(measurement.exhaust_noise_deceleration_db, measurementDashFields, "exhaust_noise_deceleration_db"),
+        co_min_pct: toFormValue(measurement.co_min_pct, measurementDashFields, "co_min_pct"),
+        co_max_pct: toFormValue(measurement.co_max_pct, measurementDashFields, "co_max_pct"),
+        light_absorption_1: toFormValue(measurement.light_absorption_1, measurementDashFields, "light_absorption_1"),
+        light_absorption_2: toFormValue(measurement.light_absorption_2, measurementDashFields, "light_absorption_2"),
+        light_absorption_3: toFormValue(measurement.light_absorption_3, measurementDashFields, "light_absorption_3"),
+        light_absorption_4: toFormValue(measurement.light_absorption_4, measurementDashFields, "light_absorption_4"),
+        light_absorption_5: toFormValue(measurement.light_absorption_5, measurementDashFields, "light_absorption_5"),
+        light_absorption_6: toFormValue(measurement.light_absorption_6, measurementDashFields, "light_absorption_6"),
+        vehicle_length_mm: toFormValue(measurement.vehicle_length_mm, measurementDashFields, "vehicle_length_mm"),
+        vehicle_width_mm: toFormValue(measurement.vehicle_width_mm, measurementDashFields, "vehicle_width_mm"),
+        vehicle_height_mm: toFormValue(measurement.vehicle_height_mm, measurementDashFields, "vehicle_height_mm"),
+        vehicle_weight_kg: toFormValue(measurement.vehicle_weight_kg, measurementDashFields, "vehicle_weight_kg"),
+        axle1_load_kg: toFormValue(measurement.axle1_load_kg, measurementDashFields, "axle1_load_kg"),
+        axle2_load_kg: toFormValue(measurement.axle2_load_kg, measurementDashFields, "axle2_load_kg"),
     };
 }
 
@@ -392,6 +616,7 @@ function buildProtocolPayload(form) {
         has_spikes: stringToBooleanOrNull(form.tire_spikes_present),
         manufacture_year: emptyToNull(form.manufacture_year),
         color: emptyToNull(form.color),
+        dash_fields: buildDashFields(form, PROTOCOL_DASH_FIELDS),
     };
 }
 
@@ -400,6 +625,7 @@ function buildTestConditionsPayload(form) {
         ambient_temperature_c: emptyToNull(form.ambient_temp_c),
         relative_humidity_pct: emptyToNull(form.ambient_humidity_pct),
         atmospheric_pressure_kpa: emptyToNull(form.atmospheric_pressure_kpa),
+        dash_fields: buildDashFields(form, TEST_CONDITIONS_DASH_FIELDS),
     };
 }
 
@@ -407,6 +633,7 @@ function buildRoadConditionsPayload(form) {
     return {
         road_ambient_temperature_c: emptyToNull(form.road_ambient_temp_c),
         road_relative_humidity_pct: emptyToNull(form.road_ambient_humidity_pct),
+        dash_fields: buildDashFields(form, ROAD_CONDITIONS_DASH_FIELDS),
     };
 }
 
@@ -419,6 +646,7 @@ function buildPowerSupplyPayload(form) {
         phase_ab_voltage_v: emptyToNull(form.voltage_phase_ab),
         phase_bc_voltage_v: emptyToNull(form.voltage_phase_bc),
         phase_ac_voltage_v: emptyToNull(form.voltage_phase_ac),
+        dash_fields: buildDashFields(form, POWER_SUPPLY_DASH_FIELDS),
     };
 }
 
@@ -487,6 +715,9 @@ function buildMeasurementPayload(form) {
         spare_wheel_present: stringToBooleanOrNull(form.spare_wheel_present),
         steering_lock_present: stringToBooleanOrNull(form.steering_lock_present),
         gas_equipment_present: stringToBooleanOrNull(form.gas_equipment_present),
+        glonass_button_present: stringToBooleanOrNull(form.glonass_button_present),
+
+        dash_fields: buildDashFields(form, MEASUREMENT_DASH_FIELDS),
     };
 }
 
@@ -509,6 +740,8 @@ function buildBrakePayload(form) {
 
         parking_brake_left_kn: emptyToNull(form.parking_brake_left_kn),
         parking_brake_right_kn: emptyToNull(form.parking_brake_right_kn),
+
+        dash_fields: buildDashFields(form, BRAKE_DASH_FIELDS),
     };
 }
 
@@ -592,12 +825,13 @@ function buildLightPayload(form) {
 
         rear_fog_upper_point_mm: emptyToNull(form.rear_fog_upper_point_mm),
         rear_fog_lower_point_mm: emptyToNull(form.rear_fog_lower_point_mm),
+
+        dash_fields: buildDashFields(form, LIGHT_DASH_FIELDS),
     };
 }
 
 function ProtocolInspection() {
     const {id} = useParams();
-    const navigate = useNavigate();
 
     const currentProtocolId = id;
 

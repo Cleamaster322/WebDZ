@@ -77,6 +77,25 @@ def normalize_light_color(value):
     return value
 
 
+def value_or_dash(value):
+    """
+    Для условных строк DOCX.
+
+    Если значения нет, возвращаем "-".
+    Используется там, где строка остаётся в шаблоне,
+    но значение должно быть прочерком.
+    """
+    if value is None:
+        return "-"
+
+    value = str(value).strip()
+
+    if value == "":
+        return "-"
+
+    return value
+
+
 def is_positive_count(value):
     """
     Проверка наличия светового прибора по количеству.
@@ -300,6 +319,13 @@ CONCLUSIONS = {
         "Приложения №4 п.1.1.5",
     ),
 
+    "a_8_1": conclusion_text(
+        "Соответствует требованиям",
+        "ТР ТС 018/2011",
+        "Приложения №4 п. 1.3.1",
+        "(таблица 1.3.1)",
+    ),
+
     "a_8_7": conclusion_text(
         "Соответствует требованиям",
         "ТР ТС 018/2011",
@@ -508,8 +534,8 @@ def build_dynamic_result_values(protocol, measurement, light):
     )
 
     parking_light_present = (
-            is_positive_count(getattr(light, "parking_light_count", None))
-            or is_positive_count(getattr(light, "rear_parking_light_count", None))
+        is_positive_count(getattr(light, "parking_light_count", None))
+        or is_positive_count(getattr(light, "rear_parking_light_count", None))
     )
 
     adaptive_front_lighting_present = is_positive_count(
@@ -518,11 +544,11 @@ def build_dynamic_result_values(protocol, measurement, light):
 
     washer_present = is_true(getattr(light, "headlight_washer_present", None))
 
-    # А.3.2 — отдельного поля пока нет, поэтому по умолчанию соответствует.
+    # А.3.2 — кнопка вызова экстренных оперативных служб / ГЛОНАСС
     add_result_pair(
         values,
         "result_a_3_2",
-        True,
+        is_true(getattr(measurement, "glonass_button_present", None)),
         CONCLUSIONS["a_3_2"],
     )
 
@@ -783,6 +809,184 @@ def build_dynamic_result_values(protocol, measurement, light):
     )
 
     return values
+
+
+# =========================
+# Условные строки световых приборов
+# =========================
+
+def build_light_device_row_values(light):
+    """
+    Значения для условных строк световых приборов в таблице.
+
+    Использование в DOCX:
+    {%tr if parking_light_present %}
+    строка с цветом и количеством
+    {%tr endif %}
+
+    {%tr if not parking_light_present %}
+    строка "не применяется" / "-"
+    {%tr endif %}
+
+    Важно:
+    Если count = None, "", "-", 0, то *_present = False.
+    """
+
+    return {
+        # Общий текст заключения для строки, когда прибор есть
+        "light_device_conclusion": CONCLUSIONS["a_8_1"],
+
+        # Фары ближнего света
+        "low_beam_present": is_positive_count(getattr(light, "low_beam_count", None)),
+        "low_beam_color_value": normalize_light_color(
+            getattr(light, "low_beam_color", None)
+        ),
+        "low_beam_count_value": value_or_dash(
+            fmt_int(getattr(light, "low_beam_count", None))
+        ),
+
+        # Фары дальнего света
+        "high_beam_present": is_positive_count(getattr(light, "high_beam_count", None)),
+        "high_beam_color_value": normalize_light_color(
+            getattr(light, "high_beam_color", None)
+        ),
+        "high_beam_count_value": value_or_dash(
+            fmt_int(getattr(light, "high_beam_count", None))
+        ),
+
+        # Передние противотуманные фары
+        "front_fog_present": is_positive_count(getattr(light, "front_fog_count", None)),
+        "front_fog_color_value": normalize_light_color(
+            getattr(light, "front_fog_color", None)
+        ),
+        "front_fog_count_value": value_or_dash(
+            fmt_int(getattr(light, "front_fog_count", None))
+        ),
+
+        # Фонари заднего хода
+        "reverse_light_present": is_positive_count(getattr(light, "reverse_light_count", None)),
+        "reverse_light_color_value": normalize_light_color(
+            getattr(light, "reverse_light_color", None)
+        ),
+        "reverse_light_count_value": value_or_dash(
+            fmt_int(getattr(light, "reverse_light_count", None))
+        ),
+
+        # Указатели поворота
+        "turn_signal_present": is_positive_count(getattr(light, "turn_signal_count", None)),
+        "turn_signal_color_value": normalize_light_color(
+            getattr(light, "turn_signal_color", None)
+        ),
+        "turn_signal_count_value": value_or_dash(
+            fmt_int(getattr(light, "turn_signal_count", None))
+        ),
+
+        # Передние габаритные огни
+        "front_position_light_present": is_positive_count(
+            getattr(light, "front_position_light_count", None)
+        ),
+        "front_position_light_color_value": normalize_light_color(
+            getattr(light, "front_position_light_color", None)
+        ),
+        "front_position_light_count_value": value_or_dash(
+            fmt_int(getattr(light, "front_position_light_count", None))
+        ),
+
+        # Задние габаритные огни
+        "rear_position_light_present": is_positive_count(
+            getattr(light, "rear_position_light_count", None)
+        ),
+        "rear_position_light_color_value": normalize_light_color(
+            getattr(light, "rear_position_light_color", None)
+        ),
+        "rear_position_light_count_value": value_or_dash(
+            fmt_int(getattr(light, "rear_position_light_count", None))
+        ),
+
+        # Основной сигнал торможения
+        "main_brake_signal_present": is_positive_count(
+            getattr(light, "main_brake_signal_count", None)
+        ),
+        "main_brake_signal_color_value": normalize_light_color(
+            getattr(light, "main_brake_signal_color", None)
+        ),
+        "main_brake_signal_count_value": value_or_dash(
+            fmt_int(getattr(light, "main_brake_signal_count", None))
+        ),
+
+        # Дополнительный сигнал торможения
+        "additional_brake_signal_present": is_positive_count(
+            getattr(light, "additional_brake_signal_count", None)
+        ),
+        "additional_brake_signal_color_value": normalize_light_color(
+            getattr(light, "additional_brake_signal_color", None)
+        ),
+        "additional_brake_signal_count_value": value_or_dash(
+            fmt_int(getattr(light, "additional_brake_signal_count", None))
+        ),
+
+        # Задние противотуманные фонари
+        "rear_fog_present": is_positive_count(getattr(light, "rear_fog_count", None)),
+        "rear_fog_color_value": normalize_light_color(
+            getattr(light, "rear_fog_color", None)
+        ),
+        "rear_fog_count_value": value_or_dash(
+            fmt_int(getattr(light, "rear_fog_count", None))
+        ),
+
+        # Подсветка государственного номера
+        "plate_light_present": is_positive_count(getattr(light, "plate_light_count", None)),
+        "plate_light_color_value": normalize_light_color(
+            getattr(light, "plate_light_color", None)
+        ),
+        "plate_light_count_value": value_or_dash(
+            fmt_int(getattr(light, "plate_light_count", None))
+        ),
+
+        # Дневные ходовые огни
+        "daytime_running_light_present": is_positive_count(
+            getattr(light, "daytime_running_light_count", None)
+        ),
+        "daytime_running_light_color_value": normalize_light_color(
+            getattr(light, "daytime_running_light_color", None)
+        ),
+        "daytime_running_light_count_value": value_or_dash(
+            fmt_int(getattr(light, "daytime_running_light_count", None))
+        ),
+
+        # Передние стояночные огни
+        "parking_light_present": is_positive_count(
+            getattr(light, "parking_light_count", None)
+        ),
+        "parking_light_color_value": normalize_light_color(
+            getattr(light, "parking_light_color", None)
+        ),
+        "parking_light_count_value": value_or_dash(
+            fmt_int(getattr(light, "parking_light_count", None))
+        ),
+
+        # Задние стояночные огни
+        "rear_parking_light_present": is_positive_count(
+            getattr(light, "rear_parking_light_count", None)
+        ),
+        "rear_parking_light_color_value": normalize_light_color(
+            getattr(light, "rear_parking_light_color", None)
+        ),
+        "rear_parking_light_count_value": value_or_dash(
+            fmt_int(getattr(light, "rear_parking_light_count", None))
+        ),
+
+        # Адаптивная система переднего освещения
+        "adaptive_front_lighting_present": is_positive_count(
+            getattr(light, "adaptive_front_lighting_count", None)
+        ),
+        "adaptive_front_lighting_color_value": normalize_light_color(
+            getattr(light, "adaptive_front_lighting_color", None)
+        ),
+        "adaptive_front_lighting_count_value": value_or_dash(
+            fmt_int(getattr(light, "adaptive_front_lighting_count", None))
+        ),
+    }
 
 
 # =========================
@@ -1225,6 +1429,11 @@ def debug_docx_context(context, protocol):
         "brand_name",
         "commercial_name",
 
+        "parking_light_present",
+        "parking_light_color_value",
+        "parking_light_count_value",
+        "light_device_conclusion",
+
         "fog_light_left_distance_8_10_1",
         "fog_light_right_distance_8_10_1",
         "fog_light_lower_point_8_10_2",
@@ -1493,6 +1702,11 @@ def build_protocol_docx_context(protocol):
             "Наличие",
             "Отсутствие",
         ),
+        "glonass_button_present_label": fmt_bool(
+            getattr(measurement, "glonass_button_present", None),
+            "Соответствует",
+            "Не применяется",
+        ),
 
         # =========================
         # Brake
@@ -1724,6 +1938,7 @@ def build_protocol_docx_context(protocol):
     context.update(build_rear_fog_values(light))
     context.update(build_sun_strip_values(measurement))
     context.update(build_dynamic_result_values(protocol, measurement, light))
+    context.update(build_light_device_row_values(light))
     context.update(build_calculated_values(protocol))
     context.update(build_uncertainty_values(protocol))
     context.update(build_photo_values(protocol))

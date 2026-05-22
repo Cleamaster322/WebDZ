@@ -43,6 +43,44 @@ def normalize_body_mark_value(value):
     return value
 
 
+class DashFieldsSerializerMixin:
+    """
+    Общая проверка dash_fields для блоков протокола.
+
+    dash_fields хранит имена полей, где пользователь явно поставил "-".
+
+    Логика:
+    - значение самого поля сохраняется как NULL;
+    - имя поля добавляется в dash_fields;
+    - при повторной загрузке frontend видит NULL + имя в dash_fields и показывает "-";
+    - если NULL есть, но имени в dash_fields нет, frontend показывает пустую строку.
+    """
+
+    def validate_dash_fields(self, value):
+        if value in (None, ''):
+            return []
+
+        if not isinstance(value, list):
+            raise serializers.ValidationError(
+                'dash_fields должен быть списком строк'
+            )
+
+        cleaned = []
+
+        for item in value:
+            if not isinstance(item, str):
+                raise serializers.ValidationError(
+                    'Каждое значение в dash_fields должно быть строкой'
+                )
+
+            field_name = item.strip()
+
+            if field_name and field_name not in cleaned:
+                cleaned.append(field_name)
+
+        return cleaned
+
+
 # =========================
 # Справочник автомобилей
 # =========================
@@ -274,27 +312,27 @@ class CarDataProtocolSerializer(serializers.ModelSerializer):
 # Протокол
 # =========================
 
-class ProtocolSerializer(serializers.ModelSerializer):
+class ProtocolSerializer(DashFieldsSerializerMixin, serializers.ModelSerializer):
     class Meta:
         model = Protocol
         fields = '__all__'
 
 
-class ProtocolMeasurementSerializer(serializers.ModelSerializer):
+class ProtocolMeasurementSerializer(DashFieldsSerializerMixin, serializers.ModelSerializer):
     class Meta:
         model = ProtocolMeasurement
         fields = '__all__'
         read_only_fields = ['id']
 
 
-class ProtocolBrakeSerializer(serializers.ModelSerializer):
+class ProtocolBrakeSerializer(DashFieldsSerializerMixin, serializers.ModelSerializer):
     class Meta:
         model = ProtocolBrake
         fields = '__all__'
         read_only_fields = ['id']
 
 
-class ProtocolLightSerializer(serializers.ModelSerializer):
+class ProtocolLightSerializer(DashFieldsSerializerMixin, serializers.ModelSerializer):
     class Meta:
         model = ProtocolLight
         fields = '__all__'
@@ -308,21 +346,21 @@ class ProtocolPhotoSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'created_at']
 
 
-class ProtocolTestConditionSerializer(serializers.ModelSerializer):
+class ProtocolTestConditionSerializer(DashFieldsSerializerMixin, serializers.ModelSerializer):
     class Meta:
         model = ProtocolTestCondition
         fields = '__all__'
         read_only_fields = ['id']
 
 
-class ProtocolRoadConditionSerializer(serializers.ModelSerializer):
+class ProtocolRoadConditionSerializer(DashFieldsSerializerMixin, serializers.ModelSerializer):
     class Meta:
         model = ProtocolRoadCondition
         fields = '__all__'
         read_only_fields = ['id']
 
 
-class ProtocolPowerSupplySerializer(serializers.ModelSerializer):
+class ProtocolPowerSupplySerializer(DashFieldsSerializerMixin, serializers.ModelSerializer):
     class Meta:
         model = ProtocolPowerSupply
         fields = '__all__'
@@ -333,7 +371,7 @@ class ProtocolPowerSupplySerializer(serializers.ModelSerializer):
 # Полный / детальный протокол
 # =========================
 
-class ProtocolDetailSerializer(serializers.ModelSerializer):
+class ProtocolDetailSerializer(DashFieldsSerializerMixin, serializers.ModelSerializer):
     measurement = ProtocolMeasurementSerializer(read_only=True)
     brake = ProtocolBrakeSerializer(read_only=True)
     light = ProtocolLightSerializer(read_only=True)
@@ -347,7 +385,7 @@ class ProtocolDetailSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-class ProtocolFullSerializer(serializers.ModelSerializer):
+class ProtocolFullSerializer(DashFieldsSerializerMixin, serializers.ModelSerializer):
     measurement = ProtocolMeasurementSerializer(read_only=True)
     brake = ProtocolBrakeSerializer(read_only=True)
     light = ProtocolLightSerializer(read_only=True)
@@ -365,7 +403,7 @@ class ProtocolFullSerializer(serializers.ModelSerializer):
 # Создание протокола
 # =========================
 
-class ProtocolCreateSerializer(serializers.ModelSerializer):
+class ProtocolCreateSerializer(DashFieldsSerializerMixin, serializers.ModelSerializer):
     configuration_id = serializers.IntegerField(write_only=True, required=False)
 
     class Meta:
@@ -407,6 +445,9 @@ class ProtocolCreateSerializer(serializers.ModelSerializer):
             'color',
             'inspection_place',
             'comment',
+
+            # Список полей верхнего блока Protocol, где пользователь поставил "-"
+            'dash_fields',
 
             'created_at',
             'updated_at',
