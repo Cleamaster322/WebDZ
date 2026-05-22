@@ -1,13 +1,21 @@
 from datetime import date
 
+from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 from django.contrib.auth.models import User
+from django.db import transaction
+from django.utils import timezone
 from django.http import FileResponse, HttpResponse
 from django.middleware.csrf import get_token
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
+from pathlib import Path
+from uuid import uuid4
+
+from django.conf import settings
+from django.core.files.storage import default_storage
 
 from .models import (
     Brand,
@@ -52,6 +60,27 @@ from .word_utils import create_car_word_doc
 # =========================================================
 # --- HELPERS ---
 # =========================================================
+
+def notify_protocol_status_changed(protocol):
+    channel_layer = get_channel_layer()
+
+    async_to_sync(channel_layer.group_send)(
+        "protocols",
+        {
+            "type": "protocol_status_changed",
+            "protocol": {
+                "id": protocol.id,
+                "status": protocol.status,
+                "locked_by": protocol.locked_by_id,
+                "locked_by_id": protocol.locked_by_id,
+                "locked_by_username": (
+                    protocol.locked_by.username
+                    if protocol.locked_by
+                    else None
+                ),
+            },
+        },
+    )
 
 def normalize_region_name(region):
     if not region:
@@ -1064,14 +1093,101 @@ def update_protocol(request, pk):
 
         partial = request.method == 'PATCH'
         serializer = ProtocolSerializer(protocol, data=data, partial=partial)
+
         if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
+            protocol = serializer.save()
+
+            if protocol.status in ['draft', 'completed', 'approved', 'cancelled']:
+                protocol.locked_by = None
+                protocol.locked_at = None
+                protocol.save(update_fields=['locked_by', 'locked_at'])
+
+            notify_protocol_status_changed(protocol)
+
+            return Response(ProtocolSerializer(protocol).data)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
     except Exception as e:
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def start_protocol_editing(request, pk):
+    try:
+        with transaction.atomic():
+            protocol = Protocol.objects.select_for_update().filter(pk=pk).first()
+
+            if not protocol:
+                return Response(status=status.HTTP_404_NOT_FOUND)
+
+            if protocol.status == 'completed':
+                return Response(
+                    {
+                        'detail': 'Завершённый протокол нельзя занять для редактирования.'
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            if protocol.status in ['approved', 'cancelled']:
+                return Response(
+                    {
+                        'detail': 'Этот протокол нельзя занять для редактирования.'
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            if (
+                protocol.status == 'in_progress'
+                and protocol.locked_by_id
+                and protocol.locked_by_id != request.user.id
+            ):
+                return Response(
+                    {
+                        'detail': 'Протокол уже редактируется другим пользователем.',
+                        'locked_by_id': protocol.locked_by_id,
+                        'locked_by_username': (
+                            protocol.locked_by.username
+                            if protocol.locked_by
+                            else None
+                        ),
+                    },
+                    status=423,
+                )
+
+            protocol.status = 'in_progress'
+            protocol.locked_by = request.user
+            protocol.locked_at = timezone.now()
+            protocol.save(update_fields=['status', 'locked_by', 'locked_at'])
+
+        notify_protocol_status_changed(protocol)
+
+        return Response(ProtocolSerializer(protocol).data)
+
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def return_protocol_to_draft(request, pk):
+    try:
+        with transaction.atomic():
+            protocol = Protocol.objects.select_for_update().filter(pk=pk).first()
+
+            if not protocol:
+                return Response(status=status.HTTP_404_NOT_FOUND)
+
+            protocol.status = 'draft'
+            protocol.locked_by = None
+            protocol.locked_at = None
+            protocol.save(update_fields=['status', 'locked_by', 'locked_at'])
+
+        notify_protocol_status_changed(protocol)
+
+        return Response(ProtocolSerializer(protocol).data)
+
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['DELETE'])
 @permission_classes([IsAuthenticated])
@@ -1299,7 +1415,64 @@ def update_protocol_light(request, protocol_id):
     except Exception as e:
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+DOCX_PHOTO_TYPES = [
+    'stand_test_photo',
+    'gas_test_photo',
+    'noise_test_photo',
+]
 
+ALLOWED_PHOTO_EXTENSIONS = [
+    '.jpg',
+    '.jpeg',
+    '.png',
+    '.webp',
+]
+
+
+def get_uploaded_photo_file(request):
+    """
+    Поддерживаем два варианта имени поля:
+    - file
+    - image
+
+    На frontend лучше отправлять FormData с ключом file.
+    """
+    return request.FILES.get('file') or request.FILES.get('image')
+
+
+def validate_photo_file(uploaded_file):
+    if not uploaded_file:
+        return 'Файл фото не передан'
+
+    extension = Path(uploaded_file.name).suffix.lower()
+
+    if extension not in ALLOWED_PHOTO_EXTENSIONS:
+        return 'Разрешены только изображения: jpg, jpeg, png, webp'
+
+    max_size = 10 * 1024 * 1024
+
+    if uploaded_file.size > max_size:
+        return 'Размер фото не должен превышать 10 МБ'
+
+    return None
+
+
+def build_protocol_photo_path(protocol_id, photo_type, uploaded_file):
+    extension = Path(uploaded_file.name).suffix.lower()
+    filename = f'{photo_type}_{uuid4().hex}{extension}'
+
+    return f'protocol_photos/{protocol_id}/{filename}'
+
+
+def delete_photo_file_if_exists(file_path):
+    if not file_path:
+        return
+
+    try:
+        if default_storage.exists(file_path):
+            default_storage.delete(file_path)
+    except Exception:
+        pass
 # =========================================================
 # --- PROTOCOL-PHOTO FUNCTIONS ---
 # =========================================================
@@ -1312,9 +1485,20 @@ def get_protocol_photos(request, protocol_id):
         if not protocol:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
-        queryset = ProtocolPhoto.objects.filter(protocol_id=protocol_id).order_by('sort_order', 'id')
-        serializer = ProtocolPhotoSerializer(queryset, many=True)
+        queryset = (
+            ProtocolPhoto.objects
+            .filter(protocol_id=protocol_id)
+            .order_by('sort_order', 'id')
+        )
+
+        serializer = ProtocolPhotoSerializer(
+            queryset,
+            many=True,
+            context={'request': request}
+        )
+
         return Response(serializer.data)
+
     except Exception as e:
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -1327,15 +1511,61 @@ def create_protocol_photo(request, protocol_id):
         if not protocol:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
-        data = request.data.copy()
-        data['protocol'] = protocol_id
+        uploaded_file = get_uploaded_photo_file(request)
 
-        serializer = ProtocolPhotoSerializer(data=data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        file_error = validate_photo_file(uploaded_file)
+        if file_error:
+            return Response(
+                {'file': file_error},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        photo_type = request.data.get('photo_type') or 'other'
+
+        allowed_types = [choice[0] for choice in ProtocolPhoto.PHOTO_TYPE_CHOICES]
+        if photo_type not in allowed_types:
+            return Response(
+                {'photo_type': 'Недопустимый тип фото'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        sort_order = request.data.get('sort_order') or 0
+
+        # Для трёх фото, которые идут в DOCX,
+        # храним только одно актуальное фото каждого типа.
+        if photo_type in DOCX_PHOTO_TYPES:
+            old_photos = ProtocolPhoto.objects.filter(
+                protocol_id=protocol_id,
+                photo_type=photo_type
+            )
+
+            for old_photo in old_photos:
+                delete_photo_file_if_exists(old_photo.file_path)
+
+            old_photos.delete()
+
+        relative_path = build_protocol_photo_path(
+            protocol_id=protocol_id,
+            photo_type=photo_type,
+            uploaded_file=uploaded_file
+        )
+
+        saved_path = default_storage.save(relative_path, uploaded_file)
+
+        photo = ProtocolPhoto.objects.create(
+            protocol=protocol,
+            photo_type=photo_type,
+            file_path=saved_path,
+            sort_order=sort_order,
+        )
+
+        serializer = ProtocolPhotoSerializer(
+            photo,
+            context={'request': request}
+        )
+
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
     except Exception as e:
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -1344,23 +1574,68 @@ def create_protocol_photo(request, protocol_id):
 @permission_classes([IsAuthenticated])
 def update_protocol_photo(request, photo_id):
     try:
-        obj = ProtocolPhoto.objects.filter(pk=photo_id).first()
-        if not obj:
+        photo = ProtocolPhoto.objects.filter(pk=photo_id).first()
+        if not photo:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
-        data = request.data.copy()
-        data['protocol'] = obj.protocol_id
+        uploaded_file = get_uploaded_photo_file(request)
+
+        new_photo_type = request.data.get('photo_type', photo.photo_type)
+        new_sort_order = request.data.get('sort_order', photo.sort_order)
+
+        allowed_types = [choice[0] for choice in ProtocolPhoto.PHOTO_TYPE_CHOICES]
+        if new_photo_type not in allowed_types:
+            return Response(
+                {'photo_type': 'Недопустимый тип фото'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Если фото переводят в один из трёх DOCX-типов,
+        # удаляем другие фото этого же типа у этого протокола.
+        if new_photo_type in DOCX_PHOTO_TYPES:
+            duplicates = (
+                ProtocolPhoto.objects
+                .filter(
+                    protocol_id=photo.protocol_id,
+                    photo_type=new_photo_type
+                )
+                .exclude(pk=photo.pk)
+            )
+
+            for duplicate in duplicates:
+                delete_photo_file_if_exists(duplicate.file_path)
+
+            duplicates.delete()
+
+        if uploaded_file:
+            file_error = validate_photo_file(uploaded_file)
+            if file_error:
+                return Response(
+                    {'file': file_error},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            delete_photo_file_if_exists(photo.file_path)
+
+            relative_path = build_protocol_photo_path(
+                protocol_id=photo.protocol_id,
+                photo_type=new_photo_type,
+                uploaded_file=uploaded_file
+            )
+
+            photo.file_path = default_storage.save(relative_path, uploaded_file)
+
+        photo.photo_type = new_photo_type
+        photo.sort_order = new_sort_order
+        photo.save(update_fields=['photo_type', 'file_path', 'sort_order'])
 
         serializer = ProtocolPhotoSerializer(
-            obj,
-            data=data,
-            partial=(request.method == 'PATCH')
+            photo,
+            context={'request': request}
         )
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
 
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response(serializer.data)
+
     except Exception as e:
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -1369,12 +1644,16 @@ def update_protocol_photo(request, photo_id):
 @permission_classes([IsAuthenticated])
 def delete_protocol_photo(request, photo_id):
     try:
-        obj = ProtocolPhoto.objects.filter(pk=photo_id).first()
-        if not obj:
+        photo = ProtocolPhoto.objects.filter(pk=photo_id).first()
+        if not photo:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
-        obj.delete()
+        delete_photo_file_if_exists(photo.file_path)
+
+        photo.delete()
+
         return Response(status=status.HTTP_204_NO_CONTENT)
+
     except Exception as e:
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -1604,8 +1883,13 @@ def get_full_protocol(request, protocol_id):
         if not protocol:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
-        serializer = ProtocolFullSerializer(protocol)
+        serializer = ProtocolFullSerializer(
+            protocol,
+            context={'request': request}
+        )
+
         return Response(serializer.data)
+
     except Exception as e:
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 

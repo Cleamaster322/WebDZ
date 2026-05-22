@@ -1,11 +1,12 @@
-import {useEffect, useState} from "react";
-import {useParams} from "react-router-dom";
+import {useEffect, useRef, useState} from "react";
+import {useNavigate, useParams} from "react-router-dom";
 import api from "../shared/api.jsx";
 
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Typography from "@mui/material/Typography";
 import Alert from "@mui/material/Alert";
+import Chip from "@mui/material/Chip";
 
 import ProtocolInspectionHeader from "../Features/ProtocolInspection/ProtocolInspectionHeader.jsx";
 import ProtocolInspectionConditions from "../Features/ProtocolInspection/ProtocolInspectionConditions.jsx";
@@ -18,6 +19,7 @@ import ProtocolInspectionBrakes from "../Features/ProtocolInspection/ProtocolIns
 import ProtocolInspectionLightsMain from "../Features/ProtocolInspection/ProtocolInspectionLightsMain.jsx";
 import ProtocolInspectionLightsGeometry from "../Features/ProtocolInspection/ProtocolInspectionLightsGeometry.jsx";
 import ProtocolInspectionMisc from "../Features/ProtocolInspection/ProtocolInspectionMisc.jsx";
+import AppHeader from "../Features/AppHeader/AppHeader.jsx";
 
 import {
     pageSx,
@@ -30,10 +32,10 @@ import {
 } from "../Features/ProtocolInspection/protocolInspectionStyles.jsx";
 
 const initialForm = {
+    protocol_number: "",
     appendix_number: "",
-    appendix_date_day: "",
-    appendix_date_month: "",
-    appendix_date_year: "",
+    protocol_date: "",
+    status: "",
 
     ambient_temp_c: "",
     ambient_humidity_pct: "",
@@ -236,6 +238,20 @@ function emptyToNull(value) {
     return value;
 }
 
+function formatProtocolNumber(value) {
+    if (value === null || value === undefined) {
+        return null;
+    }
+
+    const digits = String(value).replace(/\D/g, "");
+
+    if (!digits) {
+        return null;
+    }
+
+    return digits.padStart(5, "0");
+}
+
 function stringToBooleanOrNull(value) {
     if (value === "true") return true;
     if (value === "false") return false;
@@ -249,6 +265,7 @@ function buildDashFields(form, fieldMap) {
 }
 
 const PROTOCOL_DASH_FIELDS = [
+    {formField: "protocol_number", apiField: "protocol_number"},
     {formField: "appendix_number", apiField: "appendix_number"},
     {formField: "brand_name", apiField: "brand_name"},
     {formField: "commercial_name", apiField: "commercial_name"},
@@ -415,8 +432,14 @@ const LIGHT_DASH_FIELDS = [
     {formField: "brake_signal_left_distance_mm", apiField: "brake_signal_left_distance_mm"},
     {formField: "brake_signal_right_distance_mm", apiField: "brake_signal_right_distance_mm"},
     {formField: "additional_brake_signal_from_glass_edge_mm", apiField: "additional_brake_signal_from_glass_edge_mm"},
-    {formField: "additional_brake_signal_from_support_surface_mm", apiField: "additional_brake_signal_from_support_surface_mm"},
-    {formField: "additional_brake_signal_optical_center_shift_mm", apiField: "additional_brake_signal_optical_center_shift_mm"},
+    {
+        formField: "additional_brake_signal_from_support_surface_mm",
+        apiField: "additional_brake_signal_from_support_surface_mm",
+    },
+    {
+        formField: "additional_brake_signal_optical_center_shift_mm",
+        apiField: "additional_brake_signal_optical_center_shift_mm",
+    },
     {formField: "rear_fog_upper_point_mm", apiField: "rear_fog_upper_point_mm"},
     {formField: "rear_fog_lower_point_mm", apiField: "rear_fog_lower_point_mm"},
 ];
@@ -441,7 +464,10 @@ function mapProtocolToForm(data) {
     return {
         ...initialForm,
 
+        protocol_number: toFormValue(protocol.protocol_number, protocolDashFields, "protocol_number"),
         appendix_number: toFormValue(protocol.appendix_number, protocolDashFields, "appendix_number"),
+        protocol_date: protocol.protocol_date || "",
+        status: protocol.status || "",
 
         ambient_temp_c: toFormValue(testConditions.ambient_temperature_c, testConditionsDashFields, "ambient_temperature_c"),
         ambient_humidity_pct: toFormValue(testConditions.relative_humidity_pct, testConditionsDashFields, "relative_humidity_pct"),
@@ -604,7 +630,10 @@ function mapProtocolToForm(data) {
 
 function buildProtocolPayload(form) {
     return {
+        protocol_number: formatProtocolNumber(form.protocol_number),
         appendix_number: emptyToNull(form.appendix_number),
+        protocol_date: emptyToNull(form.protocol_date),
+
         brand_name: emptyToNull(form.brand_name),
         commercial_name: emptyToNull(form.commercial_name),
         vin: emptyToNull(form.vin),
@@ -832,10 +861,15 @@ function buildLightPayload(form) {
 
 function ProtocolInspection() {
     const {id} = useParams();
+    const navigate = useNavigate();
 
     const currentProtocolId = id;
 
     const [form, setForm] = useState(initialForm);
+    const [photos, setPhotos] = useState([]);
+
+    const formStatusRef = useRef("");
+    const protocolLockActiveRef = useRef(false);
 
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
@@ -851,20 +885,47 @@ function ProtocolInspection() {
         }));
     };
 
-    const loadProtocol = async (protocolId = currentProtocolId) => {
+
+    const loadProtocol = async (
+        protocolId = currentProtocolId,
+        options = {}
+    ) => {
+        const {startEditing = false} = options;
+
         if (!protocolId) return;
 
         try {
             setLoading(true);
             setErrorMessage("");
 
-            const response = await api.get(`/cars/protocols/${protocolId}/full/`);
-            const mappedForm = mapProtocolToForm(response.data);
+            let response = await api.get(`/cars/protocols/${protocolId}/full/`);
+            let data = response.data;
+
+            if (startEditing && data.status !== "completed") {
+                await api.post(`/cars/protocols/${protocolId}/start-editing/`);
+
+                protocolLockActiveRef.current = true;
+
+                response = await api.get(`/cars/protocols/${protocolId}/full/`);
+                data = response.data;
+            }
+
+            const mappedForm = mapProtocolToForm(data);
 
             setForm(mappedForm);
+            setPhotos(data.photos || []);
         } catch (error) {
             console.error("Ошибка загрузки протокола:", error);
-            setErrorMessage("Не удалось загрузить данные протокола");
+
+            if (error.response?.status === 423) {
+                setErrorMessage(
+                    `Протокол уже редактируется пользователем: ${
+                        error.response.data?.locked_by_username || "неизвестно"
+                    }`
+                );
+            } else {
+                setErrorMessage("Не удалось загрузить данные протокола");
+            }
         } finally {
             setLoading(false);
         }
@@ -872,11 +933,38 @@ function ProtocolInspection() {
 
     useEffect(() => {
         if (id) {
-            loadProtocol(id);
+            loadProtocol(id, {startEditing: true});
         } else {
             setErrorMessage("Не передан ID протокола");
         }
     }, [id]);
+
+    useEffect(() => {
+        formStatusRef.current = form.status;
+    }, [form.status]);
+
+    useEffect(() => {
+        return () => {
+            if (!currentProtocolId) {
+                return;
+            }
+
+            if (!protocolLockActiveRef.current) {
+                return;
+            }
+
+            if (formStatusRef.current === "completed") {
+                return;
+            }
+
+            protocolLockActiveRef.current = false;
+
+            api.post(`/cars/protocols/${currentProtocolId}/return-to-draft/`)
+                .catch((error) => {
+                    console.error("Ошибка освобождения протокола при выходе:", error);
+                });
+        };
+    }, [currentProtocolId]);
 
     const handleSave = async () => {
         try {
@@ -915,6 +1003,81 @@ function ProtocolInspection() {
         } catch (error) {
             console.error("Ошибка сохранения:", error);
             setErrorMessage("Ошибка при сохранении данных");
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const handleCompleteProtocol = async () => {
+        if (!currentProtocolId) {
+            setErrorMessage("Не передан ID протокола");
+            return;
+        }
+
+        const confirmed = window.confirm(
+            "Завершить протокол? После этого он исчезнет из списка протоколов в работе и появится в завершённых."
+        );
+
+        if (!confirmed) {
+            return;
+        }
+
+        try {
+            setSaving(true);
+            setSuccessMessage("");
+            setErrorMessage("");
+
+            const protocolPayload = {
+                ...buildProtocolPayload(form),
+                status: "completed",
+            };
+
+            await api.patch(`/cars/protocols/${currentProtocolId}/update/`, protocolPayload);
+
+            protocolLockActiveRef.current = false;
+            formStatusRef.current = "completed";
+
+            setSuccessMessage("Протокол переведён в статус «Завершён»");
+
+            navigate("/protocols/completed");
+        } catch (error) {
+            console.error("Ошибка завершения протокола:", error);
+            setErrorMessage("Не удалось завершить протокол");
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const handleReturnToDraft = async () => {
+        if (!currentProtocolId) {
+            setErrorMessage("Не передан ID протокола");
+            return;
+        }
+
+        const confirmed = window.confirm(
+            "Вернуть протокол в черновик? После этого он снова появится в списке протоколов в работе."
+        );
+
+        if (!confirmed) {
+            return;
+        }
+
+        try {
+            setSaving(true);
+            setSuccessMessage("");
+            setErrorMessage("");
+
+            await api.post(`/cars/protocols/${currentProtocolId}/return-to-draft/`);
+
+            protocolLockActiveRef.current = false;
+            formStatusRef.current = "draft";
+
+            await loadProtocol(currentProtocolId);
+
+            setSuccessMessage("Протокол возвращён в черновик");
+        } catch (error) {
+            console.error("Ошибка возврата протокола в черновик:", error);
+            setErrorMessage("Не удалось вернуть протокол в черновик");
         } finally {
             setSaving(false);
         }
@@ -959,69 +1122,269 @@ function ProtocolInspection() {
         subsectionTitleSx,
     };
 
-    return (
-        <Box sx={pageSx}>
-            <Box sx={pageInnerSx}>
-                <Typography variant="h4" sx={{color: "black", fontWeight: 700}}>
-                    Осмотр автомобиля — Приложение 1-2 — протокол #{currentProtocolId || "новый"}
-                </Typography>
+    const isCompleted = form.status === "completed";
+    const actionButtons = (
+        <Box
+            sx={{
+                display: "flex",
+                gap: 1.5,
+                flexWrap: "wrap",
+                justifyContent: {
+                    xs: "flex-start",
+                    md: "flex-end",
+                },
+            }}
+        >
+            <Button
+                variant="outlined"
+                onClick={handleGenerateDocx}
+                disabled={!currentProtocolId}
+                sx={{
+                    borderColor: "black",
+                    color: "black",
+                    borderRadius: 0,
+                    textTransform: "none",
+                    px: 3,
+                    py: 1,
+                    fontWeight: 800,
+                    "&:hover": {
+                        borderColor: "black",
+                        bgcolor: "#eeeeee",
+                    },
+                }}
+            >
+                Сформировать DOCX
+            </Button>
 
-                {loading && <Alert severity="info">Загрузка данных...</Alert>}
-                {successMessage && <Alert severity="success">{successMessage}</Alert>}
-                {errorMessage && <Alert severity="error">{errorMessage}</Alert>}
-
-                <ProtocolInspectionHeader {...commonSectionProps} />
-                <ProtocolInspectionConditions {...commonSectionProps} />
-                <ProtocolInspectionPhotos {...commonSectionProps} />
-                <ProtocolInspectionVehicle {...commonSectionProps} />
-                <ProtocolInspectionEngine {...commonSectionProps} />
-                <ProtocolInspectionSteeringTransmission {...commonSectionProps} />
-                <ProtocolInspectionBrakes {...commonSectionProps} />
-                <ProtocolInspectionLightsMain {...commonSectionProps} />
-                <ProtocolInspectionLightsGeometry {...commonSectionProps} />
-                <ProtocolInspectionMisc {...commonSectionProps} />
-
-                <Box
+            {isCompleted ? (
+                <Button
+                    variant="contained"
+                    onClick={handleReturnToDraft}
+                    disabled={saving || loading || !currentProtocolId}
                     sx={{
-                        display: "flex",
-                        justifyContent: "flex-end",
-                        gap: 2,
-                        pb: 2,
+                        bgcolor: "white",
+                        color: "black",
+                        border: "2px solid black",
+                        borderRadius: 0,
+                        textTransform: "none",
+                        px: 3,
+                        py: 1,
+                        fontWeight: 800,
+                        boxShadow: "none",
+                        "&:hover": {
+                            bgcolor: "#eeeeee",
+                            boxShadow: "none",
+                        },
                     }}
                 >
-                    <Button
-                        variant="outlined"
-                        onClick={handleGenerateDocx}
-                        disabled={!currentProtocolId}
-                        sx={{
-                            px: 4,
-                            py: 1.2,
-                            borderColor: "black",
-                            color: "black",
-                        }}
-                    >
-                        Сформировать DOCX
-                    </Button>
+                    Вернуть в черновик
+                </Button>
+            ) : (
+                <Button
+                    variant="contained"
+                    onClick={handleCompleteProtocol}
+                    disabled={saving || loading || !currentProtocolId}
+                    sx={{
+                        bgcolor: "#333333",
+                        color: "white",
+                        borderRadius: 0,
+                        textTransform: "none",
+                        px: 3,
+                        py: 1,
+                        fontWeight: 800,
+                        boxShadow: "none",
+                        "&:hover": {
+                            bgcolor: "#111111",
+                            boxShadow: "none",
+                        },
+                    }}
+                >
+                    Завершить протокол
+                </Button>
+            )}
 
-                    <Button
-                        variant="contained"
-                        onClick={handleSave}
-                        disabled={saving || loading}
+            <Button
+                variant="contained"
+                onClick={handleSave}
+                disabled={saving || loading}
+                sx={{
+                    bgcolor: "black",
+                    color: "white",
+                    borderRadius: 0,
+                    textTransform: "none",
+                    px: 3,
+                    py: 1,
+                    fontWeight: 800,
+                    boxShadow: "none",
+                    "&:hover": {
+                        bgcolor: "#222",
+                        boxShadow: "none",
+                    },
+                }}
+            >
+                {saving ? "Сохранение..." : "Сохранить"}
+            </Button>
+        </Box>
+    );
+
+    return (
+        <>
+            <AppHeader/>
+
+            <Box sx={pageSx}>
+                <Box sx={pageInnerSx}>
+                    <Box
                         sx={{
-                            px: 4,
-                            py: 1.2,
-                            backgroundColor: "black",
-                            color: "white",
-                            "&:hover": {
-                                backgroundColor: "#222",
-                            },
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "flex-start",
+                            gap: 2,
+                            flexWrap: "wrap",
+                            mb: 3,
                         }}
                     >
-                        {saving ? "Сохранение..." : "Сохранить"}
-                    </Button>
+                        <Box>
+                            <Typography
+                                variant="h4"
+                                sx={{
+                                    color: "black",
+                                    fontWeight: 800,
+                                    mb: 0.8,
+                                }}
+                            >
+                                Осмотр автомобиля
+                            </Typography>
+
+                            <Typography
+                                variant="body1"
+                                sx={{
+                                    color: "text.secondary",
+                                    mb: 1.5,
+                                }}
+                            >
+                                Заполнение данных осмотра, условий испытаний, фотографий и результатов замеров.
+                            </Typography>
+
+                            <Box
+                                sx={{
+                                    display: "flex",
+                                    gap: 1,
+                                    flexWrap: "wrap",
+                                }}
+                            >
+                                <Chip
+                                    label={`Протокол № ${form.protocol_number || currentProtocolId || "новый"}`}
+                                    sx={{
+                                        borderRadius: 0,
+                                        bgcolor: "black",
+                                        color: "white",
+                                        fontWeight: 800,
+                                    }}
+                                />
+
+                                <Chip
+                                    label={
+                                        form.brand_name || form.commercial_name
+                                            ? `${form.brand_name || ""} ${form.commercial_name || ""}`.trim()
+                                            : "Автомобиль не указан"
+                                    }
+                                    sx={{
+                                        borderRadius: 0,
+                                        bgcolor: "white",
+                                        border: "1px solid black",
+                                        color: "black",
+                                        fontWeight: 800,
+                                    }}
+                                />
+
+                                <Chip
+                                    label={`Дата: ${form.protocol_date || "не указана"}`}
+                                    sx={{
+                                        borderRadius: 0,
+                                        bgcolor: "white",
+                                        border: "1px solid black",
+                                        color: "black",
+                                        fontWeight: 800,
+                                    }}
+                                />
+                            </Box>
+                        </Box>
+
+                        {actionButtons}
+                    </Box>
+
+                    {loading && (
+                        <Alert
+                            severity="info"
+                            sx={{
+                                mb: 2,
+                                borderRadius: 0,
+                            }}
+                        >
+                            Загрузка данных...
+                        </Alert>
+                    )}
+
+                    {successMessage && (
+                        <Alert
+                            severity="success"
+                            sx={{
+                                mb: 2,
+                                borderRadius: 0,
+                            }}
+                        >
+                            {successMessage}
+                        </Alert>
+                    )}
+
+                    {errorMessage && (
+                        <Alert
+                            severity="error"
+                            sx={{
+                                mb: 2,
+                                borderRadius: 0,
+                            }}
+                        >
+                            {errorMessage}
+                        </Alert>
+                    )}
+
+                    <ProtocolInspectionHeader {...commonSectionProps} />
+                    <ProtocolInspectionConditions {...commonSectionProps} />
+
+                    <ProtocolInspectionPhotos
+                        {...commonSectionProps}
+                        protocolId={currentProtocolId}
+                        photos={photos}
+                        setPhotos={setPhotos}
+                    />
+
+                    <ProtocolInspectionVehicle {...commonSectionProps} />
+                    <ProtocolInspectionEngine {...commonSectionProps} />
+                    <ProtocolInspectionSteeringTransmission {...commonSectionProps} />
+                    <ProtocolInspectionBrakes {...commonSectionProps} />
+                    <ProtocolInspectionLightsMain {...commonSectionProps} />
+                    <ProtocolInspectionLightsGeometry {...commonSectionProps} />
+                    <ProtocolInspectionMisc {...commonSectionProps} />
+
+                    <Box
+                        sx={{
+                            position: "sticky",
+                            bottom: 0,
+                            display: "flex",
+                            justifyContent: "flex-end",
+                            mt: 2,
+                            py: 2,
+                            bgcolor: "#f2f2f2",
+                            borderTop: "2px solid black",
+                            zIndex: 10,
+                        }}
+                    >
+                        {actionButtons}
+                    </Box>
                 </Box>
             </Box>
-        </Box>
+        </>
     );
 }
 

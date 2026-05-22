@@ -1,5 +1,8 @@
+from uuid import uuid4
+
 from rest_framework import serializers
 from django.contrib.auth.models import User
+from django.conf import settings
 
 from .models import (
     Brand,
@@ -313,6 +316,11 @@ class CarDataProtocolSerializer(serializers.ModelSerializer):
 # =========================
 
 class ProtocolSerializer(DashFieldsSerializerMixin, serializers.ModelSerializer):
+    locked_by_username = serializers.CharField(
+        source='locked_by.username',
+        read_only=True
+    )
+
     class Meta:
         model = Protocol
         fields = '__all__'
@@ -340,10 +348,60 @@ class ProtocolLightSerializer(DashFieldsSerializerMixin, serializers.ModelSerial
 
 
 class ProtocolPhotoSerializer(serializers.ModelSerializer):
+    file_url = serializers.SerializerMethodField()
+    caption = serializers.SerializerMethodField()
+    is_docx_photo = serializers.SerializerMethodField()
+
     class Meta:
         model = ProtocolPhoto
-        fields = '__all__'
-        read_only_fields = ['id', 'created_at']
+        fields = [
+            'id',
+            'protocol',
+            'photo_type',
+            'file_path',
+            'file_url',
+            'caption',
+            'is_docx_photo',
+            'sort_order',
+            'created_at',
+        ]
+        read_only_fields = [
+            'id',
+            'protocol',
+            'file_path',
+            'file_url',
+            'caption',
+            'is_docx_photo',
+            'created_at',
+        ]
+
+    def get_file_url(self, obj):
+        if not obj.file_path:
+            return None
+
+        request = self.context.get('request')
+        url = f"{settings.MEDIA_URL}{obj.file_path}"
+
+        if request:
+            return request.build_absolute_uri(url)
+
+        return url
+
+    def get_caption(self, obj):
+        captions = {
+            'stand_test_photo': 'Фото 1. Испытания на тормозном стенде',
+            'gas_test_photo': 'Фото 2. Измерение уровня выбросов отработавших газов',
+            'noise_test_photo': 'Фото 3. Измерение уровня шума',
+        }
+
+        return captions.get(obj.photo_type, obj.get_photo_type_display())
+
+    def get_is_docx_photo(self, obj):
+        return obj.photo_type in [
+            'stand_test_photo',
+            'gas_test_photo',
+            'noise_test_photo',
+        ]
 
 
 class ProtocolTestConditionSerializer(DashFieldsSerializerMixin, serializers.ModelSerializer):
@@ -372,6 +430,11 @@ class ProtocolPowerSupplySerializer(DashFieldsSerializerMixin, serializers.Model
 # =========================
 
 class ProtocolDetailSerializer(DashFieldsSerializerMixin, serializers.ModelSerializer):
+    locked_by_username = serializers.CharField(
+        source='locked_by.username',
+        read_only=True
+    )
+
     measurement = ProtocolMeasurementSerializer(read_only=True)
     brake = ProtocolBrakeSerializer(read_only=True)
     light = ProtocolLightSerializer(read_only=True)
@@ -386,6 +449,11 @@ class ProtocolDetailSerializer(DashFieldsSerializerMixin, serializers.ModelSeria
 
 
 class ProtocolFullSerializer(DashFieldsSerializerMixin, serializers.ModelSerializer):
+    locked_by_username = serializers.CharField(
+        source='locked_by.username',
+        read_only=True
+    )
+
     measurement = ProtocolMeasurementSerializer(read_only=True)
     brake = ProtocolBrakeSerializer(read_only=True)
     light = ProtocolLightSerializer(read_only=True)
@@ -628,8 +696,6 @@ class ProtocolCreateSerializer(DashFieldsSerializerMixin, serializers.ModelSeria
             if not validated_data.get('commercial_name'):
                 validated_data['commercial_name'] = model.name
 
-            # В protocols.body_type для шаблона протокола кладём код кузова.
-            # Если в car_data.body_mark лежит 5BA-B43W, в протокол попадёт B43W.
             normalized_body_mark = self.normalize_body_mark(car_data.body_mark)
 
             if normalized_body_mark:
@@ -646,7 +712,14 @@ class ProtocolCreateSerializer(DashFieldsSerializerMixin, serializers.ModelSeria
             if not validated_data.get('manufacture_year'):
                 validated_data['manufacture_year'] = car_data.manufacture_year
 
+        if not validated_data.get('protocol_number'):
+            validated_data['protocol_number'] = f"TEMP-{uuid4().hex[:12]}"
+
         protocol = Protocol.objects.create(**validated_data)
+
+        protocol.protocol_number = str(protocol.id).zfill(5)
+        protocol.save(update_fields=['protocol_number'])
+
 
         measurement_defaults = {}
 

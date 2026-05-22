@@ -14,6 +14,7 @@ import {
 import {useState, useEffect} from "react";
 import api from "../shared/api.jsx";
 import {useNavigate} from "react-router-dom";
+import AppHeader from "../Features/AppHeader/Appheader.jsx";
 
 function getGenerationImageUrl(imagePath) {
     if (!imagePath) return "";
@@ -65,12 +66,12 @@ function groupGenerationsByRegion(generations) {
 }
 
 function buildCreateProtocolPayload({
-    selectedBrand,
-    selectedModel,
-    selectedGeneration,
-    selectedConfiguration,
-    configurationFilters,
-}) {
+                                        selectedBrand,
+                                        selectedModel,
+                                        selectedGeneration,
+                                        selectedConfiguration,
+                                        configurationFilters,
+                                    }) {
     const payload = {
         owner_name: "Не указано",
         brand_name: selectedBrand?.name || "",
@@ -350,13 +351,6 @@ function CarSelection() {
         return () => clearTimeout(delayDebounceFn);
     }, [selectedGeneration, configurationInputValue, configurationFilters]);
 
-    const handleLogout = () => {
-        localStorage.removeItem("accessToken");
-        localStorage.removeItem("refreshToken");
-        delete api.client.defaults.headers.common["Authorization"];
-        navigate("/");
-    };
-
     const resetConfigurationFilters = () => {
         setConfigurationFilters(emptyConfigurationFilters);
         setSelectedConfiguration(null);
@@ -422,415 +416,411 @@ function CarSelection() {
     const bodyCodeOptions = configurationFilterOptions.body_marks || [];
 
     return (
-        <Box sx={{padding: 3}}>
-            <Button
-                variant="outlined"
-                color="error"
-                onClick={handleLogout}
-                sx={{marginBottom: 2}}
-            >
-                Выйти
-            </Button>
+        <>
+            <AppHeader/>
 
-            <Typography variant="h5" sx={{marginBottom: 3}}>
-                Выбор автомобиля
-            </Typography>
+            <Box sx={{padding: 3}}>
+                <Typography variant="h5" sx={{marginBottom: 3}}>
+                    Выбор автомобиля
+                </Typography>
 
-            <Autocomplete
-                value={selectedBrand}
-                inputValue={brandInputValue}
-                disablePortal
-                options={brands}
-                getOptionLabel={(option) => option?.name || ""}
-                isOptionEqualToValue={(option, value) => option.id === value.id}
-                filterOptions={(options) => options}
-                loading={brandLoading}
-                onInputChange={(event, newInputValue) => setBrandInputValue(newInputValue)}
-                onChange={(event, newValue) => {
-                    setSelectedBrand(newValue);
-                    setSelectedModel(null);
-                    setSelectedGeneration(null);
-                    setSelectedConfiguration(null);
-                    setModels([]);
-                    setGenerations([]);
-                    setConfigurations([]);
-                    setModelInputValue("");
-                    setConfigurationInputValue("");
-                    setConfigurationFilters(emptyConfigurationFilters);
-                }}
-                sx={{width: 400, marginBottom: 2}}
-                renderInput={(params) => (
-                    <TextField {...params} label="Выберите бренд"/>
-                )}
-            />
-
-            {selectedBrand && (
                 <Autocomplete
-                    value={selectedModel}
-                    inputValue={modelInputValue}
+                    value={selectedBrand}
+                    inputValue={brandInputValue}
                     disablePortal
-                    options={models}
+                    options={brands}
                     getOptionLabel={(option) => option?.name || ""}
                     isOptionEqualToValue={(option, value) => option.id === value.id}
                     filterOptions={(options) => options}
-                    loading={modelLoading}
-                    onInputChange={(event, newInputValue) => setModelInputValue(newInputValue)}
+                    loading={brandLoading}
+                    onInputChange={(event, newInputValue) => setBrandInputValue(newInputValue)}
                     onChange={(event, newValue) => {
-                        setSelectedModel(newValue);
+                        setSelectedBrand(newValue);
+                        setSelectedModel(null);
                         setSelectedGeneration(null);
                         setSelectedConfiguration(null);
+                        setModels([]);
                         setGenerations([]);
                         setConfigurations([]);
+                        setModelInputValue("");
                         setConfigurationInputValue("");
                         setConfigurationFilters(emptyConfigurationFilters);
                     }}
-                    sx={{width: 400, marginBottom: 3}}
+                    sx={{width: 400, marginBottom: 2}}
                     renderInput={(params) => (
-                        <TextField {...params} label="Выберите модель"/>
+                        <TextField {...params} label="Выберите бренд"/>
                     )}
                 />
-            )}
 
-            {selectedModel && (
-                <Box sx={{marginTop: 2}}>
-                    <Typography variant="h6" sx={{marginBottom: 2}}>
-                        Выберите поколение
-                    </Typography>
-
-                    {generationLoading && (
-                        <Box sx={{display: "flex", alignItems: "center", gap: 1}}>
-                            <CircularProgress size={22}/>
-                            <Typography>Загрузка поколений...</Typography>
-                        </Box>
-                    )}
-
-                    {!generationLoading && generations.length === 0 && (
-                        <Typography color="text.secondary">
-                            Нет данных по поколениям. Можно создать протокол по выбранной марке и модели и заполнить
-                            данные вручную.
-                        </Typography>
-                    )}
-
-                    {!generationLoading && Object.entries(groupedGenerations).map(([region, regionGenerations]) => (
-                        <Box key={region} sx={{marginBottom: 4}}>
-                            <Typography
-                                variant="h6"
-                                sx={{
-                                    marginBottom: 2,
-                                    fontWeight: 700,
-                                }}
-                            >
-                                Модельный ряд {selectedBrand?.name} {selectedModel?.name} для {getRegionLabel(region)}
-                            </Typography>
-
-                            <Box
-                                sx={{
-                                    display: "grid",
-                                    gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
-                                    gap: 2,
-                                    maxWidth: 1100,
-                                }}
-                            >
-                                {regionGenerations.map((generation) => {
-                                    const isSelected = selectedGeneration?.id === generation.id;
-
-                                    return (
-                                        <Card
-                                            key={generation.id}
-                                            onClick={() => handleSelectGeneration(generation)}
-                                            sx={{
-                                                cursor: "pointer",
-                                                border: isSelected ? "2px solid #1976d2" : "1px solid #ddd",
-                                                boxShadow: isSelected ? 4 : 1,
-                                                transition: "0.2s",
-                                                "&:hover": {
-                                                    boxShadow: 4,
-                                                    transform: "translateY(-2px)",
-                                                },
-                                            }}
-                                        >
-                                            {generation.image_path ? (
-                                                <CardMedia
-                                                    component="img"
-                                                    height="150"
-                                                    image={getGenerationImageUrl(generation.image_path)}
-                                                    alt={generation.name}
-                                                    sx={{
-                                                        objectFit: "contain",
-                                                        backgroundColor: "#f5f5f5",
-                                                    }}
-                                                />
-                                            ) : (
-                                                <Box
-                                                    sx={{
-                                                        height: 150,
-                                                        display: "flex",
-                                                        alignItems: "center",
-                                                        justifyContent: "center",
-                                                        backgroundColor: "#f5f5f5",
-                                                        color: "text.secondary",
-                                                    }}
-                                                >
-                                                    Нет изображения
-                                                </Box>
-                                            )}
-
-                                            <CardContent>
-                                                <Typography variant="subtitle1" fontWeight={600}>
-                                                    {generation.name}
-                                                </Typography>
-
-                                                <Typography variant="body2" color="text.secondary">
-                                                    {generation.date_start || "?"} - {generation.date_end || "?"}
-                                                </Typography>
-
-                                                <Box sx={{display: "flex", gap: 1, flexWrap: "wrap", marginTop: 1}}>
-                                                    <Chip
-                                                        size="small"
-                                                        label={getRegionLabel(generation.region)}
-                                                    />
-
-                                                    {generation.body_type && (
-                                                        <Chip
-                                                            size="small"
-                                                            label={generation.body_type}
-                                                            variant="outlined"
-                                                        />
-                                                    )}
-                                                </Box>
-
-                                                <Typography variant="body2" sx={{marginTop: 1}}>
-                                                    {getGenerationTitle(generation)}
-                                                </Typography>
-
-                                                {generation.body_code && (
-                                                    <Typography variant="body2" color="text.secondary">
-                                                        Коды кузова поколения: {generation.body_code}
-                                                    </Typography>
-                                                )}
-                                            </CardContent>
-                                        </Card>
-                                    );
-                                })}
-                            </Box>
-                        </Box>
-                    ))}
-                </Box>
-            )}
-
-            {selectedGeneration && (
-                <Box sx={{marginTop: 4, maxWidth: 1200}}>
-                    <Typography variant="h6" sx={{marginBottom: 2}}>
-                        Фильтры комплектаций
-                    </Typography>
-
-                    {configurationFilterLoading && (
-                        <Box sx={{display: "flex", alignItems: "center", gap: 1, marginBottom: 2}}>
-                            <CircularProgress size={20}/>
-                            <Typography>Загрузка фильтров...</Typography>
-                        </Box>
-                    )}
-
-                    <Box
-                        sx={{
-                            display: "grid",
-                            gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
-                            gap: 2,
-                            marginBottom: 2,
-                        }}
-                    >
-                        <TextField
-                            label="Год выпуска"
-                            value={configurationFilters.manufacture_year}
-                            onChange={(e) => handleConfigurationFilterChange("manufacture_year", e.target.value)}
-                            size="small"
-                            placeholder="Например 2021"
-                        />
-
-                        <TextField
-                            select
-                            label="Код кузова"
-                            value={configurationFilters.body_code}
-                            onChange={(e) => handleConfigurationFilterChange("body_code", e.target.value)}
-                            size="small"
-                            disabled={bodyCodeOptions.length === 0}
-                        >
-                            <MenuItem value="">Все</MenuItem>
-                            {bodyCodeOptions.map((value) => (
-                                <MenuItem key={value} value={value}>
-                                    {value}
-                                </MenuItem>
-                            ))}
-                        </TextField>
-
-                        <TextField
-                            select
-                            label="Привод"
-                            value={configurationFilters.drive_type}
-                            onChange={(e) => handleConfigurationFilterChange("drive_type", e.target.value)}
-                            size="small"
-                        >
-                            <MenuItem value="">Все</MenuItem>
-                            {(configurationFilterOptions.drive_types || []).map((value) => (
-                                <MenuItem key={value} value={value}>
-                                    {value}
-                                </MenuItem>
-                            ))}
-                        </TextField>
-
-                        <TextField
-                            select
-                            label="Тип топлива"
-                            value={configurationFilters.fuel_type}
-                            onChange={(e) => handleConfigurationFilterChange("fuel_type", e.target.value)}
-                            size="small"
-                        >
-                            <MenuItem value="">Все</MenuItem>
-                            {(configurationFilterOptions.fuel_types || []).map((value) => (
-                                <MenuItem key={value} value={value}>
-                                    {value}
-                                </MenuItem>
-                            ))}
-                        </TextField>
-
-                        <TextField
-                            select
-                            label="Двигатель"
-                            value={configurationFilters.engine_model}
-                            onChange={(e) => handleConfigurationFilterChange("engine_model", e.target.value)}
-                            size="small"
-                        >
-                            <MenuItem value="">Все</MenuItem>
-                            {(configurationFilterOptions.engine_models || []).map((value) => (
-                                <MenuItem key={value} value={value}>
-                                    {value}
-                                </MenuItem>
-                            ))}
-                        </TextField>
-
-                        <TextField
-                            select
-                            label="Мощность, кВт"
-                            value={configurationFilters.engine_power}
-                            onChange={(e) => handleConfigurationFilterChange("engine_power", e.target.value)}
-                            size="small"
-                        >
-                            <MenuItem value="">Все</MenuItem>
-
-                            {(configurationFilterOptions.engine_powers_kw || []).map((value) => (
-                                <MenuItem key={value} value={value}>
-                                    {value} кВт
-                                </MenuItem>
-                            ))}
-                        </TextField>
-
-                        <TextField
-                            select
-                            label="Тип коробки"
-                            value={configurationFilters.transmission}
-                            onChange={(e) => handleConfigurationFilterChange("transmission", e.target.value)}
-                            size="small"
-                        >
-                            <MenuItem value="">Все</MenuItem>
-                            {(configurationFilterOptions.transmissions || []).map((value) => (
-                                <MenuItem key={value} value={value}>
-                                    {value}
-                                </MenuItem>
-                            ))}
-                        </TextField>
-
-                        <TextField
-                            select
-                            label="Кол-во мест"
-                            value={configurationFilters.seats_count}
-                            onChange={(e) => handleConfigurationFilterChange("seats_count", e.target.value)}
-                            size="small"
-                        >
-                            <MenuItem value="">Все</MenuItem>
-                            {(configurationFilterOptions.seats_counts || []).map((value) => (
-                                <MenuItem key={value} value={value}>
-                                    {value}
-                                </MenuItem>
-                            ))}
-                        </TextField>
-
-                        <TextField
-                            select
-                            label="Турбонаддув"
-                            value={configurationFilters.turbo_present}
-                            onChange={(e) => handleConfigurationFilterChange("turbo_present", e.target.value)}
-                            size="small"
-                        >
-                            <MenuItem value="">Все</MenuItem>
-                            <MenuItem value="true">Есть</MenuItem>
-                            <MenuItem value="false">Нет</MenuItem>
-                        </TextField>
-                    </Box>
-
-                    <Button
-                        variant="outlined"
-                        onClick={resetConfigurationFilters}
-                        sx={{marginBottom: 2}}
-                    >
-                        Сбросить фильтры комплектаций
-                    </Button>
-
-                    <Typography variant="body2" color="text.secondary" sx={{marginBottom: 1}}>
-                        Найдено комплектаций: {configurations.length}
-                    </Typography>
-
+                {selectedBrand && (
                     <Autocomplete
-                        value={selectedConfiguration}
-                        inputValue={configurationInputValue}
+                        value={selectedModel}
+                        inputValue={modelInputValue}
                         disablePortal
-                        options={configurations}
-                        getOptionLabel={buildConfigurationLabel}
+                        options={models}
+                        getOptionLabel={(option) => option?.name || ""}
                         isOptionEqualToValue={(option, value) => option.id === value.id}
                         filterOptions={(options) => options}
-                        loading={configurationLoading}
-                        onInputChange={(event, newInputValue) => setConfigurationInputValue(newInputValue)}
-                        onChange={(event, newValue) => setSelectedConfiguration(newValue)}
-                        sx={{width: 850, marginTop: 1}}
+                        loading={modelLoading}
+                        onInputChange={(event, newInputValue) => setModelInputValue(newInputValue)}
+                        onChange={(event, newValue) => {
+                            setSelectedModel(newValue);
+                            setSelectedGeneration(null);
+                            setSelectedConfiguration(null);
+                            setGenerations([]);
+                            setConfigurations([]);
+                            setConfigurationInputValue("");
+                            setConfigurationFilters(emptyConfigurationFilters);
+                        }}
+                        sx={{width: 400, marginBottom: 3}}
                         renderInput={(params) => (
-                            <TextField
-                                {...params}
-                                label="Выберите конфигурацию"
-                                placeholder="Можно искать по названию: X, Bolero, Highway Star..."
-                            />
+                            <TextField {...params} label="Выберите модель"/>
                         )}
                     />
+                )}
 
-                    {!configurationLoading && selectedGeneration && configurations.length === 0 && (
-                        <Typography color="text.secondary" sx={{marginTop: 1}}>
-                            По выбранным фильтрам комплектации не найдены. Можно создать пустой протокол и заполнить
-                            данные вручную.
+                {selectedModel && (
+                    <Box sx={{marginTop: 2}}>
+                        <Typography variant="h6" sx={{marginBottom: 2}}>
+                            Выберите поколение
                         </Typography>
-                    )}
-                </Box>
-            )}
 
-            <Button
-                variant="contained"
-                color="primary"
-                onClick={handleNextPage}
-                sx={{marginTop: 4}}
-                disabled={!selectedBrand || !selectedModel || creatingProtocol}
-            >
-                {creatingProtocol
-                    ? "Создание протокола..."
-                    : selectedConfiguration
-                        ? "Создать протокол по выбранной комплектации"
-                        : selectedGeneration
-                            ? "Создать пустой протокол"
-                            : "Создать протокол по марке и модели"}
-            </Button>
+                        {generationLoading && (
+                            <Box sx={{display: "flex", alignItems: "center", gap: 1}}>
+                                <CircularProgress size={22}/>
+                                <Typography>Загрузка поколений...</Typography>
+                            </Box>
+                        )}
 
-            {createProtocolError && (
-                <Typography color="error" sx={{marginTop: 2}}>
-                    {createProtocolError}
-                </Typography>
-            )}
-        </Box>
+                        {!generationLoading && generations.length === 0 && (
+                            <Typography color="text.secondary">
+                                Нет данных по поколениям. Можно создать протокол по выбранной марке и модели и заполнить
+                                данные вручную.
+                            </Typography>
+                        )}
+
+                        {!generationLoading && Object.entries(groupedGenerations).map(([region, regionGenerations]) => (
+                            <Box key={region} sx={{marginBottom: 4}}>
+                                <Typography
+                                    variant="h6"
+                                    sx={{
+                                        marginBottom: 2,
+                                        fontWeight: 700,
+                                    }}
+                                >
+                                    Модельный
+                                    ряд {selectedBrand?.name} {selectedModel?.name} для {getRegionLabel(region)}
+                                </Typography>
+
+                                <Box
+                                    sx={{
+                                        display: "grid",
+                                        gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
+                                        gap: 2,
+                                        maxWidth: 1100,
+                                    }}
+                                >
+                                    {regionGenerations.map((generation) => {
+                                        const isSelected = selectedGeneration?.id === generation.id;
+
+                                        return (
+                                            <Card
+                                                key={generation.id}
+                                                onClick={() => handleSelectGeneration(generation)}
+                                                sx={{
+                                                    cursor: "pointer",
+                                                    border: isSelected ? "2px solid #1976d2" : "1px solid #ddd",
+                                                    boxShadow: isSelected ? 4 : 1,
+                                                    transition: "0.2s",
+                                                    "&:hover": {
+                                                        boxShadow: 4,
+                                                        transform: "translateY(-2px)",
+                                                    },
+                                                }}
+                                            >
+                                                {generation.image_path ? (
+                                                    <CardMedia
+                                                        component="img"
+                                                        height="150"
+                                                        image={getGenerationImageUrl(generation.image_path)}
+                                                        alt={generation.name}
+                                                        sx={{
+                                                            objectFit: "contain",
+                                                            backgroundColor: "#f5f5f5",
+                                                        }}
+                                                    />
+                                                ) : (
+                                                    <Box
+                                                        sx={{
+                                                            height: 150,
+                                                            display: "flex",
+                                                            alignItems: "center",
+                                                            justifyContent: "center",
+                                                            backgroundColor: "#f5f5f5",
+                                                            color: "text.secondary",
+                                                        }}
+                                                    >
+                                                        Нет изображения
+                                                    </Box>
+                                                )}
+
+                                                <CardContent>
+                                                    <Typography variant="subtitle1" fontWeight={600}>
+                                                        {generation.name}
+                                                    </Typography>
+
+                                                    <Typography variant="body2" color="text.secondary">
+                                                        {generation.date_start || "?"} - {generation.date_end || "?"}
+                                                    </Typography>
+
+                                                    <Box sx={{display: "flex", gap: 1, flexWrap: "wrap", marginTop: 1}}>
+                                                        <Chip
+                                                            size="small"
+                                                            label={getRegionLabel(generation.region)}
+                                                        />
+
+                                                        {generation.body_type && (
+                                                            <Chip
+                                                                size="small"
+                                                                label={generation.body_type}
+                                                                variant="outlined"
+                                                            />
+                                                        )}
+                                                    </Box>
+
+                                                    <Typography variant="body2" sx={{marginTop: 1}}>
+                                                        {getGenerationTitle(generation)}
+                                                    </Typography>
+
+                                                    {generation.body_code && (
+                                                        <Typography variant="body2" color="text.secondary">
+                                                            Коды кузова поколения: {generation.body_code}
+                                                        </Typography>
+                                                    )}
+                                                </CardContent>
+                                            </Card>
+                                        );
+                                    })}
+                                </Box>
+                            </Box>
+                        ))}
+                    </Box>
+                )}
+
+                {selectedGeneration && (
+                    <Box sx={{marginTop: 4, maxWidth: 1200}}>
+                        <Typography variant="h6" sx={{marginBottom: 2}}>
+                            Фильтры комплектаций
+                        </Typography>
+
+                        {configurationFilterLoading && (
+                            <Box sx={{display: "flex", alignItems: "center", gap: 1, marginBottom: 2}}>
+                                <CircularProgress size={20}/>
+                                <Typography>Загрузка фильтров...</Typography>
+                            </Box>
+                        )}
+
+                        <Box
+                            sx={{
+                                display: "grid",
+                                gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
+                                gap: 2,
+                                marginBottom: 2,
+                            }}
+                        >
+                            <TextField
+                                label="Год выпуска"
+                                value={configurationFilters.manufacture_year}
+                                onChange={(e) => handleConfigurationFilterChange("manufacture_year", e.target.value)}
+                                size="small"
+                                placeholder="Например 2021"
+                            />
+
+                            <TextField
+                                select
+                                label="Код кузова"
+                                value={configurationFilters.body_code}
+                                onChange={(e) => handleConfigurationFilterChange("body_code", e.target.value)}
+                                size="small"
+                                disabled={bodyCodeOptions.length === 0}
+                            >
+                                <MenuItem value="">Все</MenuItem>
+                                {bodyCodeOptions.map((value) => (
+                                    <MenuItem key={value} value={value}>
+                                        {value}
+                                    </MenuItem>
+                                ))}
+                            </TextField>
+
+                            <TextField
+                                select
+                                label="Привод"
+                                value={configurationFilters.drive_type}
+                                onChange={(e) => handleConfigurationFilterChange("drive_type", e.target.value)}
+                                size="small"
+                            >
+                                <MenuItem value="">Все</MenuItem>
+                                {(configurationFilterOptions.drive_types || []).map((value) => (
+                                    <MenuItem key={value} value={value}>
+                                        {value}
+                                    </MenuItem>
+                                ))}
+                            </TextField>
+
+                            <TextField
+                                select
+                                label="Тип топлива"
+                                value={configurationFilters.fuel_type}
+                                onChange={(e) => handleConfigurationFilterChange("fuel_type", e.target.value)}
+                                size="small"
+                            >
+                                <MenuItem value="">Все</MenuItem>
+                                {(configurationFilterOptions.fuel_types || []).map((value) => (
+                                    <MenuItem key={value} value={value}>
+                                        {value}
+                                    </MenuItem>
+                                ))}
+                            </TextField>
+
+                            <TextField
+                                select
+                                label="Двигатель"
+                                value={configurationFilters.engine_model}
+                                onChange={(e) => handleConfigurationFilterChange("engine_model", e.target.value)}
+                                size="small"
+                            >
+                                <MenuItem value="">Все</MenuItem>
+                                {(configurationFilterOptions.engine_models || []).map((value) => (
+                                    <MenuItem key={value} value={value}>
+                                        {value}
+                                    </MenuItem>
+                                ))}
+                            </TextField>
+
+                            <TextField
+                                select
+                                label="Мощность, кВт"
+                                value={configurationFilters.engine_power}
+                                onChange={(e) => handleConfigurationFilterChange("engine_power", e.target.value)}
+                                size="small"
+                            >
+                                <MenuItem value="">Все</MenuItem>
+
+                                {(configurationFilterOptions.engine_powers_kw || []).map((value) => (
+                                    <MenuItem key={value} value={value}>
+                                        {value} кВт
+                                    </MenuItem>
+                                ))}
+                            </TextField>
+
+                            <TextField
+                                select
+                                label="Тип коробки"
+                                value={configurationFilters.transmission}
+                                onChange={(e) => handleConfigurationFilterChange("transmission", e.target.value)}
+                                size="small"
+                            >
+                                <MenuItem value="">Все</MenuItem>
+                                {(configurationFilterOptions.transmissions || []).map((value) => (
+                                    <MenuItem key={value} value={value}>
+                                        {value}
+                                    </MenuItem>
+                                ))}
+                            </TextField>
+
+                            <TextField
+                                select
+                                label="Кол-во мест"
+                                value={configurationFilters.seats_count}
+                                onChange={(e) => handleConfigurationFilterChange("seats_count", e.target.value)}
+                                size="small"
+                            >
+                                <MenuItem value="">Все</MenuItem>
+                                {(configurationFilterOptions.seats_counts || []).map((value) => (
+                                    <MenuItem key={value} value={value}>
+                                        {value}
+                                    </MenuItem>
+                                ))}
+                            </TextField>
+
+                            <TextField
+                                select
+                                label="Турбонаддув"
+                                value={configurationFilters.turbo_present}
+                                onChange={(e) => handleConfigurationFilterChange("turbo_present", e.target.value)}
+                                size="small"
+                            >
+                                <MenuItem value="">Все</MenuItem>
+                                <MenuItem value="true">Есть</MenuItem>
+                                <MenuItem value="false">Нет</MenuItem>
+                            </TextField>
+                        </Box>
+
+                        <Button
+                            variant="outlined"
+                            onClick={resetConfigurationFilters}
+                            sx={{marginBottom: 2}}
+                        >
+                            Сбросить фильтры комплектаций
+                        </Button>
+
+                        <Typography variant="body2" color="text.secondary" sx={{marginBottom: 1}}>
+                            Найдено комплектаций: {configurations.length}
+                        </Typography>
+
+                        <Autocomplete
+                            value={selectedConfiguration}
+                            inputValue={configurationInputValue}
+                            disablePortal
+                            options={configurations}
+                            getOptionLabel={buildConfigurationLabel}
+                            isOptionEqualToValue={(option, value) => option.id === value.id}
+                            filterOptions={(options) => options}
+                            loading={configurationLoading}
+                            onInputChange={(event, newInputValue) => setConfigurationInputValue(newInputValue)}
+                            onChange={(event, newValue) => setSelectedConfiguration(newValue)}
+                            sx={{width: 850, marginTop: 1}}
+                            renderInput={(params) => (
+                                <TextField
+                                    {...params}
+                                    label="Выберите конфигурацию"
+                                    placeholder="Можно искать по названию: X, Bolero, Highway Star..."
+                                />
+                            )}
+                        />
+
+                        {!configurationLoading && selectedGeneration && configurations.length === 0 && (
+                            <Typography color="text.secondary" sx={{marginTop: 1}}>
+                                По выбранным фильтрам комплектации не найдены. Можно создать пустой протокол и заполнить
+                                данные вручную.
+                            </Typography>
+                        )}
+                    </Box>
+                )}
+
+                <Button
+                    variant="contained"
+                    color="primary"
+                    onClick={handleNextPage}
+                    sx={{marginTop: 4}}
+                    disabled={!selectedBrand || !selectedModel || creatingProtocol}
+                >
+                    {creatingProtocol
+                        ? "Создание протокола..."
+                        : selectedConfiguration
+                            ? "Создать протокол по выбранной комплектации"
+                            : selectedGeneration
+                                ? "Создать пустой протокол"
+                                : "Создать протокол по марке и модели"}
+                </Button>
+
+                {createProtocolError && (
+                    <Typography color="error" sx={{marginTop: 2}}>
+                        {createProtocolError}
+                    </Typography>
+                )}
+            </Box>
+        </>
     );
 }
 

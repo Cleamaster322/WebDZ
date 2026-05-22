@@ -1,6 +1,6 @@
 from django.conf import settings
 from django.db import models
-
+from django.utils import timezone
 
 # =========================
 # Общие mixin-классы
@@ -197,6 +197,21 @@ class Protocol(DashFieldsMixin, models.Model):
     protocol_number = models.CharField(max_length=100, unique=True, null=True, blank=True)
     protocol_date = models.DateField(null=True, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
+    locked_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="locked_protocols",
+        db_column="locked_by_id",
+    )
+
+    locked_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        db_column="locked_at",
+    )
+
 
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,

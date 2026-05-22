@@ -1,18 +1,44 @@
+import os
 import re
+import tempfile
 from pathlib import Path
 
+from PIL import Image, ImageOps
 from docx import Document
 from docx.shared import Inches
 
 
+# =========================
+# Regex patterns
+# =========================
+
+PLACEHOLDER_RE = re.compile(r"{{\s*([a-zA-Z0-9_]+)\s*}}")
+TR_IF_RE = re.compile(r"{%\s*tr\s+if\s+(.+?)\s*%}")
+TR_ENDIF_RE = re.compile(r"{%\s*tr\s+endif\s*%}")
 
 
+# =========================
+# Image placeholders
+# =========================
 
 IMAGE_PLACEHOLDERS = {
     "photo_stand_test",
     "photo_gas_test",
     "photo_noise_test",
 }
+
+
+# =========================
+# Image size limits for DOCX
+# =========================
+
+# Максимальные границы изображения в Word.
+# Фото не обрезается и не вставляется в белый canvas.
+# Оно пропорционально вписывается в эти границы.
+#
+# Регулируй только эти две величины.
+MAX_IMAGE_WIDTH_INCHES = 3.2
+MAX_IMAGE_HEIGHT_INCHES = 2.4
 
 
 # =========================
@@ -257,7 +283,7 @@ def replace_placeholder_in_paragraph(paragraph, context):
         last_run, last_start, last_end = ranges[end_index]
 
         before = first_run.text[: match.start() - first_start]
-        after = last_run.text[match.end() - last_start :]
+        after = last_run.text[match.end() - last_start:]
 
         is_image = key in IMAGE_PLACEHOLDERS and value
 
@@ -280,17 +306,128 @@ def replace_placeholder_in_paragraph(paragraph, context):
             last_run.text = after
 
 
-def try_add_picture(run, image_path):
-    path = Path(image_path)
+# =========================
+# Image processing
+# =========================
 
-    if not path.exists():
+def prepare_image_for_word(image_path):
+    """
+    Подготавливает изображение для вставки в Word:
+    - исправляет поворот по EXIF;
+    - убирает прозрачность;
+    - сохраняет во временный JPEG.
+
+    Важно:
+    здесь нет обрезки, нет белого canvas и нет фиксированного прямоугольника.
+    Фото сохраняется целиком.
+    """
+    source_path = Path(image_path)
+
+    if not source_path.exists():
+        return None
+
+    try:
+        image = Image.open(source_path)
+        image = ImageOps.exif_transpose(image)
+
+        if image.mode in ("RGBA", "LA"):
+            background = Image.new("RGB", image.size, "white")
+            background.paste(image, mask=image.split()[-1])
+            image = background
+        else:
+            image = image.convert("RGB")
+
+        temp_file = tempfile.NamedTemporaryFile(
+            suffix=".jpg",
+            delete=False,
+        )
+
+        temp_path = temp_file.name
+        temp_file.close()
+
+        image.save(temp_path, "JPEG", quality=92)
+
+        return temp_path
+
+    except Exception:
+        return None
+
+
+def calculate_docx_image_size(image_path):
+    """
+    Вычисляет размер изображения для Word.
+
+    Логика:
+    - исходные пропорции сохраняются;
+    - фото не обрезается;
+    - фото не искажается;
+    - если фото горизонтальное, оно в первую очередь упирается в max width;
+    - если фото вертикальное, оно в первую очередь упирается в max height;
+    - итоговый размер не выходит за MAX_IMAGE_WIDTH_INCHES и MAX_IMAGE_HEIGHT_INCHES.
+
+    Пример:
+    1000x500  -> условно 3.2x1.6
+    500x1000  -> условно 1.2x2.4
+    """
+    try:
+        image = Image.open(image_path)
+        image = ImageOps.exif_transpose(image)
+
+        width_px, height_px = image.size
+
+        if width_px <= 0 or height_px <= 0:
+            return MAX_IMAGE_WIDTH_INCHES, MAX_IMAGE_HEIGHT_INCHES
+
+        aspect_ratio = width_px / height_px
+
+        if width_px >= height_px:
+            # Горизонтальное или квадратное фото:
+            # сначала растягиваем до максимальной ширины.
+            width_inches = MAX_IMAGE_WIDTH_INCHES
+            height_inches = width_inches / aspect_ratio
+
+            # Если по высоте не помещается, ограничиваем по высоте.
+            if height_inches > MAX_IMAGE_HEIGHT_INCHES:
+                height_inches = MAX_IMAGE_HEIGHT_INCHES
+                width_inches = height_inches * aspect_ratio
+        else:
+            # Вертикальное фото:
+            # сначала растягиваем до максимальной высоты.
+            height_inches = MAX_IMAGE_HEIGHT_INCHES
+            width_inches = height_inches * aspect_ratio
+
+            # Если по ширине не помещается, ограничиваем по ширине.
+            if width_inches > MAX_IMAGE_WIDTH_INCHES:
+                width_inches = MAX_IMAGE_WIDTH_INCHES
+                height_inches = width_inches / aspect_ratio
+
+        return width_inches, height_inches
+
+    except Exception:
+        return MAX_IMAGE_WIDTH_INCHES, MAX_IMAGE_HEIGHT_INCHES
+
+
+def try_add_picture(run, image_path):
+    prepared_path = prepare_image_for_word(image_path)
+
+    if not prepared_path:
         return
 
     try:
-        run.add_picture(str(path), width=Inches(3.2))
+        width_inches, height_inches = calculate_docx_image_size(prepared_path)
+
+        run.add_picture(
+            prepared_path,
+            width=Inches(width_inches),
+            height=Inches(height_inches),
+        )
     except Exception:
-        # Если картинка повреждена или неподдерживаемая — просто оставляем место пустым.
         return
+    finally:
+        try:
+            os.remove(prepared_path)
+        except Exception:
+            pass
 
 
 # =========================

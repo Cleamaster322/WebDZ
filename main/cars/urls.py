@@ -67,6 +67,10 @@ urlpatterns = [
     path('protocols/create/', create_protocol),
     path('protocols/<int:pk>/', get_protocol),
     path('protocols/<int:pk>/update/', update_protocol),
+
+    path('protocols/<int:pk>/start-editing/', start_protocol_editing),
+    path('protocols/<int:pk>/return-to-draft/', return_protocol_to_draft),
+
     path('protocols/<int:pk>/delete/', delete_protocol),
     path('protocols/<int:protocol_id>/full/', get_full_protocol),
     path('protocols/<int:protocol_id>/generate-docx/', generate_protocol_docx_file),
