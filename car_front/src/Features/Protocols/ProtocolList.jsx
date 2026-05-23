@@ -169,7 +169,9 @@ function ProtocolCard({protocol, onOpen}) {
                     {isLocked && (
                         <Typography variant="body2" sx={{color: "black"}}>
                             <b>Редактирует:</b>{" "}
-                            {protocol.locked_by_username || "другой пользователь"}
+                            {protocol.locked_by_full_name ||
+                                protocol.locked_by_username ||
+                                "другой пользователь"}
                         </Typography>
                     )}
                 </Box>
@@ -310,6 +312,7 @@ function ProtocolList({
                                 locked_by: updatedProtocol.locked_by,
                                 locked_by_id: updatedProtocol.locked_by_id,
                                 locked_by_username: updatedProtocol.locked_by_username,
+                                locked_by_full_name: updatedProtocol.locked_by_full_name,
                             }
                             : protocol
                     )
@@ -373,20 +376,20 @@ function ProtocolList({
 
             <Box
                 sx={{
-                    minHeight: "calc(100vh - 56px)",
                     bgcolor: "#f2f2f2",
                     px: 3,
                     py: 3,
+                    boxSizing: "border-box",
                 }}
             >
                 <Paper
                     sx={{
-                        minHeight: "calc(100vh - 112px)",
                         border: "2px solid black",
                         borderRadius: 0,
                         p: 3,
                         bgcolor: "#f2f2f2",
                         boxShadow: "none",
+                        boxSizing: "border-box",
                     }}
                 >
                     <Box

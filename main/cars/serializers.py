@@ -1,7 +1,7 @@
 from uuid import uuid4
 
 from rest_framework import serializers
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User, Group
 from django.conf import settings
 
 from .models import (
@@ -320,10 +320,22 @@ class ProtocolSerializer(DashFieldsSerializerMixin, serializers.ModelSerializer)
         source='locked_by.username',
         read_only=True
     )
+    locked_by_full_name = serializers.SerializerMethodField()
 
     class Meta:
         model = Protocol
         fields = '__all__'
+
+    def get_locked_by_full_name(self, obj):
+        if not obj.locked_by:
+            return None
+
+        full_name = f"{obj.locked_by.last_name} {obj.locked_by.first_name}".strip()
+
+        if full_name:
+            return full_name
+
+        return obj.locked_by.username
 
 
 class ProtocolMeasurementSerializer(DashFieldsSerializerMixin, serializers.ModelSerializer):
@@ -435,6 +447,8 @@ class ProtocolDetailSerializer(DashFieldsSerializerMixin, serializers.ModelSeria
         read_only=True
     )
 
+    locked_by_full_name = serializers.SerializerMethodField()
+
     measurement = ProtocolMeasurementSerializer(read_only=True)
     brake = ProtocolBrakeSerializer(read_only=True)
     light = ProtocolLightSerializer(read_only=True)
@@ -446,6 +460,17 @@ class ProtocolDetailSerializer(DashFieldsSerializerMixin, serializers.ModelSeria
     class Meta:
         model = Protocol
         fields = '__all__'
+
+    def get_locked_by_full_name(self, obj):
+        if not obj.locked_by:
+            return None
+
+        full_name = f"{obj.locked_by.last_name} {obj.locked_by.first_name}".strip()
+
+        if full_name:
+            return full_name
+
+        return obj.locked_by.username
 
 
 class ProtocolFullSerializer(DashFieldsSerializerMixin, serializers.ModelSerializer):
@@ -454,6 +479,8 @@ class ProtocolFullSerializer(DashFieldsSerializerMixin, serializers.ModelSeriali
         read_only=True
     )
 
+    locked_by_full_name = serializers.SerializerMethodField()
+
     measurement = ProtocolMeasurementSerializer(read_only=True)
     brake = ProtocolBrakeSerializer(read_only=True)
     light = ProtocolLightSerializer(read_only=True)
@@ -466,6 +493,16 @@ class ProtocolFullSerializer(DashFieldsSerializerMixin, serializers.ModelSeriali
         model = Protocol
         fields = '__all__'
 
+    def get_locked_by_full_name(self, obj):
+        if not obj.locked_by:
+            return None
+
+        full_name = f"{obj.locked_by.last_name} {obj.locked_by.first_name}".strip()
+
+        if full_name:
+            return full_name
+
+        return obj.locked_by.username
 
 # =========================
 # Создание протокола
@@ -779,8 +816,203 @@ class ProtocolCreateSerializer(DashFieldsSerializerMixin, serializers.ModelSeria
 # =========================
 # Пользователь
 # =========================
+USER_ROLE_CHOICES = [
+    ('measurer', 'Замерщик'),
+    ('operator', 'Оформитель'),
+    ('manager', 'Руководитель'),
+]
+
+USER_ROLE_LABELS = dict(USER_ROLE_CHOICES)
+
+
+def ensure_user_role_groups():
+    for role_value, role_label in USER_ROLE_CHOICES:
+        Group.objects.get_or_create(
+            name=role_value
+        )
+
+
+def get_user_role(user):
+    if user.is_superuser:
+        return 'superuser'
+
+    role_names = set(user.groups.values_list('name', flat=True))
+
+    for role_value, _role_label in USER_ROLE_CHOICES:
+        if role_value in role_names:
+            return role_value
+
+    return None
+
+
+def get_user_role_label(user):
+    if user.is_superuser:
+        return 'Суперпользователь'
+
+    role = get_user_role(user)
+
+    if not role:
+        return 'Без роли'
+
+    return USER_ROLE_LABELS.get(role, role)
 
 class UserSerializer(serializers.ModelSerializer):
+    role = serializers.SerializerMethodField()
+    role_label = serializers.SerializerMethodField()
+
     class Meta:
         model = User
-        fields = '__all__'
+        fields = [
+            'id',
+            'username',
+            'first_name',
+            'last_name',
+            'email',
+            'is_staff',
+            'is_superuser',
+            'is_active',
+            'date_joined',
+            'role',
+            'role_label',
+        ]
+        read_only_fields = [
+            'id',
+            'is_staff',
+            'is_superuser',
+            'date_joined',
+            'role',
+            'role_label',
+        ]
+
+    def get_role(self, obj):
+        return get_user_role(obj)
+
+    def get_role_label(self, obj):
+        return get_user_role_label(obj)
+
+
+class CreateUserSerializer(serializers.Serializer):
+    username = serializers.CharField(
+        max_length=150,
+        required=True
+    )
+    password = serializers.CharField(
+        min_length=4,
+        required=True,
+        write_only=True
+    )
+    first_name = serializers.CharField(
+        max_length=150,
+        required=False,
+        allow_blank=True
+    )
+    last_name = serializers.CharField(
+        max_length=150,
+        required=False,
+        allow_blank=True
+    )
+    email = serializers.EmailField(
+        required=False,
+        allow_blank=True
+    )
+    role = serializers.ChoiceField(
+        choices=USER_ROLE_CHOICES,
+        required=True
+    )
+
+    def validate_username(self, value):
+        username = value.strip()
+
+        if not username:
+            raise serializers.ValidationError('Логин не может быть пустым')
+
+        if User.objects.filter(username=username).exists():
+            raise serializers.ValidationError('Пользователь с таким логином уже существует')
+
+        return username
+
+    def create(self, validated_data):
+        ensure_user_role_groups()
+
+        password = validated_data.pop('password')
+        role = validated_data.pop('role')
+
+        user = User.objects.create_user(
+            username=validated_data.get('username'),
+            password=password,
+            first_name=validated_data.get('first_name', ''),
+            last_name=validated_data.get('last_name', ''),
+            email=validated_data.get('email', ''),
+            is_staff=False,
+            is_superuser=False,
+            is_active=True,
+        )
+
+        group = Group.objects.get(name=role)
+        user.groups.add(group)
+
+        return user
+
+class UpdateUserSerializer(serializers.Serializer):
+    first_name = serializers.CharField(
+        max_length=150,
+        required=False,
+        allow_blank=True
+    )
+    last_name = serializers.CharField(
+        max_length=150,
+        required=False,
+        allow_blank=True
+    )
+    email = serializers.EmailField(
+        required=False,
+        allow_blank=True
+    )
+    role = serializers.ChoiceField(
+        choices=USER_ROLE_CHOICES,
+        required=True
+    )
+    new_password = serializers.CharField(
+        min_length=4,
+        required=False,
+        allow_blank=True,
+        write_only=True
+    )
+    current_password = serializers.CharField(
+        required=True,
+        write_only=True
+    )
+
+    def validate_current_password(self, value):
+        request = self.context.get("request")
+
+        if not request or not request.user:
+            raise serializers.ValidationError("Не удалось определить текущего пользователя")
+
+        if not request.user.check_password(value):
+            raise serializers.ValidationError("Неверный пароль текущего пользователя")
+
+        return value
+
+    def update(self, instance, validated_data):
+        ensure_user_role_groups()
+
+        validated_data.pop("current_password", None)
+
+        new_password = validated_data.pop("new_password", "")
+        role = validated_data.pop("role")
+
+        instance.first_name = validated_data.get("first_name", "")
+        instance.last_name = validated_data.get("last_name", "")
+        instance.email = validated_data.get("email", "")
+
+        if new_password:
+            instance.set_password(new_password)
+
+        instance.save()
+
+        instance.groups.clear()
+        group = Group.objects.get(name=role)
+        instance.groups.add(group)
+
+        return instance

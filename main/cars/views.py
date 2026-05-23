@@ -52,6 +52,8 @@ from .serializers import (
     ProtocolRoadConditionSerializer,
     ProtocolPowerSupplySerializer,
     UserSerializer,
+    CreateUserSerializer,
+    UpdateUserSerializer,
 )
 from .services.test_docx import generate_protocol_docx
 from .word_utils import create_car_word_doc
@@ -63,6 +65,17 @@ from .word_utils import create_car_word_doc
 
 def notify_protocol_status_changed(protocol):
     channel_layer = get_channel_layer()
+
+    locked_by_full_name = None
+
+    if protocol.locked_by:
+        locked_by_full_name = (
+            f"{protocol.locked_by.last_name} {protocol.locked_by.first_name}"
+            .strip()
+        )
+
+        if not locked_by_full_name:
+            locked_by_full_name = protocol.locked_by.username
 
     async_to_sync(channel_layer.group_send)(
         "protocols",
@@ -78,9 +91,37 @@ def notify_protocol_status_changed(protocol):
                     if protocol.locked_by
                     else None
                 ),
+                "locked_by_full_name": locked_by_full_name,
             },
         },
     )
+
+
+def is_superuser_request(request):
+    return bool(
+        request.user
+        and request.user.is_authenticated
+        and request.user.is_superuser
+    )
+
+
+def user_has_role(user, role_name):
+    if not user or not user.is_authenticated:
+        return False
+
+    return user.groups.filter(name=role_name).exists()
+
+
+def is_manager_or_superuser_request(request):
+    return bool(
+        request.user
+        and request.user.is_authenticated
+        and (
+                request.user.is_superuser
+                or user_has_role(request.user, 'manager')
+        )
+    )
+
 
 def normalize_region_name(region):
     if not region:
@@ -1111,6 +1152,7 @@ def update_protocol(request, pk):
     except Exception as e:
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def start_protocol_editing(request, pk):
@@ -1138,9 +1180,9 @@ def start_protocol_editing(request, pk):
                 )
 
             if (
-                protocol.status == 'in_progress'
-                and protocol.locked_by_id
-                and protocol.locked_by_id != request.user.id
+                    protocol.status == 'in_progress'
+                    and protocol.locked_by_id
+                    and protocol.locked_by_id != request.user.id
             ):
                 return Response(
                     {
@@ -1167,6 +1209,7 @@ def start_protocol_editing(request, pk):
     except Exception as e:
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def return_protocol_to_draft(request, pk):
@@ -1188,6 +1231,7 @@ def return_protocol_to_draft(request, pk):
 
     except Exception as e:
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 @api_view(['DELETE'])
 @permission_classes([IsAuthenticated])
@@ -1415,6 +1459,7 @@ def update_protocol_light(request, protocol_id):
     except Exception as e:
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
 DOCX_PHOTO_TYPES = [
     'stand_test_photo',
     'gas_test_photo',
@@ -1473,6 +1518,8 @@ def delete_photo_file_if_exists(file_path):
             default_storage.delete(file_path)
     except Exception:
         pass
+
+
 # =========================================================
 # --- PROTOCOL-PHOTO FUNCTIONS ---
 # =========================================================
@@ -1902,11 +1949,23 @@ def get_full_protocol(request, protocol_id):
 @permission_classes([IsAuthenticated])
 def get_all_users(request):
     try:
-        queryset = User.objects.all()
+        if not is_manager_or_superuser_request(request):
+            return Response(
+                {'detail': 'Доступ разрешён только руководителю.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        queryset = (
+            User.objects
+            .filter(is_superuser=False)
+            .order_by('id')
+        )
+
         serializer = UserSerializer(queryset, many=True)
         return Response(serializer.data)
-    except Exception:
-        return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 @api_view(['GET'])
@@ -1914,6 +1973,121 @@ def get_all_users(request):
 def get_user(request):
     serializer = UserSerializer(request.user)
     return Response(serializer.data)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def create_employee_user(request):
+    try:
+        if not is_manager_or_superuser_request(request):
+            return Response(
+                {'detail': 'Создавать сотрудников может только руководитель.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        serializer = CreateUserSerializer(data=request.data)
+
+        if serializer.is_valid():
+            user = serializer.save()
+
+            return Response(
+                UserSerializer(user).data,
+                status=status.HTTP_201_CREATED
+            )
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated])
+def update_employee_user(request, user_id):
+    try:
+        if not is_manager_or_superuser_request(request):
+            return Response(
+                {'detail': 'Изменять сотрудников может только руководитель.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        employee = User.objects.filter(pk=user_id).first()
+
+        if not employee:
+            return Response(
+                {'detail': 'Пользователь не найден.'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        if employee.is_superuser:
+            return Response(
+                {'detail': 'Нельзя изменять технический аккаунт суперпользователя.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        serializer = UpdateUserSerializer(
+            employee,
+            data=request.data,
+            partial=True,
+            context={'request': request}
+        )
+
+        if serializer.is_valid():
+            user = serializer.save()
+
+            return Response(
+                UserSerializer(user).data,
+                status=status.HTTP_200_OK
+            )
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def delete_employee_user(request, user_id):
+    try:
+        if not is_manager_or_superuser_request(request):
+            return Response(
+                {'detail': 'Удалять сотрудников может только руководитель.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        employee = User.objects.filter(pk=user_id).first()
+
+        if not employee:
+            return Response(
+                {'detail': 'Пользователь не найден.'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        if employee.id == request.user.id:
+            return Response(
+                {'detail': 'Нельзя удалить собственный аккаунт.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if employee.is_superuser:
+            return Response(
+                {'detail': 'Нельзя удалить технический аккаунт суперпользователя.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        confirm_text = str(request.data.get('confirm_text', '')).strip().lower()
+
+        if confirm_text != 'удалить':
+            return Response(
+                {'detail': 'Для удаления нужно ввести слово "Удалить".'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        employee.delete()
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 # =========================================================

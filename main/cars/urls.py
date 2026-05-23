@@ -130,6 +130,9 @@ urlpatterns = [
     # =========================================================
     path('get-all-users/', get_all_users),
     path('get-user/', get_user),
+    path('users/create/', create_employee_user),
+    path('users/<int:user_id>/update/', update_employee_user),
+    path('users/<int:user_id>/delete/', delete_employee_user),
 
     # =========================================================
     # --- WORD DOCUMENTS ---

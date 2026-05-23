@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 import AppBar from "@mui/material/AppBar";
@@ -12,7 +13,39 @@ function AppHeader() {
     const navigate = useNavigate();
     const location = useLocation();
 
+    const [currentUser, setCurrentUser] = useState(null);
+
     const isActive = (path) => location.pathname === path;
+
+    const canManageEmployees = Boolean(
+        currentUser?.is_superuser || currentUser?.role === "manager"
+    );
+
+    useEffect(() => {
+        let isMounted = true;
+
+        async function loadCurrentUser() {
+            try {
+                const response = await api.get("/cars/get-user/");
+
+                if (isMounted) {
+                    setCurrentUser(response.data);
+                }
+            } catch (error) {
+                console.error("Ошибка загрузки текущего пользователя:", error);
+
+                if (isMounted) {
+                    setCurrentUser(null);
+                }
+            }
+        }
+
+        loadCurrentUser();
+
+        return () => {
+            isMounted = false;
+        };
+    }, []);
 
     const handleLogout = () => {
         localStorage.removeItem("accessToken");
@@ -79,6 +112,8 @@ function AppHeader() {
                         display: "flex",
                         alignItems: "center",
                         gap: 1,
+                        flexWrap: "wrap",
+                        justifyContent: "flex-end",
                     }}
                 >
                     <Button
@@ -94,6 +129,15 @@ function AppHeader() {
                     >
                         Завершенные протоколы
                     </Button>
+
+                    {canManageEmployees && (
+                        <Button
+                            onClick={() => navigate("/employees")}
+                            sx={navButtonSx(isActive("/employees"))}
+                        >
+                            Сотрудники
+                        </Button>
+                    )}
 
                     <Button
                         onClick={handleLogout}
