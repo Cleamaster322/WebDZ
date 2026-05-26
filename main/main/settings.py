@@ -26,7 +26,11 @@ SECRET_KEY = 'django-insecure-lq(0)^fv!ks)w+i*3@=&-o!#($2qz-@ct$1=atrah4!c8(-&#j
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    "127.0.0.1",
+    "localhost",
+    "192.168.0.105",
+]
 
 # Application definition
 
@@ -74,6 +78,7 @@ MIDDLEWARE = [
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:3000',
     'http://127.0.0.1:3000',
+    'http://192.168.0.105:3000',
 ]
 
 CORS_ALLOW_CREDENTIALS = True
@@ -130,7 +135,7 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'cars',
-        'USER': 'root',
+        'USER': 'protocol_user',
         'PASSWORD': '789789456qweQ$',
         'HOST': 'localhost',
         'PORT': '3306',

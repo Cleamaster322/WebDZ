@@ -80,7 +80,7 @@ function getWebSocketUrl() {
         return `${wsProtocol}://127.0.0.1:8000/ws/protocols/`;
     }
 
-    return `${wsProtocol}://${window.location.host}/ws/protocols/`;
+    return `${wsProtocol}://${window.location.hostname}:8000/ws/protocols/`;
 }
 
 function getProtocolTitle(protocol) {
