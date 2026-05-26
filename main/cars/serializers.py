@@ -321,6 +321,7 @@ class ProtocolSerializer(DashFieldsSerializerMixin, serializers.ModelSerializer)
         read_only=True
     )
     locked_by_full_name = serializers.SerializerMethodField()
+    cancelled_by_full_name = serializers.SerializerMethodField()
 
     class Meta:
         model = Protocol
@@ -336,6 +337,17 @@ class ProtocolSerializer(DashFieldsSerializerMixin, serializers.ModelSerializer)
             return full_name
 
         return obj.locked_by.username
+
+    def get_cancelled_by_full_name(self, obj):
+        if not obj.cancelled_by:
+            return None
+
+        full_name = f"{obj.cancelled_by.last_name} {obj.cancelled_by.first_name}".strip()
+
+        if full_name:
+            return full_name
+
+        return obj.cancelled_by.username
 
 
 class ProtocolMeasurementSerializer(DashFieldsSerializerMixin, serializers.ModelSerializer):
@@ -448,6 +460,7 @@ class ProtocolDetailSerializer(DashFieldsSerializerMixin, serializers.ModelSeria
     )
 
     locked_by_full_name = serializers.SerializerMethodField()
+    cancelled_by_full_name = serializers.SerializerMethodField()
 
     measurement = ProtocolMeasurementSerializer(read_only=True)
     brake = ProtocolBrakeSerializer(read_only=True)
@@ -471,6 +484,17 @@ class ProtocolDetailSerializer(DashFieldsSerializerMixin, serializers.ModelSeria
             return full_name
 
         return obj.locked_by.username
+
+    def get_cancelled_by_full_name(self, obj):
+        if not obj.cancelled_by:
+            return None
+
+        full_name = f"{obj.cancelled_by.last_name} {obj.cancelled_by.first_name}".strip()
+
+        if full_name:
+            return full_name
+
+        return obj.cancelled_by.username
 
 
 class ProtocolFullSerializer(DashFieldsSerializerMixin, serializers.ModelSerializer):
@@ -480,6 +504,7 @@ class ProtocolFullSerializer(DashFieldsSerializerMixin, serializers.ModelSeriali
     )
 
     locked_by_full_name = serializers.SerializerMethodField()
+    cancelled_by_full_name = serializers.SerializerMethodField()
 
     measurement = ProtocolMeasurementSerializer(read_only=True)
     brake = ProtocolBrakeSerializer(read_only=True)
@@ -503,6 +528,18 @@ class ProtocolFullSerializer(DashFieldsSerializerMixin, serializers.ModelSeriali
             return full_name
 
         return obj.locked_by.username
+
+    def get_cancelled_by_full_name(self, obj):
+        if not obj.cancelled_by:
+            return None
+
+        full_name = f"{obj.cancelled_by.last_name} {obj.cancelled_by.first_name}".strip()
+
+        if full_name:
+            return full_name
+
+        return obj.cancelled_by.username
+
 
 # =========================
 # Создание протокола
@@ -525,9 +562,13 @@ class ProtocolCreateSerializer(DashFieldsSerializerMixin, serializers.ModelSeria
 
             'owner_type',
             'owner_name',
+            'owner_last_name',
+            'owner_first_name',
+            'owner_middle_name',
             'owner_address',
             'owner_document',
             'owner_phone',
+            'manufacturer_info',
 
             'appendix_number',
             'commercial_name',
@@ -755,8 +796,11 @@ class ProtocolCreateSerializer(DashFieldsSerializerMixin, serializers.ModelSeria
         protocol = Protocol.objects.create(**validated_data)
 
         protocol.protocol_number = str(protocol.id).zfill(5)
-        protocol.save(update_fields=['protocol_number'])
 
+        if not protocol.appendix_number:
+            protocol.appendix_number = protocol.protocol_number
+
+        protocol.save(update_fields=['protocol_number', 'appendix_number'])
 
         measurement_defaults = {}
 
@@ -820,6 +864,7 @@ USER_ROLE_CHOICES = [
     ('measurer', 'Замерщик'),
     ('operator', 'Оформитель'),
     ('manager', 'Руководитель'),
+    ('executive_director', 'Исполнительный директор'),
 ]
 
 USER_ROLE_LABELS = dict(USER_ROLE_CHOICES)
@@ -855,6 +900,7 @@ def get_user_role_label(user):
         return 'Без роли'
 
     return USER_ROLE_LABELS.get(role, role)
+
 
 class UserSerializer(serializers.ModelSerializer):
     role = serializers.SerializerMethodField()
@@ -952,6 +998,7 @@ class CreateUserSerializer(serializers.Serializer):
         user.groups.add(group)
 
         return user
+
 
 class UpdateUserSerializer(serializers.Serializer):
     first_name = serializers.CharField(

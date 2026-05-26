@@ -70,6 +70,9 @@ urlpatterns = [
 
     path('protocols/<int:pk>/start-editing/', start_protocol_editing),
     path('protocols/<int:pk>/return-to-draft/', return_protocol_to_draft),
+    path('protocols/<int:pk>/manager-release-lock/', manager_release_protocol_lock),
+    path('protocols/<int:pk>/approve/', approve_protocol),
+    path('protocols/<int:pk>/cancel/', cancel_protocol),
 
     path('protocols/<int:pk>/delete/', delete_protocol),
     path('protocols/<int:protocol_id>/full/', get_full_protocol),

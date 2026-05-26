@@ -229,10 +229,20 @@ class Protocol(DashFieldsMixin, models.Model):
     )
 
     owner_type = models.CharField(max_length=20, choices=OWNER_TYPE_CHOICES, default='individual')
+
+    # Данные заказчика
     owner_name = models.CharField(max_length=255, null=True, blank=True)
+
+    owner_last_name = models.CharField(max_length=150, null=True, blank=True)
+    owner_first_name = models.CharField(max_length=150, null=True, blank=True)
+    owner_middle_name = models.CharField(max_length=150, null=True, blank=True)
+
     owner_address = models.CharField(max_length=500, blank=True, null=True)
     owner_document = models.CharField(max_length=255, blank=True, null=True)
     owner_phone = models.CharField(max_length=50, blank=True, null=True)
+
+    # Изготовитель
+    manufacturer_info = models.TextField(blank=True, null=True)
 
     appendix_number = models.CharField(max_length=100, blank=True, null=True)
     commercial_name = models.CharField(max_length=255, blank=True, null=True)
@@ -256,6 +266,26 @@ class Protocol(DashFieldsMixin, models.Model):
     color = models.CharField(max_length=100, blank=True, null=True)
     inspection_place = models.CharField(max_length=255, blank=True, null=True)
     comment = models.TextField(blank=True, null=True)
+
+    returned_for_revision = models.BooleanField(default=False)
+
+    revision_comment = models.TextField(
+        blank=True,
+        null=True
+    )
+
+    cancelled_at = models.DateTimeField(
+        blank=True,
+        null=True
+    )
+
+    cancelled_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        blank=True,
+        null=True,
+        on_delete=models.SET_NULL,
+        related_name="cancelled_protocols"
+    )
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

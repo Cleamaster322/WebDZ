@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import {useEffect, useState} from "react";
 
 import AppHeader from "../Features/AppHeader/AppHeader.jsx";
 import api from "../shared/api.jsx";
@@ -111,6 +111,10 @@ const USER_ROLES = [
         value: "manager",
         label: "Руководитель",
     },
+    {
+        value: "executive_director",
+        label: "Исполнительный директор",
+    },
 ];
 
 function getErrorText(error) {
@@ -195,13 +199,13 @@ function Employees() {
     const [updating, setUpdating] = useState(false);
 
     const canManageEmployees = Boolean(
-        currentUser?.is_superuser || currentUser?.role === "manager"
+        currentUser?.is_superuser || currentUser?.role === "executive_director"
     );
 
     const editingUser = users.find((user) => user.id === editUserId) || null;
 
     const handleChange = (event) => {
-        const { name, value } = event.target;
+        const {name, value} = event.target;
 
         setForm((prev) => ({
             ...prev,
@@ -220,7 +224,7 @@ function Employees() {
             setCurrentUser(user);
 
             const userCanManageEmployees = Boolean(
-                user.is_superuser || user.role === "manager"
+                user.is_superuser || user.role === "executive_director"
             );
 
             if (!userCanManageEmployees) {
@@ -375,7 +379,7 @@ function Employees() {
     };
 
     const handleEditChange = (event) => {
-        const { name, value } = event.target;
+        const {name, value} = event.target;
 
         setEditForm((prev) => ({
             ...prev,
@@ -388,7 +392,7 @@ function Employees() {
         setSuccessMessage("");
 
         if (!editForm.current_password.trim()) {
-            setErrorMessage("Введите текущий пароль руководителя");
+            setErrorMessage("Введите текущий пароль исполнительного директора");
             return;
         }
 
@@ -429,7 +433,7 @@ function Employees() {
 
     return (
         <>
-            <AppHeader />
+            <AppHeader/>
 
             <Box sx={pageSx}>
                 <Paper sx={pageInnerSx}>
@@ -488,7 +492,7 @@ function Employees() {
                                 minHeight: 240,
                             }}
                         >
-                            <CircularProgress sx={{ color: "black" }} />
+                            <CircularProgress sx={{color: "black"}}/>
                         </Box>
                     ) : !canManageEmployees ? (
                         <Paper
@@ -508,8 +512,8 @@ function Employees() {
                                 Доступ запрещён
                             </Typography>
 
-                            <Typography variant="body1" sx={{ color: "text.secondary" }}>
-                                Создавать и изменять сотрудников может только руководитель.
+                            <Typography variant="body1" sx={{color: "text.secondary"}}>
+                                Создавать и изменять сотрудников может только исполнительный директор.
                             </Typography>
                         </Paper>
                     ) : (
@@ -538,7 +542,7 @@ function Employees() {
                                 </Alert>
                             )}
 
-                            <Box sx={{ display: "grid", gap: 2.5 }}>
+                            <Box sx={{display: "grid", gap: 2.5}}>
                                 <Paper
                                     component="form"
                                     onSubmit={handleCreateUser}
@@ -684,7 +688,7 @@ function Employees() {
                                     {users.length === 0 ? (
                                         <Typography
                                             variant="body2"
-                                            sx={{ color: "text.secondary" }}
+                                            sx={{color: "text.secondary"}}
                                         >
                                             Пользователи не найдены.
                                         </Typography>
@@ -728,7 +732,7 @@ function Employees() {
 
                                                             <Typography
                                                                 variant="body2"
-                                                                sx={{ color: "text.secondary" }}
+                                                                sx={{color: "text.secondary"}}
                                                             >
                                                                 {[user.last_name, user.first_name]
                                                                     .filter(Boolean)
@@ -789,11 +793,11 @@ function Employees() {
                                                                     sx={{
                                                                         borderRadius: 0,
                                                                         bgcolor:
-                                                                            user.role === "manager"
+                                                                            user.role === "manager" || user.role === "executive_director"
                                                                                 ? "black"
                                                                                 : "white",
                                                                         color:
-                                                                            user.role === "manager"
+                                                                            user.role === "manager" || user.role === "executive_director"
                                                                                 ? "white"
                                                                                 : "black",
                                                                         border: "1px solid black",
@@ -804,7 +808,7 @@ function Employees() {
                                                         </Box>
                                                     </Box>
 
-                                                    <Divider sx={{ my: 1 }} />
+                                                    <Divider sx={{my: 1}}/>
 
                                                     <Box
                                                         sx={{
@@ -817,7 +821,7 @@ function Employees() {
                                                     >
                                                         <Typography
                                                             variant="caption"
-                                                            sx={{ color: "text.secondary" }}
+                                                            sx={{color: "text.secondary"}}
                                                         >
                                                             ID: {user.id}
                                                         </Typography>
@@ -907,7 +911,7 @@ function Employees() {
                                                                     disabled={
                                                                         deleting ||
                                                                         deleteConfirmText.trim().toLowerCase() !==
-                                                                            "удалить"
+                                                                        "удалить"
                                                                     }
                                                                     sx={blackButtonSx}
                                                                 >
@@ -1082,7 +1086,7 @@ function Employees() {
                         <TextField
                             fullWidth
                             required
-                            label="Текущий пароль руководителя"
+                            label="Текущий пароль исполнительного директора"
                             name="current_password"
                             type="password"
                             value={editForm.current_password}

@@ -9,6 +9,7 @@ import CompletedProtocols from "./Pages/CompletedProtocols.jsx";
 import ProtocolInspection from "./Pages/ProtocolInspection.jsx";
 import Employees from "./Pages/Employees.jsx";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
+import ApprovedProtocols from "./Pages/ApprovedProtocols.jsx";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
     <BrowserRouter>
@@ -19,6 +20,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
             <Route path="/CarInfo" element={<CarInfo />} />
             <Route path="/protocols" element={<Protocols />} />
             <Route path="/protocols/completed" element={<CompletedProtocols />} />
+            <Route path="/protocols/approved" element={<ApprovedProtocols  />} />
             <Route path="/protocols/:id/inspection" element={<ProtocolInspection />} />
             <Route path="/employees" element={<Employees />} />
 

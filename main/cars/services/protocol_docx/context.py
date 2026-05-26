@@ -55,13 +55,22 @@ def build_owner_info(protocol):
     return "\n".join(parts)
 
 
+def build_owner_full_name(protocol):
+    parts = [
+        getattr(protocol, "owner_last_name", None),
+        getattr(protocol, "owner_first_name", None),
+        getattr(protocol, "owner_middle_name", None),
+    ]
+
+    return " ".join(
+        str(value).strip()
+        for value in parts
+        if value
+    )
+
+
 def build_manufacturer_info(protocol):
-    """
-    Пока в модели нет отдельных полей изготовителя.
-    Если позже добавишь поля manufacturer_name / manufacturer_address,
-    сюда просто подключим их.
-    """
-    return ""
+    return fmt_text(getattr(protocol, "manufacturer_info", None))
 
 
 def normalize_light_color(value):
@@ -534,8 +543,8 @@ def build_dynamic_result_values(protocol, measurement, light):
     )
 
     parking_light_present = (
-        is_positive_count(getattr(light, "parking_light_count", None))
-        or is_positive_count(getattr(light, "rear_parking_light_count", None))
+            is_positive_count(getattr(light, "parking_light_count", None))
+            or is_positive_count(getattr(light, "rear_parking_light_count", None))
     )
 
     adaptive_front_lighting_present = is_positive_count(
@@ -1509,6 +1518,12 @@ def build_protocol_docx_context(protocol):
         "vehicle_category": fmt_text(protocol.vehicle_category),
         "owner_info": build_owner_info(protocol),
         "owner_name": fmt_text(protocol.owner_name),
+
+        "owner_last_name": fmt_text(getattr(protocol, "owner_last_name", None)),
+        "owner_first_name": fmt_text(getattr(protocol, "owner_first_name", None)),
+        "owner_middle_name": fmt_text(getattr(protocol, "owner_middle_name", None)),
+        "owner_full_name": fmt_text(build_owner_full_name(protocol)),
+
         "owner_address": fmt_text(protocol.owner_address),
         "owner_phone": fmt_text(protocol.owner_phone),
         "manufacturer_info": build_manufacturer_info(protocol),
@@ -1704,8 +1719,8 @@ def build_protocol_docx_context(protocol):
         ),
         "glonass_button_present_label": fmt_bool(
             getattr(measurement, "glonass_button_present", None),
-            "Соответствует",
-            "Не применяется",
+            "соответствует",
+            "не применяется",
         ),
 
         # =========================

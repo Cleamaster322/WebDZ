@@ -2,9 +2,8 @@ import { useState } from "react";
 
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
-import Grid from "@mui/material/Grid";
 import TextField from "@mui/material/TextField";
-import { renderField } from "./protocolInspectionHelpers.jsx";
+import Box from "@mui/material/Box";
 
 function stripProtocolNumber(value) {
   if (value === null || value === undefined) {
@@ -61,10 +60,12 @@ function ProtocolInspectionHeader({
   const handleProtocolNumberBlur = () => {
     setProtocolNumberFocused(false);
 
+    const formattedValue = formatProtocolNumber(form.protocol_number);
+
     handleChange({
       target: {
         name: "protocol_number",
-        value: formatProtocolNumber(form.protocol_number),
+        value: formattedValue,
       },
     });
   };
@@ -75,8 +76,22 @@ function ProtocolInspectionHeader({
         1. Шапка документа
       </Typography>
 
-      <Grid container spacing={2}>
-        <Grid item xs={12} md={4}>
+      <Box
+        sx={{
+          display: "grid",
+          gap: 2,
+        }}
+      >
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: {
+              xs: "1fr",
+              md: "repeat(3, minmax(0, 1fr))",
+            },
+            gap: 2,
+          }}
+        >
           <TextField
             fullWidth
             label="Номер протокола"
@@ -97,18 +112,21 @@ function ProtocolInspectionHeader({
               },
             }}
           />
-        </Grid>
 
-        {renderField({
-          form,
-          handleChange,
-          textFieldSx,
-          label: "Приложение к технической записи №",
-          name: "appendix_number",
-          md: 4,
-        })}
+          <TextField
+            fullWidth
+            label="Приложение к технической записи №"
+            name="appendix_number"
+            value={form.appendix_number || ""}
+            onChange={handleChange}
+            sx={textFieldSx}
+            slotProps={{
+              inputLabel: {
+                shrink: true,
+              },
+            }}
+          />
 
-        <Grid item xs={12} md={4}>
           <TextField
             fullWidth
             type="date"
@@ -123,8 +141,77 @@ function ProtocolInspectionHeader({
               },
             }}
           />
-        </Grid>
-      </Grid>
+        </Box>
+
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: {
+              xs: "1fr",
+              md: "repeat(3, minmax(0, 1fr))",
+            },
+            gap: 2,
+          }}
+        >
+          <TextField
+            fullWidth
+            label="Фамилия заказчика"
+            name="owner_last_name"
+            value={form.owner_last_name || ""}
+            onChange={handleChange}
+            sx={textFieldSx}
+            slotProps={{
+              inputLabel: {
+                shrink: true,
+              },
+            }}
+          />
+
+          <TextField
+            fullWidth
+            label="Имя заказчика"
+            name="owner_first_name"
+            value={form.owner_first_name || ""}
+            onChange={handleChange}
+            sx={textFieldSx}
+            slotProps={{
+              inputLabel: {
+                shrink: true,
+              },
+            }}
+          />
+
+          <TextField
+            fullWidth
+            label="Отчество заказчика"
+            name="owner_middle_name"
+            value={form.owner_middle_name || ""}
+            onChange={handleChange}
+            sx={textFieldSx}
+            slotProps={{
+              inputLabel: {
+                shrink: true,
+              },
+            }}
+          />
+        </Box>
+
+        <TextField
+          fullWidth
+          multiline
+          minRows={2}
+          label="Наименование и адрес изготовителя"
+          name="manufacturer_info"
+          value={form.manufacturer_info || ""}
+          onChange={handleChange}
+          sx={textFieldSx}
+          slotProps={{
+            inputLabel: {
+              shrink: true,
+            },
+          }}
+        />
+      </Box>
     </Paper>
   );
 }

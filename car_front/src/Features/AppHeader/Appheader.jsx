@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import {useEffect, useState} from "react";
+import {useLocation, useNavigate} from "react-router-dom";
 
 import AppBar from "@mui/material/AppBar";
 import Toolbar from "@mui/material/Toolbar";
@@ -9,16 +9,17 @@ import Typography from "@mui/material/Typography";
 
 import api from "../../shared/api.jsx";
 
-function AppHeader() {
+function AppHeader({beforeNavigate}) {
     const navigate = useNavigate();
     const location = useLocation();
 
     const [currentUser, setCurrentUser] = useState(null);
+    const [leaving, setLeaving] = useState(false);
 
     const isActive = (path) => location.pathname === path;
 
     const canManageEmployees = Boolean(
-        currentUser?.is_superuser || currentUser?.role === "manager"
+        currentUser?.is_superuser || currentUser?.role === "executive_director"
     );
 
     useEffect(() => {
@@ -47,15 +48,63 @@ function AppHeader() {
         };
     }, []);
 
-    const handleLogout = () => {
-        localStorage.removeItem("accessToken");
-        localStorage.removeItem("refreshToken");
-
-        if (api.client?.defaults?.headers?.common) {
-            delete api.client.defaults.headers.common["Authorization"];
+    const runBeforeNavigate = async () => {
+        if (typeof beforeNavigate !== "function") {
+            return;
         }
 
-        navigate("/");
+        await beforeNavigate();
+    };
+
+    const handleNavigate = async (path) => {
+        if (leaving || location.pathname === path) {
+            return;
+        }
+
+        try {
+            setLeaving(true);
+            await runBeforeNavigate();
+            navigate(path);
+        } catch (error) {
+            console.error("Ошибка перед переходом:", error);
+            navigate(path);
+        } finally {
+            setLeaving(false);
+        }
+    };
+
+    const handleLogout = async () => {
+        if (leaving) {
+            return;
+        }
+
+        try {
+            setLeaving(true);
+
+            await runBeforeNavigate();
+
+            localStorage.removeItem("accessToken");
+            localStorage.removeItem("refreshToken");
+
+            if (api.client?.defaults?.headers?.common) {
+                delete api.client.defaults.headers.common["Authorization"];
+            }
+
+            navigate("/");
+        } catch (error) {
+            console.error("Ошибка при выходе:", error);
+
+            localStorage.removeItem("accessToken");
+            localStorage.removeItem("refreshToken");
+
+            if (api.client?.defaults?.headers?.common) {
+                delete api.client.defaults.headers.common["Authorization"];
+            }
+
+            navigate("/");
+        } finally {
+            setLeaving(false);
+        }
     };
 
     const navButtonSx = (active) => ({
@@ -71,6 +120,11 @@ function AppHeader() {
         "&:hover": {
             backgroundColor: active ? "#222" : "#f2f2f2",
             boxShadow: "none",
+        },
+        "&.Mui-disabled": {
+            color: "#777777",
+            backgroundColor: "#dddddd",
+            border: "1px solid #999999",
         },
     });
 
@@ -117,22 +171,33 @@ function AppHeader() {
                     }}
                 >
                     <Button
-                        onClick={() => navigate("/protocols")}
+                        onClick={() => handleNavigate("/protocols")}
+                        disabled={leaving}
                         sx={navButtonSx(isActive("/protocols"))}
                     >
                         Протоколы в работе
                     </Button>
 
                     <Button
-                        onClick={() => navigate("/protocols/completed")}
+                        onClick={() => handleNavigate("/protocols/completed")}
+                        disabled={leaving}
                         sx={navButtonSx(isActive("/protocols/completed"))}
                     >
                         Завершенные протоколы
                     </Button>
 
+                    <Button
+                        onClick={() => handleNavigate("/protocols/approved")}
+                        disabled={leaving}
+                        sx={navButtonSx(isActive("/protocols/approved"))}
+                    >
+                        Утверждённые протоколы
+                    </Button>
+
                     {canManageEmployees && (
                         <Button
-                            onClick={() => navigate("/employees")}
+                            onClick={() => handleNavigate("/employees")}
+                            disabled={leaving}
                             sx={navButtonSx(isActive("/employees"))}
                         >
                             Сотрудники
@@ -141,6 +206,7 @@ function AppHeader() {
 
                     <Button
                         onClick={handleLogout}
+                        disabled={leaving}
                         sx={{
                             color: "white",
                             backgroundColor: "black",
@@ -155,9 +221,14 @@ function AppHeader() {
                                 backgroundColor: "#222",
                                 boxShadow: "none",
                             },
+                            "&.Mui-disabled": {
+                                color: "#777777",
+                                backgroundColor: "#dddddd",
+                                border: "1px solid #999999",
+                            },
                         }}
                     >
-                        Выйти
+                        {leaving ? "Выход..." : "Выйти"}
                     </Button>
                 </Box>
             </Toolbar>

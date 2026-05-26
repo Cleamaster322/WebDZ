@@ -36,6 +36,10 @@ const initialForm = {
     appendix_number: "",
     protocol_date: "",
     status: "",
+    owner_last_name: "",
+    owner_first_name: "",
+    owner_middle_name: "",
+    manufacturer_info: "",
 
     ambient_temp_c: "",
     ambient_humidity_pct: "",
@@ -264,9 +268,29 @@ function buildDashFields(form, fieldMap) {
         .map(({apiField}) => apiField);
 }
 
+function formatDateForChip(value) {
+    if (!value) {
+        return "не указана";
+    }
+
+    const parts = String(value).split("-");
+
+    if (parts.length !== 3) {
+        return value;
+    }
+
+    const [year, month, day] = parts;
+
+    return `${day}-${month}-${year}`;
+}
+
 const PROTOCOL_DASH_FIELDS = [
     {formField: "protocol_number", apiField: "protocol_number"},
     {formField: "appendix_number", apiField: "appendix_number"},
+    {formField: "owner_last_name", apiField: "owner_last_name"},
+    {formField: "owner_first_name", apiField: "owner_first_name"},
+    {formField: "owner_middle_name", apiField: "owner_middle_name"},
+    {formField: "manufacturer_info", apiField: "manufacturer_info"},
     {formField: "brand_name", apiField: "brand_name"},
     {formField: "commercial_name", apiField: "commercial_name"},
     {formField: "vin", apiField: "vin"},
@@ -469,6 +493,11 @@ function mapProtocolToForm(data) {
         protocol_date: protocol.protocol_date || "",
         status: protocol.status || "",
 
+        owner_last_name: toFormValue(protocol.owner_last_name, protocolDashFields, "owner_last_name"),
+        owner_first_name: toFormValue(protocol.owner_first_name, protocolDashFields, "owner_first_name"),
+        owner_middle_name: toFormValue(protocol.owner_middle_name, protocolDashFields, "owner_middle_name"),
+        manufacturer_info: toFormValue(protocol.manufacturer_info, protocolDashFields, "manufacturer_info"),
+
         ambient_temp_c: toFormValue(testConditions.ambient_temperature_c, testConditionsDashFields, "ambient_temperature_c"),
         ambient_humidity_pct: toFormValue(testConditions.relative_humidity_pct, testConditionsDashFields, "relative_humidity_pct"),
         atmospheric_pressure_kpa: toFormValue(testConditions.atmospheric_pressure_kpa, testConditionsDashFields, "atmospheric_pressure_kpa"),
@@ -633,6 +662,10 @@ function buildProtocolPayload(form) {
         protocol_number: formatProtocolNumber(form.protocol_number),
         appendix_number: emptyToNull(form.appendix_number),
         protocol_date: emptyToNull(form.protocol_date),
+        owner_last_name: emptyToNull(form.owner_last_name),
+        owner_first_name: emptyToNull(form.owner_first_name),
+        owner_middle_name: emptyToNull(form.owner_middle_name),
+        manufacturer_info: emptyToNull(form.manufacturer_info),
 
         brand_name: emptyToNull(form.brand_name),
         commercial_name: emptyToNull(form.commercial_name),
@@ -870,6 +903,7 @@ function ProtocolInspection() {
 
     const formStatusRef = useRef("");
     const protocolLockActiveRef = useRef(false);
+    const appendixManuallyEditedRef = useRef(false);
 
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
@@ -879,12 +913,69 @@ function ProtocolInspection() {
     const handleChange = (e) => {
         const {name, value} = e.target;
 
+        if (name === "appendix_number") {
+            appendixManuallyEditedRef.current = true;
+
+            setForm((prev) => ({
+                ...prev,
+                appendix_number: value,
+            }));
+
+            return;
+        }
+
+        if (name === "protocol_number") {
+            setForm((prev) => ({
+                ...prev,
+                protocol_number: value,
+                appendix_number: appendixManuallyEditedRef.current
+                    ? prev.appendix_number
+                    : value,
+            }));
+
+            return;
+        }
+
         setForm((prev) => ({
             ...prev,
             [name]: value,
         }));
     };
 
+    const releaseProtocolLock = async () => {
+        if (!currentProtocolId) {
+            return;
+        }
+
+        if (!protocolLockActiveRef.current) {
+            return;
+        }
+
+        if (formStatusRef.current === "completed") {
+            return;
+        }
+
+        try {
+            protocolLockActiveRef.current = false;
+
+            await api.post(`/cars/protocols/${currentProtocolId}/return-to-draft/`);
+
+            formStatusRef.current = "draft";
+
+            setForm((prev) => ({
+                ...prev,
+                status: "draft",
+            }));
+        } catch (error) {
+            console.error("Ошибка освобождения протокола:", error);
+
+            // Если запрос не прошёл, возвращаем флаг обратно,
+            // чтобы cleanup при размонтировании ещё раз попытался освободить протокол.
+            protocolLockActiveRef.current = true;
+
+            throw error;
+        }
+    };
 
     const loadProtocol = async (
         protocolId = currentProtocolId,
@@ -911,6 +1002,16 @@ function ProtocolInspection() {
             }
 
             const mappedForm = mapProtocolToForm(data);
+
+            if (!mappedForm.appendix_number && mappedForm.protocol_number) {
+                mappedForm.appendix_number = mappedForm.protocol_number;
+            }
+
+            appendixManuallyEditedRef.current = Boolean(
+                mappedForm.appendix_number &&
+                mappedForm.protocol_number &&
+                mappedForm.appendix_number !== mappedForm.protocol_number
+            );
 
             setForm(mappedForm);
             setPhotos(data.photos || []);
@@ -966,7 +1067,9 @@ function ProtocolInspection() {
         };
     }, [currentProtocolId]);
 
-    const handleSave = async () => {
+    const handleSave = async (options = {}) => {
+        const {showSuccessMessage = true} = options;
+
         try {
             setSaving(true);
             setSuccessMessage("");
@@ -984,7 +1087,7 @@ function ProtocolInspection() {
 
             if (!protocolId) {
                 setErrorMessage("Не передан ID протокола");
-                return;
+                return false;
             }
 
             await api.patch(`/cars/protocols/${protocolId}/update/`, protocolPayload);
@@ -999,10 +1102,16 @@ function ProtocolInspection() {
             ]);
 
             await loadProtocol(protocolId);
-            setSuccessMessage("Протокол успешно сохранён");
+
+            if (showSuccessMessage) {
+                setSuccessMessage("Протокол успешно сохранён");
+            }
+
+            return true;
         } catch (error) {
             console.error("Ошибка сохранения:", error);
             setErrorMessage("Ошибка при сохранении данных");
+            return false;
         } finally {
             setSaving(false);
         }
@@ -1036,6 +1145,11 @@ function ProtocolInspection() {
 
             protocolLockActiveRef.current = false;
             formStatusRef.current = "completed";
+
+            setForm((prev) => ({
+                ...prev,
+                status: "completed",
+            }));
 
             setSuccessMessage("Протокол переведён в статус «Завершён»");
 
@@ -1089,8 +1203,17 @@ function ProtocolInspection() {
             return;
         }
 
+        const saved = await handleSave({
+            showSuccessMessage: false,
+        });
+
+        if (!saved) {
+            return;
+        }
+
         try {
             setErrorMessage("");
+            setSuccessMessage("Данные сохранены, формируется DOCX...");
 
             const response = await api.generateProtocolDocx(currentProtocolId);
 
@@ -1106,6 +1229,8 @@ function ProtocolInspection() {
             link.click();
             link.remove();
             window.URL.revokeObjectURL(url);
+
+            setSuccessMessage("DOCX успешно сформирован");
         } catch (error) {
             console.error("Ошибка генерации DOCX:", error);
             setErrorMessage("Не удалось сформировать DOCX");
@@ -1138,7 +1263,7 @@ function ProtocolInspection() {
             <Button
                 variant="outlined"
                 onClick={handleGenerateDocx}
-                disabled={!currentProtocolId}
+                disabled={!currentProtocolId || saving || loading}
                 sx={{
                     borderColor: "black",
                     color: "black",
@@ -1153,7 +1278,7 @@ function ProtocolInspection() {
                     },
                 }}
             >
-                Сформировать DOCX
+                {saving ? "Сохранение..." : "Сформировать DOCX"}
             </Button>
 
             {isCompleted ? (
@@ -1229,7 +1354,7 @@ function ProtocolInspection() {
 
     return (
         <>
-            <AppHeader/>
+            <AppHeader beforeNavigate={releaseProtocolLock}/>
 
             <Box sx={pageSx}>
                 <Box sx={pageInnerSx}>
@@ -1298,7 +1423,7 @@ function ProtocolInspection() {
                                 />
 
                                 <Chip
-                                    label={`Дата: ${form.protocol_date || "не указана"}`}
+                                    label={`Дата: ${formatDateForChip(form.protocol_date)}`}
                                     sx={{
                                         borderRadius: 0,
                                         bgcolor: "white",

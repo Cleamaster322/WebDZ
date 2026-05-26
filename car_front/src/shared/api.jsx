@@ -1,5 +1,5 @@
 import axios from "axios";
-import { baseURL } from "./config.jsx";
+import {baseURL} from "./config.jsx";
 
 async function getErrorData(error) {
     const data = error.response?.data;
@@ -53,7 +53,7 @@ class ApiClient {
                 if (isTokenError && !originalRequest._retry) {
                     if (this.isRefreshing) {
                         return new Promise((resolve, reject) => {
-                            this.failedRequests.push({ resolve, reject });
+                            this.failedRequests.push({resolve, reject});
                         })
                             .then((newAccessToken) => {
                                 originalRequest.headers = originalRequest.headers || {};
@@ -190,6 +190,20 @@ class ApiClient {
                 responseType: "blob",
             }
         );
+    }
+
+    approveProtocol(protocolId) {
+        return this.post(`/cars/protocols/${protocolId}/approve/`);
+    }
+
+    cancelProtocol(protocolId, revisionComment = "") {
+        return this.post(`/cars/protocols/${protocolId}/cancel/`, {
+            revision_comment: revisionComment,
+        });
+    }
+
+    managerReleaseProtocolLock(protocolId) {
+        return this.post(`/cars/protocols/${protocolId}/manager-release-lock/`);
     }
 }
 

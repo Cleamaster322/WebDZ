@@ -91,21 +91,30 @@ function getProtocolTitle(protocol) {
     return title || "Автомобиль не указан";
 }
 
-function ProtocolCard({protocol, onOpen}) {
+function ProtocolCard({
+                          protocol,
+                          onOpen,
+                          onReleaseLock,
+                          onApprove,
+                          onCancel,
+                          canManageProtocols,
+                          showReviewActions,
+                      }) {
     const isLocked = protocol.status === "in_progress";
+    const isReturnedForRevision = Boolean(protocol.returned_for_revision);
 
     return (
         <Paper
             sx={{
                 height: "100%",
-                border: "2px solid black",
+                border: isReturnedForRevision ? "2px solid #b3261e" : "2px solid black",
                 borderRadius: 0,
                 p: 2.5,
                 display: "flex",
                 flexDirection: "column",
                 justifyContent: "space-between",
                 boxShadow: "none",
-                bgcolor: "white",
+                bgcolor: isReturnedForRevision ? "#fff5f5" : "white",
                 transition: "0.15s",
                 "&:hover": {
                     transform: "translateY(-2px)",
@@ -152,6 +161,35 @@ function ProtocolCard({protocol, onOpen}) {
                 >
                     {getProtocolTitle(protocol)}
                 </Typography>
+                {isReturnedForRevision && (
+                    <Box sx={{mb: 1.5}}>
+                        <Chip
+                            size="small"
+                            label="Возвращён на доработку"
+                            sx={{
+                                bgcolor: "#fff",
+                                color: "#b3261e",
+                                border: "1px solid #b3261e",
+                                borderRadius: 0,
+                                fontWeight: 800,
+                                mb: protocol.revision_comment ? 1 : 0,
+                            }}
+                        />
+
+                        {protocol.revision_comment && (
+                            <Typography
+                                variant="body2"
+                                sx={{
+                                    color: "#b3261e",
+                                    fontWeight: 600,
+                                    lineHeight: 1.35,
+                                }}
+                            >
+                                <b>Причина:</b> {protocol.revision_comment}
+                            </Typography>
+                        )}
+                    </Box>
+                )}
 
                 <Box sx={{display: "grid", gap: 0.7}}>
                     <Typography variant="body2" sx={{color: "black"}}>
@@ -181,6 +219,8 @@ function ProtocolCard({protocol, onOpen}) {
                 sx={{
                     display: "flex",
                     justifyContent: "flex-start",
+                    gap: 1,
+                    flexWrap: "wrap",
                     mt: 3,
                 }}
             >
@@ -211,6 +251,73 @@ function ProtocolCard({protocol, onOpen}) {
                 >
                     {isLocked ? "В работе" : "Открыть"}
                 </Button>
+
+                {isLocked && canManageProtocols && (
+                    <Button
+                        variant="outlined"
+                        onClick={() => onReleaseLock(protocol.id)}
+                        sx={{
+                            borderColor: "black",
+                            color: "black",
+                            borderRadius: 0,
+                            textTransform: "none",
+                            px: 2,
+                            py: 0.8,
+                            fontWeight: 700,
+                            "&:hover": {
+                                borderColor: "black",
+                                bgcolor: "#eeeeee",
+                            },
+                        }}
+                    >
+                        Освободить
+                    </Button>
+                )}
+                {showReviewActions && canManageProtocols && protocol.status === "completed" && (
+                    <>
+                        <Button
+                            variant="contained"
+                            onClick={() => onApprove(protocol.id)}
+                            sx={{
+                                bgcolor: "black",
+                                color: "white",
+                                textTransform: "none",
+                                borderRadius: 0,
+                                px: 2,
+                                py: 0.8,
+                                fontWeight: 700,
+                                boxShadow: "none",
+                                border: "1px solid black",
+                                "&:hover": {
+                                    bgcolor: "#222",
+                                    boxShadow: "none",
+                                },
+                            }}
+                        >
+                            Утвердить
+                        </Button>
+
+                        <Button
+                            variant="outlined"
+                            onClick={() => onCancel(protocol.id)}
+                            sx={{
+                                borderColor: "#b3261e",
+                                color: "#b3261e",
+                                borderRadius: 0,
+                                textTransform: "none",
+                                px: 2,
+                                py: 0.8,
+                                fontWeight: 700,
+                                "&:hover": {
+                                    borderColor: "#b3261e",
+                                    bgcolor: "#fff5f5",
+                                },
+                            }}
+                        >
+                            Вернуть на доработку
+                        </Button>
+                    </>
+                )}
             </Box>
         </Paper>
     );
@@ -230,6 +337,9 @@ function ProtocolList({
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [searchQuery, setSearchQuery] = useState("");
+    const [currentUser, setCurrentUser] = useState(null);
+
+    const showReviewActions = statuses.includes("completed");
 
     const loadProtocols = async (options = {}) => {
         const {silent = false} = options;
@@ -267,7 +377,17 @@ function ProtocolList({
         }
     };
 
+    const loadCurrentUser = async () => {
+        try {
+            const response = await api.get("/cars/get-user/");
+            setCurrentUser(response.data);
+        } catch (error) {
+            console.error("Ошибка загрузки текущего пользователя:", error);
+        }
+    };
+
     useEffect(() => {
+        loadCurrentUser();
         loadProtocols();
 
         const refreshTimer = setTimeout(() => {
@@ -313,6 +433,14 @@ function ProtocolList({
                                 locked_by_id: updatedProtocol.locked_by_id,
                                 locked_by_username: updatedProtocol.locked_by_username,
                                 locked_by_full_name: updatedProtocol.locked_by_full_name,
+
+                                returned_for_revision: updatedProtocol.returned_for_revision,
+                                revision_comment: updatedProtocol.revision_comment,
+                                cancelled_at: updatedProtocol.cancelled_at,
+                                cancelled_by: updatedProtocol.cancelled_by,
+                                cancelled_by_id: updatedProtocol.cancelled_by_id,
+                                cancelled_by_username: updatedProtocol.cancelled_by_username,
+                                cancelled_by_full_name: updatedProtocol.cancelled_by_full_name,
                             }
                             : protocol
                     )
@@ -368,6 +496,101 @@ function ProtocolList({
 
     const handleOpen = (protocol) => {
         navigate(`/protocols/${protocol.id}/inspection`);
+    };
+
+    const canManageProtocols = Boolean(
+        currentUser?.is_superuser ||
+        currentUser?.role === "manager" ||
+        currentUser?.role === "executive_director"
+    );
+
+    const handleManagerReleaseLock = async (protocolId) => {
+        const confirmed = window.confirm(
+            "Освободить протокол? Он снова станет доступен как черновик."
+        );
+
+        if (!confirmed) {
+            return;
+        }
+
+        try {
+            await api.post(`/cars/protocols/${protocolId}/manager-release-lock/`);
+
+            setProtocols((prevProtocols) =>
+                prevProtocols.map((protocol) =>
+                    protocol.id === protocolId
+                        ? {
+                            ...protocol,
+                            status: "draft",
+                            locked_by: null,
+                            locked_by_id: null,
+                            locked_by_username: null,
+                            locked_by_full_name: null,
+                        }
+                        : protocol
+                )
+            );
+        } catch (error) {
+            console.error("Ошибка освобождения протокола:", error);
+
+            alert(
+                error.response?.data?.detail ||
+                error.response?.data?.error ||
+                "Не удалось освободить протокол"
+            );
+        }
+    };
+
+    const handleApproveProtocol = async (protocolId) => {
+        const confirmed = window.confirm(
+            "Утвердить протокол? После этого он попадёт в утверждённые."
+        );
+
+        if (!confirmed) {
+            return;
+        }
+
+        try {
+            await api.post(`/cars/protocols/${protocolId}/approve/`);
+
+            setProtocols((prevProtocols) =>
+                prevProtocols.filter((protocol) => protocol.id !== protocolId)
+            );
+        } catch (error) {
+            console.error("Ошибка утверждения протокола:", error);
+
+            alert(
+                error.response?.data?.detail ||
+                error.response?.data?.error ||
+                "Не удалось утвердить протокол"
+            );
+        }
+    };
+
+    const handleCancelProtocol = async (protocolId) => {
+        const revisionComment = window.prompt(
+            "Укажите причину возврата протокола на доработку:"
+        );
+
+        if (revisionComment === null) {
+            return;
+        }
+
+        try {
+            await api.cancelProtocol(protocolId, revisionComment);
+
+            setProtocols((prevProtocols) =>
+                prevProtocols.filter((protocol) => protocol.id !== protocolId)
+            );
+        } catch (error) {
+            console.error("Ошибка возврата протокола на доработку:", error);
+
+            alert(
+                error.response?.data?.detail ||
+                error.response?.data?.error ||
+                "Не удалось вернуть протокол на доработку"
+            );
+        }
     };
 
     return (
@@ -587,6 +810,11 @@ function ProtocolList({
                                     <ProtocolCard
                                         protocol={protocol}
                                         onOpen={handleOpen}
+                                        onReleaseLock={handleManagerReleaseLock}
+                                        onApprove={handleApproveProtocol}
+                                        onCancel={handleCancelProtocol}
+                                        canManageProtocols={canManageProtocols}
+                                        showReviewActions={showReviewActions}
                                     />
                                 </Grid>
                             ))}

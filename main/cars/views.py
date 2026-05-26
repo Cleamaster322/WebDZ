@@ -77,6 +77,17 @@ def notify_protocol_status_changed(protocol):
         if not locked_by_full_name:
             locked_by_full_name = protocol.locked_by.username
 
+    cancelled_by_full_name = None
+
+    if protocol.cancelled_by:
+        cancelled_by_full_name = (
+            f"{protocol.cancelled_by.last_name} {protocol.cancelled_by.first_name}"
+            .strip()
+        )
+
+        if not cancelled_by_full_name:
+            cancelled_by_full_name = protocol.cancelled_by.username
+
     async_to_sync(channel_layer.group_send)(
         "protocols",
         {
@@ -84,6 +95,7 @@ def notify_protocol_status_changed(protocol):
             "protocol": {
                 "id": protocol.id,
                 "status": protocol.status,
+
                 "locked_by": protocol.locked_by_id,
                 "locked_by_id": protocol.locked_by_id,
                 "locked_by_username": (
@@ -92,6 +104,22 @@ def notify_protocol_status_changed(protocol):
                     else None
                 ),
                 "locked_by_full_name": locked_by_full_name,
+
+                "returned_for_revision": protocol.returned_for_revision,
+                "revision_comment": protocol.revision_comment,
+                "cancelled_at": (
+                    protocol.cancelled_at.isoformat()
+                    if protocol.cancelled_at
+                    else None
+                ),
+                "cancelled_by": protocol.cancelled_by_id,
+                "cancelled_by_id": protocol.cancelled_by_id,
+                "cancelled_by_username": (
+                    protocol.cancelled_by.username
+                    if protocol.cancelled_by
+                    else None
+                ),
+                "cancelled_by_full_name": cancelled_by_full_name,
             },
         },
     )
@@ -122,6 +150,27 @@ def is_manager_or_superuser_request(request):
         )
     )
 
+
+def is_executive_director_or_superuser_request(request):
+    return bool(
+        request.user
+        and request.user.is_authenticated
+        and (
+                request.user.is_superuser
+                or user_has_role(request.user, 'executive_director')
+        )
+    )
+
+def is_protocol_reviewer_or_superuser_request(request):
+    return bool(
+        request.user
+        and request.user.is_authenticated
+        and (
+            request.user.is_superuser
+            or user_has_role(request.user, 'manager')
+            or user_has_role(request.user, 'executive_director')
+        )
+    )
 
 def normalize_region_name(region):
     if not region:
@@ -1138,6 +1187,18 @@ def update_protocol(request, pk):
         if serializer.is_valid():
             protocol = serializer.save()
 
+            if protocol.status == 'completed':
+                protocol.returned_for_revision = False
+                protocol.revision_comment = None
+                protocol.cancelled_by = None
+                protocol.cancelled_at = None
+                protocol.save(update_fields=[
+                    'returned_for_revision',
+                    'revision_comment',
+                    'cancelled_by',
+                    'cancelled_at',
+                ])
+
             if protocol.status in ['draft', 'completed', 'approved', 'cancelled']:
                 protocol.locked_by = None
                 protocol.locked_at = None
@@ -1232,6 +1293,140 @@ def return_protocol_to_draft(request, pk):
     except Exception as e:
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def manager_release_protocol_lock(request, pk):
+    try:
+        if not is_protocol_reviewer_or_superuser_request(request):
+            return Response(
+                {'detail': 'Освободить занятый протокол может только руководитель или исполнительный директор.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        with transaction.atomic():
+            protocol = Protocol.objects.select_for_update().filter(pk=pk).first()
+
+            if not protocol:
+                return Response(status=status.HTTP_404_NOT_FOUND)
+
+            if protocol.status != 'in_progress':
+                return Response(
+                    {
+                        'detail': 'Освободить можно только протокол в статусе "В работе".'
+                    },
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            protocol.status = 'draft'
+            protocol.locked_by = None
+            protocol.locked_at = None
+            protocol.save(update_fields=['status', 'locked_by', 'locked_at'])
+
+        notify_protocol_status_changed(protocol)
+
+        return Response(ProtocolSerializer(protocol).data)
+
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def approve_protocol(request, pk):
+    try:
+        if not is_protocol_reviewer_or_superuser_request(request):
+            return Response(
+                {'detail': 'Утвердить протокол может только руководитель или исполнительный директор.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        with transaction.atomic():
+            protocol = Protocol.objects.select_for_update().filter(pk=pk).first()
+
+            if not protocol:
+                return Response(status=status.HTTP_404_NOT_FOUND)
+
+            if protocol.status != 'completed':
+                return Response(
+                    {'detail': 'Утвердить можно только завершённый протокол.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            protocol.status = 'approved'
+            protocol.returned_for_revision = False
+            protocol.revision_comment = None
+            protocol.cancelled_by = None
+            protocol.cancelled_at = None
+            protocol.locked_by = None
+            protocol.locked_at = None
+
+            protocol.save(update_fields=[
+                'status',
+                'returned_for_revision',
+                'revision_comment',
+                'cancelled_by',
+                'cancelled_at',
+                'locked_by',
+                'locked_at',
+            ])
+
+        notify_protocol_status_changed(protocol)
+
+        return Response(ProtocolSerializer(protocol).data)
+
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def cancel_protocol(request, pk):
+    try:
+        if not is_protocol_reviewer_or_superuser_request(request):
+            return Response(
+                {'detail': 'Вернуть протокол на доработку может только руководитель или исполнительный директор.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        with transaction.atomic():
+            protocol = Protocol.objects.select_for_update().filter(pk=pk).first()
+
+            if not protocol:
+                return Response(status=status.HTTP_404_NOT_FOUND)
+
+            if protocol.status != 'completed':
+                return Response(
+                    {'detail': 'На доработку можно вернуть только завершённый протокол.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            revision_comment = str(
+                request.data.get('revision_comment', '')
+            ).strip()
+
+            protocol.status = 'draft'
+            protocol.returned_for_revision = True
+            protocol.revision_comment = revision_comment
+            protocol.cancelled_by = request.user
+            protocol.cancelled_at = timezone.now()
+            protocol.locked_by = None
+            protocol.locked_at = None
+
+            protocol.save(update_fields=[
+                'status',
+                'returned_for_revision',
+                'revision_comment',
+                'cancelled_by',
+                'cancelled_at',
+                'locked_by',
+                'locked_at',
+            ])
+
+        notify_protocol_status_changed(protocol)
+
+        return Response(ProtocolSerializer(protocol).data)
+
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['DELETE'])
 @permission_classes([IsAuthenticated])
@@ -1949,9 +2144,9 @@ def get_full_protocol(request, protocol_id):
 @permission_classes([IsAuthenticated])
 def get_all_users(request):
     try:
-        if not is_manager_or_superuser_request(request):
+        if not is_executive_director_or_superuser_request(request):
             return Response(
-                {'detail': 'Доступ разрешён только руководителю.'},
+                {'detail': 'Доступ разрешён только исполнительному директору.'},
                 status=status.HTTP_403_FORBIDDEN
             )
 
@@ -1979,9 +2174,9 @@ def get_user(request):
 @permission_classes([IsAuthenticated])
 def create_employee_user(request):
     try:
-        if not is_manager_or_superuser_request(request):
+        if not is_executive_director_or_superuser_request(request):
             return Response(
-                {'detail': 'Создавать сотрудников может только руководитель.'},
+                {'detail': 'Создавать сотрудников может только исполнительный директор.'},
                 status=status.HTTP_403_FORBIDDEN
             )
 
@@ -2004,9 +2199,9 @@ def create_employee_user(request):
 @permission_classes([IsAuthenticated])
 def update_employee_user(request, user_id):
     try:
-        if not is_manager_or_superuser_request(request):
+        if not is_executive_director_or_superuser_request(request):
             return Response(
-                {'detail': 'Изменять сотрудников может только руководитель.'},
+                {'detail': 'Изменять сотрудников может только исполнительный директор.'},
                 status=status.HTTP_403_FORBIDDEN
             )
 
@@ -2048,9 +2243,9 @@ def update_employee_user(request, user_id):
 @permission_classes([IsAuthenticated])
 def delete_employee_user(request, user_id):
     try:
-        if not is_manager_or_superuser_request(request):
+        if not is_executive_director_or_superuser_request(request):
             return Response(
-                {'detail': 'Удалять сотрудников может только руководитель.'},
+                {'detail': 'Удалять сотрудников может только исполнительный директор.'},
                 status=status.HTTP_403_FORBIDDEN
             )
 
