@@ -28,10 +28,11 @@ CREATE TABLE `protocol_test_conditions` (
   `ambient_temperature_c` float DEFAULT NULL,
   `relative_humidity_pct` float DEFAULT NULL,
   `atmospheric_pressure_kpa` float DEFAULT NULL,
+  `dash_fields` json NOT NULL DEFAULT (_utf8mb4'[]'),
   PRIMARY KEY (`id`),
   UNIQUE KEY `protocol_id` (`protocol_id`),
   CONSTRAINT `protocol_test_conditions_ibfk_1` FOREIGN KEY (`protocol_id`) REFERENCES `protocols` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -40,7 +41,7 @@ CREATE TABLE `protocol_test_conditions` (
 
 LOCK TABLES `protocol_test_conditions` WRITE;
 /*!40000 ALTER TABLE `protocol_test_conditions` DISABLE KEYS */;
-INSERT INTO `protocol_test_conditions` VALUES (1,1,NULL,NULL,NULL),(2,2,28,50,99.49),(3,3,20,51,100),(4,4,20,51,100);
+INSERT INTO `protocol_test_conditions` VALUES (1,1,NULL,NULL,NULL,'[]'),(2,2,28,50,99.49,'[]'),(3,3,20,51,100,'[]'),(4,4,20,51,100,'[]'),(5,5,NULL,NULL,NULL,'[]'),(6,6,NULL,NULL,NULL,'[]'),(7,7,NULL,NULL,NULL,'[]');
 /*!40000 ALTER TABLE `protocol_test_conditions` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
@@ -53,4 +54,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-05-13 21:31:10
+-- Dump completed on 2026-05-26 12:45:41

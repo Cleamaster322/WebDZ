@@ -38,10 +38,11 @@ CREATE TABLE `protocol_brakes` (
   `service_brake_rear_right_kn` float DEFAULT NULL,
   `parking_brake_left_kn` float DEFAULT NULL,
   `parking_brake_right_kn` float DEFAULT NULL,
+  `dash_fields` json NOT NULL DEFAULT (_utf8mb4'[]'),
   PRIMARY KEY (`id`),
   UNIQUE KEY `protocol_id` (`protocol_id`),
   CONSTRAINT `protocol_brakes_ibfk_1` FOREIGN KEY (`protocol_id`) REFERENCES `protocols` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -50,7 +51,7 @@ CREATE TABLE `protocol_brakes` (
 
 LOCK TABLES `protocol_brakes` WRITE;
 /*!40000 ALTER TABLE `protocol_brakes` DISABLE KEYS */;
-INSERT INTO `protocol_brakes` VALUES (1,1,'disc_disc',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL),(2,2,'disc_drum','mechanical_hand',198,147,156,5,10,2.21,2.09,1.48,1.33,1.39,1.23),(3,3,'disc_drum',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL),(4,4,'disc_drum','mechanical_hand',117,283,215,2,8,2090,2210,1330,1480,1230,1390);
+INSERT INTO `protocol_brakes` VALUES (1,1,'disc_disc',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,'[]'),(2,2,'disc_drum','mechanical_hand',198,147,156,5,10,2.21,2.09,1.48,1.33,1.39,1.23,'[]'),(3,3,'disc_drum',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,'[]'),(4,4,'disc_drum','mechanical_hand',117,283,215,2,8,2090,2210,1330,1480,1230,1390,'[]'),(5,5,'disc_disc',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,'[]'),(6,6,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,'[]'),(7,7,'disc_drum','mechanical_pedal',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,'[]');
 /*!40000 ALTER TABLE `protocol_brakes` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
@@ -63,4 +64,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-05-13 21:31:08
+-- Dump completed on 2026-05-26 12:45:43

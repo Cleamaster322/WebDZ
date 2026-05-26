@@ -36,7 +36,7 @@ CREATE TABLE `auth_user` (
   `date_joined` datetime(6) NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `username` (`username`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -45,7 +45,7 @@ CREATE TABLE `auth_user` (
 
 LOCK TABLES `auth_user` WRITE;
 /*!40000 ALTER TABLE `auth_user` DISABLE KEYS */;
-INSERT INTO `auth_user` VALUES (1,'pbkdf2_sha256$1000000$ry4MWYbQgHyYHnB2WX0L1h$kwNygcZ4Q7/JDUyMJo6tk8c/ftl++Ib9et8yYmRfB2Y=','2025-05-21 07:50:49.246343',1,'admin','','','',1,1,'2025-05-16 07:08:50.476294'),(2,'pbkdf2_sha256$1000000$GJ5HqBaJRvAob1RrkeE4gr$DuhSF0xww8xkoauTA31F6TybG91CpPa7WkVooGCVWto=',NULL,0,'Cleamaster322','','','',0,1,'2025-05-21 01:40:52.317927');
+INSERT INTO `auth_user` VALUES (1,'pbkdf2_sha256$1000000$ry4MWYbQgHyYHnB2WX0L1h$kwNygcZ4Q7/JDUyMJo6tk8c/ftl++Ib9et8yYmRfB2Y=','2025-05-21 07:50:49.246343',1,'admin','','','',1,1,'2025-05-16 07:08:50.476294'),(4,'pbkdf2_sha256$1000000$VhtElx4Ye4kh6xZ5UY3NBH$n1dSLnhUP6lynJo1xCScDQjn3z+RO7QhqDqBPB5O6LU=',NULL,0,'test1','test1','test1','test1@mail.ru',0,1,'2026-05-23 03:36:26.788831'),(5,'pbkdf2_sha256$1000000$tbK5S0NPBCap4XoYBY5YuT$cMHXxfI11C/7yTDbAeVqz3YHkRIlVkXgklPlDuYO5Os=',NULL,0,'test2','test2','test2','test2@mail.ru',0,1,'2026-05-23 03:36:38.493486'),(6,'pbkdf2_sha256$1000000$A0zi0FGU8alAvLk400Y6f8$XNLGT+pDDx+W+EBfnlsDKEeQbsnyreZYnTYXB1YzvB8=',NULL,0,'test3','test3','test3','test3@mail.ru',0,1,'2026-05-23 03:36:51.892084'),(7,'pbkdf2_sha256$1000000$fvki9YMcZTRoAYVbNlMq83$Z/qlpRbuRF4ziqZ4T5epycDJW8tpT0mSgFyG5juEj1k=',NULL,0,'test4','test4','test4','test4@mail.ru',0,1,'2026-05-26 01:05:20.891132');
 /*!40000 ALTER TABLE `auth_user` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
@@ -58,4 +58,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-05-13 21:31:05
+-- Dump completed on 2026-05-26 12:45:43

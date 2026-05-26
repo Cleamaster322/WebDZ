@@ -27,10 +27,11 @@ CREATE TABLE `protocol_road_conditions` (
   `protocol_id` bigint unsigned DEFAULT NULL,
   `road_ambient_temperature_c` float DEFAULT NULL,
   `road_relative_humidity_pct` float DEFAULT NULL,
+  `dash_fields` json NOT NULL DEFAULT (_utf8mb4'[]'),
   PRIMARY KEY (`id`),
   UNIQUE KEY `protocol_id` (`protocol_id`),
   CONSTRAINT `protocol_road_conditions_ibfk_1` FOREIGN KEY (`protocol_id`) REFERENCES `protocols` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -39,7 +40,7 @@ CREATE TABLE `protocol_road_conditions` (
 
 LOCK TABLES `protocol_road_conditions` WRITE;
 /*!40000 ALTER TABLE `protocol_road_conditions` DISABLE KEYS */;
-INSERT INTO `protocol_road_conditions` VALUES (1,1,NULL,NULL),(2,2,14,56),(3,3,15,53),(4,4,15,53);
+INSERT INTO `protocol_road_conditions` VALUES (1,1,NULL,NULL,'[]'),(2,2,14,56,'[]'),(3,3,15,53,'[]'),(4,4,15,53,'[]'),(5,5,NULL,NULL,'[]'),(6,6,NULL,NULL,'[]'),(7,7,NULL,NULL,'[]');
 /*!40000 ALTER TABLE `protocol_road_conditions` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
@@ -52,4 +53,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-05-13 21:31:09
+-- Dump completed on 2026-05-26 12:45:43

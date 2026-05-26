@@ -32,7 +32,7 @@ CREATE TABLE `protocol_photos` (
   PRIMARY KEY (`id`),
   KEY `protocol_id` (`protocol_id`),
   CONSTRAINT `protocol_photos_ibfk_1` FOREIGN KEY (`protocol_id`) REFERENCES `protocols` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=11 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -41,6 +41,7 @@ CREATE TABLE `protocol_photos` (
 
 LOCK TABLES `protocol_photos` WRITE;
 /*!40000 ALTER TABLE `protocol_photos` DISABLE KEYS */;
+INSERT INTO `protocol_photos` VALUES (4,1,'noise_test_photo','protocol_photos/1/noise_test_photo_b7cc099d456b494badc60ceb4638ff9c.png',3,'2026-05-22 01:59:46'),(5,2,'stand_test_photo','protocol_photos/2/stand_test_photo_7d5f699669694eadabe03f63bf065317.png',1,'2026-05-22 02:02:14'),(6,1,'stand_test_photo','protocol_photos/1/stand_test_photo_24f22fc35a1a4703b5dfdd04d92d609b.jpg',1,'2026-05-22 02:07:54'),(7,1,'gas_test_photo','protocol_photos/1/gas_test_photo_50b1a8bd3ac5486f903f0079bacb3465.jpg',2,'2026-05-22 02:11:44'),(8,1,'other','protocol_photos/1/other_8c8b4c111d7047ff974e98638a68821e.png',10,'2026-05-22 02:25:14');
 /*!40000 ALTER TABLE `protocol_photos` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
@@ -53,4 +54,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-05-13 21:31:08
+-- Dump completed on 2026-05-26 12:45:42
