@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, timedelta
 
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
@@ -171,6 +171,25 @@ def is_protocol_reviewer_or_superuser_request(request):
             or user_has_role(request.user, 'executive_director')
         )
     )
+
+LOCK_TIMEOUT_MINUTES = 5
+
+
+def is_protocol_lock_expired(protocol):
+    if protocol.status != 'in_progress':
+        return False
+
+    if not protocol.locked_at:
+        return True
+
+    return protocol.locked_at < timezone.now() - timedelta(minutes=LOCK_TIMEOUT_MINUTES)
+
+
+def clear_expired_protocol_lock(protocol):
+    protocol.status = 'draft'
+    protocol.locked_by = None
+    protocol.locked_at = None
+    protocol.save(update_fields=['status', 'locked_by', 'locked_at'])
 
 def normalize_region_name(region):
     if not region:
@@ -1229,6 +1248,8 @@ def update_protocol(request, pk):
 @permission_classes([IsAuthenticated])
 def start_protocol_editing(request, pk):
     try:
+        lock_was_expired = False
+
         with transaction.atomic():
             protocol = Protocol.objects.select_for_update().filter(pk=pk).first()
 
@@ -1251,23 +1272,28 @@ def start_protocol_editing(request, pk):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-            if (
-                    protocol.status == 'in_progress'
-                    and protocol.locked_by_id
-                    and protocol.locked_by_id != request.user.id
-            ):
-                return Response(
-                    {
-                        'detail': 'Протокол уже редактируется другим пользователем.',
-                        'locked_by_id': protocol.locked_by_id,
-                        'locked_by_username': (
-                            protocol.locked_by.username
-                            if protocol.locked_by
-                            else None
-                        ),
-                    },
-                    status=423,
-                )
+            if protocol.status == 'in_progress':
+                if protocol.locked_by_id == request.user.id:
+                    protocol.locked_at = timezone.now()
+                    protocol.save(update_fields=['locked_at'])
+
+                    return Response(ProtocolSerializer(protocol).data)
+
+                if not is_protocol_lock_expired(protocol):
+                    return Response(
+                        {
+                            'detail': 'Протокол уже редактируется другим пользователем.',
+                            'locked_by_id': protocol.locked_by_id,
+                            'locked_by_username': (
+                                protocol.locked_by.username
+                                if protocol.locked_by
+                                else None
+                            ),
+                        },
+                        status=423,
+                    )
+
+                lock_was_expired = True
 
             protocol.status = 'in_progress'
             protocol.locked_by = request.user
@@ -1276,7 +1302,43 @@ def start_protocol_editing(request, pk):
 
         notify_protocol_status_changed(protocol)
 
-        return Response(ProtocolSerializer(protocol).data)
+        return Response({
+            **ProtocolSerializer(protocol).data,
+            'lock_was_expired': lock_was_expired,
+        })
+
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def protocol_heartbeat(request, pk):
+    try:
+        with transaction.atomic():
+            protocol = Protocol.objects.select_for_update().filter(pk=pk).first()
+
+            if not protocol:
+                return Response(status=status.HTTP_404_NOT_FOUND)
+
+            if protocol.status != 'in_progress':
+                return Response(
+                    {'detail': 'Протокол не находится в работе.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            if protocol.locked_by_id != request.user.id:
+                return Response(
+                    {'detail': 'Протокол занят другим пользователем.'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+
+            protocol.locked_at = timezone.now()
+            protocol.save(update_fields=['locked_at'])
+
+        return Response({
+            'status': protocol.status,
+            'locked_at': protocol.locked_at,
+        })
 
     except Exception as e:
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

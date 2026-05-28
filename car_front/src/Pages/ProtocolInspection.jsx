@@ -1366,6 +1366,41 @@ function ProtocolInspection() {
         }
     };
 
+    const releaseProtocolLockOnUnload = () => {
+        if (!currentProtocolId) {
+            return;
+        }
+
+        if (!protocolLockActiveRef.current) {
+            return;
+        }
+
+        if (formStatusRef.current === "completed") {
+            return;
+        }
+
+        protocolLockActiveRef.current = false;
+
+        const accessToken = localStorage.getItem("accessToken");
+        const baseUrl = api.client.defaults.baseURL || "";
+
+        try {
+            fetch(`${baseUrl}/cars/protocols/${currentProtocolId}/return-to-draft/`, {
+                method: "POST",
+                keepalive: true,
+                credentials: "include",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-Requested-With": "XMLHttpRequest",
+                    ...(accessToken ? {Authorization: `Bearer ${accessToken}`} : {}),
+                },
+                body: JSON.stringify({}),
+            });
+        } catch (error) {
+            console.error("Ошибка отправки keepalive-запроса при закрытии вкладки:", error);
+        }
+    };
+
     const loadProtocol = async (
         protocolId = currentProtocolId,
         options = {}
@@ -1447,12 +1482,52 @@ function ProtocolInspection() {
                 return;
             }
 
-            protocolLockActiveRef.current = false;
+            releaseProtocolLock().catch((error) => {
+                console.error("Ошибка освобождения протокола при переходе со страницы:", error);
+            });
+        };
+    }, [currentProtocolId]);
 
-            api.post(`/cars/protocols/${currentProtocolId}/return-to-draft/`)
+    useEffect(() => {
+        const handlePageHide = () => {
+            releaseProtocolLockOnUnload();
+        };
+
+        const handleBeforeUnload = () => {
+            releaseProtocolLockOnUnload();
+        };
+
+        window.addEventListener("pagehide", handlePageHide);
+        window.addEventListener("beforeunload", handleBeforeUnload);
+
+        return () => {
+            window.removeEventListener("pagehide", handlePageHide);
+            window.removeEventListener("beforeunload", handleBeforeUnload);
+        };
+    }, [currentProtocolId]);
+
+    useEffect(() => {
+        if (!currentProtocolId) {
+            return;
+        }
+
+        const heartbeatIntervalId = setInterval(() => {
+            if (!protocolLockActiveRef.current) {
+                return;
+            }
+
+            if (formStatusRef.current === "completed") {
+                return;
+            }
+
+            api.post(`/cars/protocols/${currentProtocolId}/heartbeat/`)
                 .catch((error) => {
-                    console.error("Ошибка освобождения протокола при выходе:", error);
+                    console.error("Ошибка heartbeat протокола:", error);
                 });
+        }, 30000);
+
+        return () => {
+            clearInterval(heartbeatIntervalId);
         };
     }, [currentProtocolId]);
 

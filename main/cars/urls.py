@@ -69,6 +69,7 @@ urlpatterns = [
     path('protocols/<int:pk>/update/', update_protocol),
 
     path('protocols/<int:pk>/start-editing/', start_protocol_editing),
+    path('protocols/<int:pk>/heartbeat/', protocol_heartbeat),
     path('protocols/<int:pk>/return-to-draft/', return_protocol_to_draft),
     path('protocols/<int:pk>/manager-release-lock/', manager_release_protocol_lock),
     path('protocols/<int:pk>/approve/', approve_protocol),
