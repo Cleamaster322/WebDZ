@@ -284,6 +284,66 @@ function formatDateForChip(value) {
     return `${day}-${month}-${year}`;
 }
 
+function formatApiError(errorData) {
+    if (!errorData) {
+        return "Ошибка сохранения блока";
+    }
+
+    if (typeof errorData === "string") {
+        return errorData;
+    }
+
+    if (Array.isArray(errorData)) {
+        return errorData.join(", ");
+    }
+
+    if (typeof errorData === "object") {
+        return Object.entries(errorData)
+            .map(([field, messages]) => {
+                if (Array.isArray(messages)) {
+                    return `${field}: ${messages.join(", ")}`;
+                }
+
+                return `${field}: ${messages}`;
+            })
+            .join("\n");
+    }
+
+    return "Ошибка сохранения блока";
+}
+
+function getErrorFields(errorData) {
+    if (!errorData || typeof errorData !== "object" || Array.isArray(errorData)) {
+        return [];
+    }
+
+    return Object.keys(errorData);
+}
+
+function hasAnyField(errorFields, expectedFields) {
+    return errorFields.some((field) => expectedFields.includes(field));
+}
+
+function BlockError({message}) {
+    if (!message) {
+        return null;
+    }
+
+    return (
+        <Alert
+            severity="error"
+            sx={{
+                mb: 2,
+                borderRadius: 0,
+                border: "1px solid #b3261e",
+                whiteSpace: "pre-line",
+            }}
+        >
+            {message}
+        </Alert>
+    );
+}
+
 const PROTOCOL_DASH_FIELDS = [
     {formField: "protocol_number", apiField: "protocol_number"},
     {formField: "appendix_number", apiField: "appendix_number"},
@@ -466,6 +526,79 @@ const LIGHT_DASH_FIELDS = [
     },
     {formField: "rear_fog_upper_point_mm", apiField: "rear_fog_upper_point_mm"},
     {formField: "rear_fog_lower_point_mm", apiField: "rear_fog_lower_point_mm"},
+];
+
+const MEASUREMENT_ENGINE_FIELDS = [
+    "engine_model",
+    "engine_power_kw",
+    "engine_layout",
+    "cylinder_layout",
+    "cylinders_count",
+    "fuel_type",
+    "turbo_present",
+];
+
+const MEASUREMENT_STEERING_TRANSMISSION_FIELDS = [
+    "steering_booster_type",
+    "steering_backlash_deg",
+    "transmission_type",
+];
+
+const MEASUREMENT_MISC_FIELDS = [
+    "tire_depth_fl_mm",
+    "tire_depth_fr_mm",
+    "tire_depth_rl_mm",
+    "tire_depth_rr_mm",
+    "bumper_bends_to_body",
+    "bumper_to_body_distance_mm",
+    "opening_roof_present",
+    "fuel_tank_leak_protection_measure",
+    "protruding_elements_doors_mm",
+    "protruding_elements_other_mm",
+    "glass_transparency_right_pct",
+    "glass_transparency_left_pct",
+    "glass_transparency_windshield_pct",
+    "sun_strip_width_mm",
+    "speed_by_speedometer_kmh",
+    "actual_speed_kmh",
+    "exhaust_noise_constant_db",
+    "exhaust_noise_deceleration_db",
+    "co_min_pct",
+    "co_max_pct",
+    "light_absorption_1",
+    "light_absorption_2",
+    "light_absorption_3",
+    "light_absorption_4",
+    "light_absorption_5",
+    "light_absorption_6",
+    "vehicle_length_mm",
+    "vehicle_width_mm",
+    "vehicle_height_mm",
+    "vehicle_weight_kg",
+    "axle1_load_kg",
+    "axle2_load_kg",
+    "spare_wheel_present",
+    "steering_lock_present",
+    "gas_equipment_present",
+    "glonass_button_present",
+];
+
+const LIGHT_GEOMETRY_FIELDS = [
+    "low_beam_upper_point_mm",
+    "low_beam_lower_point_mm",
+    "fog_light_upper_point_mm",
+    "fog_light_lower_point_mm",
+    "fog_light_left_distance_mm",
+    "fog_light_right_distance_mm",
+    "brake_signal_upper_point_mm",
+    "brake_signal_lower_point_mm",
+    "brake_signal_left_distance_mm",
+    "brake_signal_right_distance_mm",
+    "additional_brake_signal_from_glass_edge_mm",
+    "additional_brake_signal_from_support_surface_mm",
+    "additional_brake_signal_optical_center_shift_mm",
+    "rear_fog_upper_point_mm",
+    "rear_fog_lower_point_mm",
 ];
 
 function mapProtocolToForm(data) {
@@ -909,6 +1042,83 @@ function ProtocolInspection() {
     const [saving, setSaving] = useState(false);
     const [successMessage, setSuccessMessage] = useState("");
     const [errorMessage, setErrorMessage] = useState("");
+    const [blockErrors, setBlockErrors] = useState({});
+
+    const headerRef = useRef(null);
+    const conditionsRef = useRef(null);
+    const vehicleRef = useRef(null);
+    const engineRef = useRef(null);
+    const steeringTransmissionRef = useRef(null);
+    const brakesRef = useRef(null);
+    const lightsMainRef = useRef(null);
+    const lightsGeometryRef = useRef(null);
+    const miscRef = useRef(null);
+
+    const scrollToBlock = (blockRef) => {
+        setTimeout(() => {
+            blockRef.current?.scrollIntoView({
+                behavior: "smooth",
+                block: "start",
+            });
+        }, 100);
+    };
+
+    const setBlockErrorAndScroll = (blockKey, blockRef, error) => {
+        const errorText = formatApiError(error.response?.data);
+
+        setBlockErrors((prev) => ({
+            ...prev,
+            [blockKey]: errorText,
+        }));
+
+        scrollToBlock(blockRef);
+    };
+
+    const getMeasurementErrorTarget = (error) => {
+        const errorFields = getErrorFields(error.response?.data);
+
+        if (hasAnyField(errorFields, MEASUREMENT_ENGINE_FIELDS)) {
+            return {
+                key: "engine",
+                ref: engineRef,
+            };
+        }
+
+        if (hasAnyField(errorFields, MEASUREMENT_STEERING_TRANSMISSION_FIELDS)) {
+            return {
+                key: "steeringTransmission",
+                ref: steeringTransmissionRef,
+            };
+        }
+
+        if (hasAnyField(errorFields, MEASUREMENT_MISC_FIELDS)) {
+            return {
+                key: "misc",
+                ref: miscRef,
+            };
+        }
+
+        return {
+            key: "vehicle",
+            ref: vehicleRef,
+        };
+    };
+
+    const getLightErrorTarget = (error) => {
+        const errorFields = getErrorFields(error.response?.data);
+
+        if (hasAnyField(errorFields, LIGHT_GEOMETRY_FIELDS)) {
+            return {
+                key: "lightsGeometry",
+                ref: lightsGeometryRef,
+            };
+        }
+
+        return {
+            key: "lightsMain",
+            ref: lightsMainRef,
+        };
+    };
 
     const handleChange = (e) => {
         const {name, value} = e.target;
@@ -969,8 +1179,6 @@ function ProtocolInspection() {
         } catch (error) {
             console.error("Ошибка освобождения протокола:", error);
 
-            // Если запрос не прошёл, возвращаем флаг обратно,
-            // чтобы cleanup при размонтировании ещё раз попытался освободить протокол.
             protocolLockActiveRef.current = true;
 
             throw error;
@@ -1074,14 +1282,7 @@ function ProtocolInspection() {
             setSaving(true);
             setSuccessMessage("");
             setErrorMessage("");
-
-            const protocolPayload = buildProtocolPayload(form);
-            const testConditionsPayload = buildTestConditionsPayload(form);
-            const roadConditionsPayload = buildRoadConditionsPayload(form);
-            const powerSupplyPayload = buildPowerSupplyPayload(form);
-            const measurementPayload = buildMeasurementPayload(form);
-            const brakePayload = buildBrakePayload(form);
-            const lightPayload = buildLightPayload(form);
+            setBlockErrors({});
 
             const protocolId = currentProtocolId;
 
@@ -1090,16 +1291,86 @@ function ProtocolInspection() {
                 return false;
             }
 
-            await api.patch(`/cars/protocols/${protocolId}/update/`, protocolPayload);
+            const saveSteps = [
+                {
+                    key: "header",
+                    ref: headerRef,
+                    request: () =>
+                        api.patch(
+                            `/cars/protocols/${protocolId}/update/`,
+                            buildProtocolPayload(form)
+                        ),
+                },
+                {
+                    key: "conditions",
+                    ref: conditionsRef,
+                    request: async () => {
+                        await api.patch(
+                            `/cars/protocols/${protocolId}/test-conditions/update/`,
+                            buildTestConditionsPayload(form)
+                        );
 
-            await Promise.all([
-                api.patch(`/cars/protocols/${protocolId}/test-conditions/update/`, testConditionsPayload),
-                api.patch(`/cars/protocols/${protocolId}/road-conditions/update/`, roadConditionsPayload),
-                api.patch(`/cars/protocols/${protocolId}/power-supply/update/`, powerSupplyPayload),
-                api.patch(`/cars/protocols/${protocolId}/measurement/update/`, measurementPayload),
-                api.patch(`/cars/protocols/${protocolId}/brake/update/`, brakePayload),
-                api.patch(`/cars/protocols/${protocolId}/light/update/`, lightPayload),
-            ]);
+                        await api.patch(
+                            `/cars/protocols/${protocolId}/road-conditions/update/`,
+                            buildRoadConditionsPayload(form)
+                        );
+
+                        await api.patch(
+                            `/cars/protocols/${protocolId}/power-supply/update/`,
+                            buildPowerSupplyPayload(form)
+                        );
+                    },
+                },
+                {
+                    key: "vehicle",
+                    ref: vehicleRef,
+                    getErrorTarget: getMeasurementErrorTarget,
+                    request: () =>
+                        api.patch(
+                            `/cars/protocols/${protocolId}/measurement/update/`,
+                            buildMeasurementPayload(form)
+                        ),
+                },
+                {
+                    key: "brakes",
+                    ref: brakesRef,
+                    request: () =>
+                        api.patch(
+                            `/cars/protocols/${protocolId}/brake/update/`,
+                            buildBrakePayload(form)
+                        ),
+                },
+                {
+                    key: "lightsMain",
+                    ref: lightsMainRef,
+                    getErrorTarget: getLightErrorTarget,
+                    request: () =>
+                        api.patch(
+                            `/cars/protocols/${protocolId}/light/update/`,
+                            buildLightPayload(form)
+                        ),
+                },
+            ];
+
+            for (const step of saveSteps) {
+                try {
+                    await step.request();
+                } catch (error) {
+                    console.error(`Ошибка сохранения блока ${step.key}:`, error);
+
+                    const target = step.getErrorTarget
+                        ? step.getErrorTarget(error)
+                        : {
+                            key: step.key,
+                            ref: step.ref,
+                        };
+
+                    setBlockErrorAndScroll(target.key, target.ref, error);
+                    setErrorMessage("Ошибка при сохранении данных. Проверьте выделенный блок.");
+
+                    return false;
+                }
+            }
 
             await loadProtocol(protocolId);
 
@@ -1474,8 +1745,15 @@ function ProtocolInspection() {
                         </Alert>
                     )}
 
-                    <ProtocolInspectionHeader {...commonSectionProps} />
-                    <ProtocolInspectionConditions {...commonSectionProps} />
+                    <Box ref={headerRef}>
+                        <BlockError message={blockErrors.header} />
+                        <ProtocolInspectionHeader {...commonSectionProps} />
+                    </Box>
+
+                    <Box ref={conditionsRef}>
+                        <BlockError message={blockErrors.conditions} />
+                        <ProtocolInspectionConditions {...commonSectionProps} />
+                    </Box>
 
                     <ProtocolInspectionPhotos
                         {...commonSectionProps}
@@ -1484,13 +1762,40 @@ function ProtocolInspection() {
                         setPhotos={setPhotos}
                     />
 
-                    <ProtocolInspectionVehicle {...commonSectionProps} />
-                    <ProtocolInspectionEngine {...commonSectionProps} />
-                    <ProtocolInspectionSteeringTransmission {...commonSectionProps} />
-                    <ProtocolInspectionBrakes {...commonSectionProps} />
-                    <ProtocolInspectionLightsMain {...commonSectionProps} />
-                    <ProtocolInspectionLightsGeometry {...commonSectionProps} />
-                    <ProtocolInspectionMisc {...commonSectionProps} />
+                    <Box ref={vehicleRef}>
+                        <BlockError message={blockErrors.vehicle} />
+                        <ProtocolInspectionVehicle {...commonSectionProps} />
+                    </Box>
+
+                    <Box ref={engineRef}>
+                        <BlockError message={blockErrors.engine} />
+                        <ProtocolInspectionEngine {...commonSectionProps} />
+                    </Box>
+
+                    <Box ref={steeringTransmissionRef}>
+                        <BlockError message={blockErrors.steeringTransmission} />
+                        <ProtocolInspectionSteeringTransmission {...commonSectionProps} />
+                    </Box>
+
+                    <Box ref={brakesRef}>
+                        <BlockError message={blockErrors.brakes} />
+                        <ProtocolInspectionBrakes {...commonSectionProps} />
+                    </Box>
+
+                    <Box ref={lightsMainRef}>
+                        <BlockError message={blockErrors.lightsMain} />
+                        <ProtocolInspectionLightsMain {...commonSectionProps} />
+                    </Box>
+
+                    <Box ref={lightsGeometryRef}>
+                        <BlockError message={blockErrors.lightsGeometry} />
+                        <ProtocolInspectionLightsGeometry {...commonSectionProps} />
+                    </Box>
+
+                    <Box ref={miscRef}>
+                        <BlockError message={blockErrors.misc} />
+                        <ProtocolInspectionMisc {...commonSectionProps} />
+                    </Box>
 
                     <Box
                         sx={{
