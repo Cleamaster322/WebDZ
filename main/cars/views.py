@@ -483,7 +483,11 @@ def get_all_generations(request):
 
         paginator = Pagination()
         paginated = paginator.paginate_queryset(queryset, request)
-        serializer = GenerationCardSerializer(paginated, many=True)
+        serializer = GenerationCardSerializer(
+            paginated,
+            many=True,
+            context={'request': request}
+        )
         return paginator.get_paginated_response(serializer.data)
     except Exception:
         return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -497,7 +501,10 @@ def get_generation(request, pk):
         if not obj:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
-        serializer = GenerationCardSerializer(obj)
+        serializer = GenerationCardSerializer(
+            obj,
+            context={'request': request}
+        )
         return Response(serializer.data)
     except Exception:
         return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -629,7 +636,11 @@ def get_filtered_generations(request):
 
         paginator = Pagination()
         paginated = paginator.paginate_queryset(queryset, request)
-        serializer = GenerationCardSerializer(paginated, many=True)
+        serializer = GenerationCardSerializer(
+            paginated,
+            many=True,
+            context={'request': request}
+        )
 
         return paginator.get_paginated_response(serializer.data)
 

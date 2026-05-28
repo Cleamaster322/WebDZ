@@ -87,14 +87,22 @@ const outlineButtonSx = {
     },
 };
 
-function getGenerationImageUrl(imagePath) {
+function getGenerationImageUrl(generation) {
+    if (!generation) return "";
+
+    if (generation.image_url) {
+        return generation.image_url;
+    }
+
+    const imagePath = generation.image_path;
+
     if (!imagePath) return "";
 
     if (imagePath.startsWith("http")) {
         return imagePath;
     }
 
-    return `http://127.0.0.1:8000/${imagePath}`;
+    return "";
 }
 
 function getRegionLabel(region) {
@@ -730,12 +738,10 @@ function CarSelection() {
                                                                 },
                                                             }}
                                                         >
-                                                            {generation.image_path ? (
+                                                            {generation.image_url || generation.image_path ? (
                                                                 <Box
                                                                     component="img"
-                                                                    src={getGenerationImageUrl(
-                                                                        generation.image_path
-                                                                    )}
+                                                                    src={getGenerationImageUrl(generation)}
                                                                     alt={generation.name}
                                                                     sx={{
                                                                         width: "100%",

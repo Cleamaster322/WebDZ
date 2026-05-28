@@ -107,6 +107,8 @@ class GenerationSerializer(serializers.ModelSerializer):
 
 
 class GenerationCardSerializer(serializers.ModelSerializer):
+    image_url = serializers.SerializerMethodField()
+
     class Meta:
         model = Generation
         fields = [
@@ -123,7 +125,49 @@ class GenerationCardSerializer(serializers.ModelSerializer):
             'date_start',
             'date_end',
             'image_path',
+            'image_url',
         ]
+
+    def normalize_image_path(self, value):
+        if not value:
+            return None
+
+        value = str(value).strip().replace("\\", "/")
+
+        if value.startswith("http://") or value.startswith("https://"):
+            return value
+
+        if "/main/media/" in value:
+            value = value.split("/main/media/", 1)[1]
+        elif value.startswith("main/media/"):
+            value = value.replace("main/media/", "", 1)
+        elif value.startswith("/main/media/"):
+            value = value.replace("/main/media/", "", 1)
+        elif "/media/" in value:
+            value = value.split("/media/", 1)[1]
+
+        return value.lstrip("/")
+
+    def get_image_url(self, obj):
+        if not obj.image_path:
+            return None
+
+        normalized_path = self.normalize_image_path(obj.image_path)
+
+        if not normalized_path:
+            return None
+
+        if normalized_path.startswith("http://") or normalized_path.startswith("https://"):
+            return normalized_path
+
+        url = f"{settings.MEDIA_URL.rstrip('/')}/{normalized_path}"
+
+        request = self.context.get("request")
+
+        if request:
+            return request.build_absolute_uri(url)
+
+        return url
 
 
 class ConfigurationSerializer(serializers.ModelSerializer):
