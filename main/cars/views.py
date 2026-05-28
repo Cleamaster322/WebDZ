@@ -2225,7 +2225,10 @@ def get_all_users(request):
 
         queryset = (
             User.objects
-            .filter(is_superuser=False)
+            .filter(
+                is_superuser=False,
+                is_active=True,
+            )
             .order_by('id')
         )
 
@@ -2342,6 +2345,12 @@ def delete_employee_user(request, user_id):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
+        if not employee.is_active:
+            return Response(
+                {'detail': 'Сотрудник уже деактивирован.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
         confirm_text = str(request.data.get('confirm_text', '')).strip().lower()
 
         if confirm_text != 'удалить':
@@ -2350,9 +2359,13 @@ def delete_employee_user(request, user_id):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        employee.delete()
+        employee.is_active = False
+        employee.save(update_fields=['is_active'])
 
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        return Response(
+            {'detail': 'Сотрудник удалён из активного списка.'},
+            status=status.HTTP_200_OK
+        )
 
     except Exception as e:
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
