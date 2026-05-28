@@ -35,6 +35,8 @@ const DOCX_PHOTO_SLOTS = [
     },
 ];
 
+const imageAccept = "image/jpeg,image/png,image/webp,image/*";
+
 function ProtocolInspectionPhotos({
     protocolId,
     photos = [],
@@ -73,10 +75,21 @@ function ProtocolInspectionPhotos({
         });
     };
 
+    const getUploadErrorText = (err, defaultMessage) => {
+        return (
+            err?.response?.data?.file ||
+            err?.response?.data?.photo_type ||
+            err?.response?.data?.error ||
+            err?.response?.data?.detail ||
+            defaultMessage
+        );
+    };
+
     const handleMainPhotoUpload = async (event, slot) => {
         const file = event.target.files?.[0];
 
         if (!file) {
+            event.target.value = "";
             return;
         }
 
@@ -98,12 +111,7 @@ function ProtocolInspectionPhotos({
 
             setPhotos(nextPhotos);
         } catch (err) {
-            setError(
-                err?.response?.data?.file ||
-                err?.response?.data?.photo_type ||
-                err?.response?.data?.error ||
-                "Не удалось загрузить фото"
-            );
+            setError(getUploadErrorText(err, "Не удалось загрузить фото"));
         } finally {
             setUploadingType(null);
             event.target.value = "";
@@ -114,6 +122,7 @@ function ProtocolInspectionPhotos({
         const files = Array.from(event.target.files || []);
 
         if (!files.length) {
+            event.target.value = "";
             return;
         }
 
@@ -136,11 +145,7 @@ function ProtocolInspectionPhotos({
 
             setPhotos(sortPhotos([...photos, ...uploadedPhotos]));
         } catch (err) {
-            setError(
-                err?.response?.data?.file ||
-                err?.response?.data?.error ||
-                "Не удалось загрузить дополнительные фото"
-            );
+            setError(getUploadErrorText(err, "Не удалось загрузить дополнительные фото"));
         } finally {
             setUploadingType(null);
             event.target.value = "";
@@ -158,6 +163,7 @@ function ProtocolInspectionPhotos({
         } catch (err) {
             setError(
                 err?.response?.data?.error ||
+                err?.response?.data?.detail ||
                 "Не удалось удалить фото"
             );
         } finally {
@@ -172,7 +178,7 @@ function ProtocolInspectionPhotos({
             </Typography>
 
             {error && (
-                <Alert severity="error" sx={{ mb: 3 }}>
+                <Alert severity="error" sx={{ mb: 3, borderRadius: 0 }}>
                     {error}
                 </Alert>
             )}
@@ -235,7 +241,13 @@ function ProtocolInspectionPhotos({
                                     )}
                                 </CardContent>
 
-                                <CardActions>
+                                <CardActions
+                                    sx={{
+                                        display: "flex",
+                                        flexWrap: "wrap",
+                                        gap: 1,
+                                    }}
+                                >
                                     <Button
                                         component="label"
                                         variant="contained"
@@ -259,7 +271,26 @@ function ProtocolInspectionPhotos({
                                         <input
                                             hidden
                                             type="file"
-                                            accept="image/jpeg,image/png,image/webp"
+                                            accept={imageAccept}
+                                            onChange={(event) =>
+                                                handleMainPhotoUpload(event, slot)
+                                            }
+                                        />
+                                    </Button>
+
+                                    <Button
+                                        component="label"
+                                        variant="outlined"
+                                        size="small"
+                                        disabled={isUploading}
+                                    >
+                                        Сделать фото
+
+                                        <input
+                                            hidden
+                                            type="file"
+                                            accept={imageAccept}
+                                            capture="environment"
                                             onChange={(event) =>
                                                 handleMainPhotoUpload(event, slot)
                                             }
@@ -288,7 +319,14 @@ function ProtocolInspectionPhotos({
                 Дополнительные фото
             </Typography>
 
-            <Box sx={{ mb: 2 }}>
+            <Box
+                sx={{
+                    mb: 2,
+                    display: "flex",
+                    flexWrap: "wrap",
+                    gap: 1,
+                }}
+            >
                 <Button
                     component="label"
                     variant="contained"
@@ -307,14 +345,30 @@ function ProtocolInspectionPhotos({
                         hidden
                         multiple
                         type="file"
-                        accept="image/jpeg,image/png,image/webp"
+                        accept={imageAccept}
+                        onChange={handleAdditionalPhotosUpload}
+                    />
+                </Button>
+
+                <Button
+                    component="label"
+                    variant="outlined"
+                    disabled={uploadingType === "other"}
+                >
+                    Сделать дополнительное фото
+
+                    <input
+                        hidden
+                        type="file"
+                        accept={imageAccept}
+                        capture="environment"
                         onChange={handleAdditionalPhotosUpload}
                     />
                 </Button>
             </Box>
 
             {additionalPhotos.length === 0 ? (
-                <Alert severity="info">
+                <Alert severity="info" sx={{ borderRadius: 0 }}>
                     Дополнительные фото не загружены.
                 </Alert>
             ) : (
