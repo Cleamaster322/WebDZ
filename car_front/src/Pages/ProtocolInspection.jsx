@@ -242,6 +242,36 @@ function emptyToNull(value) {
     return value;
 }
 
+function normalizeDecimalComma(value) {
+    if (typeof value !== "string") {
+        return value;
+    }
+
+    const trimmedValue = value.trim();
+
+    if (trimmedValue === "" || trimmedValue === "-") {
+        return value;
+    }
+
+    return trimmedValue.replace(",", ".");
+}
+
+function normalizeNumericPayload(payload, numericFields) {
+    const normalizedPayload = {
+        ...payload,
+    };
+
+    numericFields.forEach((fieldName) => {
+        if (fieldName in normalizedPayload) {
+            normalizedPayload[fieldName] = normalizeDecimalComma(
+                normalizedPayload[fieldName]
+            );
+        }
+    });
+
+    return normalizedPayload;
+}
+
 function formatProtocolNumber(value) {
     if (value === null || value === undefined) {
         return null;
@@ -601,6 +631,144 @@ const LIGHT_GEOMETRY_FIELDS = [
     "rear_fog_lower_point_mm",
 ];
 
+const PROTOCOL_NUMERIC_FIELDS = [
+    "manufacture_year",
+];
+
+const TEST_CONDITIONS_NUMERIC_FIELDS = [
+    "ambient_temperature_c",
+    "relative_humidity_pct",
+    "atmospheric_pressure_kpa",
+];
+
+const ROAD_CONDITIONS_NUMERIC_FIELDS = [
+    "road_ambient_temperature_c",
+    "road_relative_humidity_pct",
+];
+
+const POWER_SUPPLY_NUMERIC_FIELDS = [
+    "frequency_hz",
+    "phase_a_n_voltage_v",
+    "phase_b_n_voltage_v",
+    "phase_c_n_voltage_v",
+    "phase_ab_voltage_v",
+    "phase_bc_voltage_v",
+    "phase_ac_voltage_v",
+];
+
+const MEASUREMENT_NUMERIC_FIELDS = [
+    "mileage_km",
+    "mufflers_count",
+
+    "engine_power_kw",
+    "cylinders_count",
+
+    "steering_backlash_deg",
+
+    "tire_depth_fl_mm",
+    "tire_depth_fr_mm",
+    "tire_depth_rl_mm",
+    "tire_depth_rr_mm",
+
+    "bumper_to_body_distance_mm",
+    "protruding_elements_doors_mm",
+    "protruding_elements_other_mm",
+
+    "glass_transparency_right_pct",
+    "glass_transparency_left_pct",
+    "glass_transparency_windshield_pct",
+    "sun_strip_width_mm",
+
+    "speed_by_speedometer_kmh",
+    "actual_speed_kmh",
+
+    "exhaust_noise_constant_db",
+    "exhaust_noise_deceleration_db",
+
+    "co_min_pct",
+    "co_max_pct",
+
+    "light_absorption_1",
+    "light_absorption_2",
+    "light_absorption_3",
+    "light_absorption_4",
+    "light_absorption_5",
+    "light_absorption_6",
+
+    "vehicle_length_mm",
+    "vehicle_width_mm",
+    "vehicle_height_mm",
+    "vehicle_weight_kg",
+
+    "axle1_load_kg",
+    "axle2_load_kg",
+];
+
+const BRAKE_NUMERIC_FIELDS = [
+    "service_brake_control_force_axle1_n",
+    "service_brake_control_force_axle2_n",
+    "parking_brake_control_force_n",
+
+    "axle_1_brake_difference_pct",
+    "axle_2_brake_difference_pct",
+
+    "service_brake_front_left_kn",
+    "service_brake_front_right_kn",
+    "service_brake_rear_left_kn",
+    "service_brake_rear_right_kn",
+
+    "parking_brake_left_kn",
+    "parking_brake_right_kn",
+];
+
+const LIGHT_NUMERIC_FIELDS = [
+    "low_beam_count",
+    "high_beam_count",
+    "front_fog_count",
+    "reverse_light_count",
+    "turn_signal_count",
+    "front_position_light_count",
+    "rear_position_light_count",
+    "main_brake_signal_count",
+    "additional_brake_signal_count",
+    "rear_fog_count",
+    "plate_light_count",
+    "daytime_running_light_count",
+    "parking_light_count",
+    "rear_parking_light_count",
+    "adaptive_front_lighting_count",
+
+    "left_34v_cd",
+    "left_52h_cd",
+    "left_high_beam_cd",
+    "right_34v_cd",
+    "right_52h_cd",
+    "right_high_beam_cd",
+
+    "turn_signal_frequency_per_min",
+    "turn_signal_frequency_hz",
+
+    "low_beam_upper_point_mm",
+    "low_beam_lower_point_mm",
+
+    "fog_light_upper_point_mm",
+    "fog_light_lower_point_mm",
+    "fog_light_left_distance_mm",
+    "fog_light_right_distance_mm",
+
+    "brake_signal_upper_point_mm",
+    "brake_signal_lower_point_mm",
+    "brake_signal_left_distance_mm",
+    "brake_signal_right_distance_mm",
+
+    "additional_brake_signal_from_glass_edge_mm",
+    "additional_brake_signal_from_support_surface_mm",
+    "additional_brake_signal_optical_center_shift_mm",
+
+    "rear_fog_upper_point_mm",
+    "rear_fog_lower_point_mm",
+];
+
 function mapProtocolToForm(data) {
     const protocol = data || {};
     const measurement = protocol.measurement || {};
@@ -791,7 +959,7 @@ function mapProtocolToForm(data) {
 }
 
 function buildProtocolPayload(form) {
-    return {
+    const payload = {
         protocol_number: formatProtocolNumber(form.protocol_number),
         appendix_number: emptyToNull(form.appendix_number),
         protocol_date: emptyToNull(form.protocol_date),
@@ -813,27 +981,33 @@ function buildProtocolPayload(form) {
         color: emptyToNull(form.color),
         dash_fields: buildDashFields(form, PROTOCOL_DASH_FIELDS),
     };
+
+    return normalizeNumericPayload(payload, PROTOCOL_NUMERIC_FIELDS);
 }
 
 function buildTestConditionsPayload(form) {
-    return {
+    const payload = {
         ambient_temperature_c: emptyToNull(form.ambient_temp_c),
         relative_humidity_pct: emptyToNull(form.ambient_humidity_pct),
         atmospheric_pressure_kpa: emptyToNull(form.atmospheric_pressure_kpa),
         dash_fields: buildDashFields(form, TEST_CONDITIONS_DASH_FIELDS),
     };
+
+    return normalizeNumericPayload(payload, TEST_CONDITIONS_NUMERIC_FIELDS);
 }
 
 function buildRoadConditionsPayload(form) {
-    return {
+    const payload = {
         road_ambient_temperature_c: emptyToNull(form.road_ambient_temp_c),
         road_relative_humidity_pct: emptyToNull(form.road_ambient_humidity_pct),
         dash_fields: buildDashFields(form, ROAD_CONDITIONS_DASH_FIELDS),
     };
+
+    return normalizeNumericPayload(payload, ROAD_CONDITIONS_NUMERIC_FIELDS);
 }
 
 function buildPowerSupplyPayload(form) {
-    return {
+    const payload = {
         frequency_hz: emptyToNull(form.electric_frequency_hz),
         phase_a_n_voltage_v: emptyToNull(form.voltage_phase_a_zero),
         phase_b_n_voltage_v: emptyToNull(form.voltage_phase_b_zero),
@@ -843,10 +1017,12 @@ function buildPowerSupplyPayload(form) {
         phase_ac_voltage_v: emptyToNull(form.voltage_phase_ac),
         dash_fields: buildDashFields(form, POWER_SUPPLY_DASH_FIELDS),
     };
+
+    return normalizeNumericPayload(payload, POWER_SUPPLY_NUMERIC_FIELDS);
 }
 
 function buildMeasurementPayload(form) {
-    return {
+    const payload = {
         mileage_km: emptyToNull(form.mileage_km),
 
         wheel_formula: emptyToNull(form.wheel_formula),
@@ -914,10 +1090,12 @@ function buildMeasurementPayload(form) {
 
         dash_fields: buildDashFields(form, MEASUREMENT_DASH_FIELDS),
     };
+
+    return normalizeNumericPayload(payload, MEASUREMENT_NUMERIC_FIELDS);
 }
 
 function buildBrakePayload(form) {
-    return {
+    const payload = {
         service_brake_type: emptyToNull(form.service_brake_type),
         parking_brake_type: emptyToNull(form.parking_brake_type),
 
@@ -938,10 +1116,11 @@ function buildBrakePayload(form) {
 
         dash_fields: buildDashFields(form, BRAKE_DASH_FIELDS),
     };
+    return normalizeNumericPayload(payload, BRAKE_NUMERIC_FIELDS);
 }
 
 function buildLightPayload(form) {
-    return {
+    const payload = {
         low_beam_count: emptyToNull(form.low_beam_count),
         low_beam_color: emptyToNull(form.low_beam_color),
 
@@ -1023,6 +1202,8 @@ function buildLightPayload(form) {
 
         dash_fields: buildDashFields(form, LIGHT_DASH_FIELDS),
     };
+
+    return normalizeNumericPayload(payload, LIGHT_NUMERIC_FIELDS);
 }
 
 function ProtocolInspection() {
@@ -1746,12 +1927,12 @@ function ProtocolInspection() {
                     )}
 
                     <Box ref={headerRef}>
-                        <BlockError message={blockErrors.header} />
+                        <BlockError message={blockErrors.header}/>
                         <ProtocolInspectionHeader {...commonSectionProps} />
                     </Box>
 
                     <Box ref={conditionsRef}>
-                        <BlockError message={blockErrors.conditions} />
+                        <BlockError message={blockErrors.conditions}/>
                         <ProtocolInspectionConditions {...commonSectionProps} />
                     </Box>
 
@@ -1763,37 +1944,37 @@ function ProtocolInspection() {
                     />
 
                     <Box ref={vehicleRef}>
-                        <BlockError message={blockErrors.vehicle} />
+                        <BlockError message={blockErrors.vehicle}/>
                         <ProtocolInspectionVehicle {...commonSectionProps} />
                     </Box>
 
                     <Box ref={engineRef}>
-                        <BlockError message={blockErrors.engine} />
+                        <BlockError message={blockErrors.engine}/>
                         <ProtocolInspectionEngine {...commonSectionProps} />
                     </Box>
 
                     <Box ref={steeringTransmissionRef}>
-                        <BlockError message={blockErrors.steeringTransmission} />
+                        <BlockError message={blockErrors.steeringTransmission}/>
                         <ProtocolInspectionSteeringTransmission {...commonSectionProps} />
                     </Box>
 
                     <Box ref={brakesRef}>
-                        <BlockError message={blockErrors.brakes} />
+                        <BlockError message={blockErrors.brakes}/>
                         <ProtocolInspectionBrakes {...commonSectionProps} />
                     </Box>
 
                     <Box ref={lightsMainRef}>
-                        <BlockError message={blockErrors.lightsMain} />
+                        <BlockError message={blockErrors.lightsMain}/>
                         <ProtocolInspectionLightsMain {...commonSectionProps} />
                     </Box>
 
                     <Box ref={lightsGeometryRef}>
-                        <BlockError message={blockErrors.lightsGeometry} />
+                        <BlockError message={blockErrors.lightsGeometry}/>
                         <ProtocolInspectionLightsGeometry {...commonSectionProps} />
                     </Box>
 
                     <Box ref={miscRef}>
-                        <BlockError message={blockErrors.misc} />
+                        <BlockError message={blockErrors.misc}/>
                         <ProtocolInspectionMisc {...commonSectionProps} />
                     </Box>
 
