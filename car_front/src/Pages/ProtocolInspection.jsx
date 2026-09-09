@@ -1412,6 +1412,7 @@ function ProtocolInspection() {
         try {
             setLoading(true);
             setErrorMessage("");
+            protocolLockActiveRef.current = false;
 
             let response = await api.get(`/cars/protocols/${protocolId}/full/`);
             let data = response.data;
@@ -1443,6 +1444,7 @@ function ProtocolInspection() {
             console.error("Ошибка загрузки протокола:", error);
 
             if (error.response?.status === 423) {
+                protocolLockActiveRef.current = false;
                 setErrorMessage(
                     `Протокол уже редактируется пользователем: ${
                         error.response.data?.locked_by_username || "неизвестно"
@@ -1522,6 +1524,14 @@ function ProtocolInspection() {
 
             api.post(`/cars/protocols/${currentProtocolId}/heartbeat/`)
                 .catch((error) => {
+                    if (error.response?.status === 403) {
+                        protocolLockActiveRef.current = false;
+                        setErrorMessage(
+                            "Редактирование остановлено: протокол занят другим пользователем."
+                        );
+                        return;
+                    }
+
                     console.error("Ошибка heartbeat протокола:", error);
                 });
         }, 30000);

@@ -4,12 +4,13 @@ from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 from django.contrib.auth.models import User
 from django.db import transaction
+from django.db.models import Q
 from django.utils import timezone
 from django.http import FileResponse, HttpResponse
 from django.middleware.csrf import get_token
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import AllowAny, BasePermission, IsAuthenticated
 from rest_framework.response import Response
 from pathlib import Path
 from uuid import uuid4
@@ -172,6 +173,56 @@ def is_protocol_reviewer_or_superuser_request(request):
         )
     )
 
+
+def user_can_access_protocol(request, protocol):
+    return bool(request.user and request.user.is_authenticated)
+
+
+def user_can_edit_protocol(request, protocol):
+    return (
+        request.user
+        and request.user.is_authenticated
+        and protocol.status == 'in_progress'
+        and protocol.locked_by_id == request.user.id
+    )
+
+
+class ProtocolAccessPermission(BasePermission):
+    def has_permission(self, request, view):
+        protocol_id = view.kwargs.get('protocol_id', view.kwargs.get('pk'))
+
+        if protocol_id is None and view.kwargs.get('photo_id') is not None:
+            protocol_id = (
+                ProtocolPhoto.objects
+                .filter(pk=view.kwargs['photo_id'])
+                .values_list('protocol_id', flat=True)
+                .first()
+            )
+
+        protocol = Protocol.objects.filter(pk=protocol_id).first()
+        if not protocol or not user_can_access_protocol(request, protocol):
+            return False
+
+        path = request.path.rstrip('/')
+        if path.endswith(('/manager-release-lock', '/approve', '/cancel')):
+            return is_protocol_reviewer_or_superuser_request(request)
+
+        if path.endswith('/start-editing'):
+            return (
+                protocol.status != 'in_progress'
+                or protocol.locked_by_id == request.user.id
+            )
+
+        if path.endswith('/generate-docx') or request.method == 'GET':
+            return True
+
+        return user_can_edit_protocol(request, protocol)
+
+
+def protocol_access_required(view_func):
+    view_func.cls.permission_classes = [IsAuthenticated, ProtocolAccessPermission]
+    return view_func
+
 LOCK_TIMEOUT_MINUTES = 5
 
 
@@ -190,6 +241,27 @@ def clear_expired_protocol_lock(protocol):
     protocol.locked_by = None
     protocol.locked_at = None
     protocol.save(update_fields=['status', 'locked_by', 'locked_at'])
+
+def release_expired_protocol_locks():
+    expiration_time = timezone.now() - timedelta(minutes=LOCK_TIMEOUT_MINUTES)
+    released_protocols = []
+
+    with transaction.atomic():
+        protocols = (
+            Protocol.objects
+            .select_for_update()
+            .filter(status='in_progress')
+            .filter(Q(locked_at__isnull=True) | Q(locked_at__lt=expiration_time))
+        )
+
+        for protocol in protocols:
+            clear_expired_protocol_lock(protocol)
+            released_protocols.append(protocol)
+
+    for protocol in released_protocols:
+        notify_protocol_status_changed(protocol)
+
+    return len(released_protocols)
 
 def normalize_region_name(region):
     if not region:
@@ -1122,6 +1194,7 @@ def delete_car_data(request, pk):
 @permission_classes([IsAuthenticated])
 def get_all_protocols(request):
     try:
+        release_expired_protocol_locks()
         queryset = Protocol.objects.all().order_by('-created_at')
 
         user_id = request.GET.get('user_id')
@@ -1151,6 +1224,9 @@ def get_protocol(request, pk):
         protocol = Protocol.objects.filter(pk=pk).first()
         if not protocol:
             return Response(status=status.HTTP_404_NOT_FOUND)
+
+        if not user_can_access_protocol(request, protocol):
+            return Response(status=status.HTTP_403_FORBIDDEN)
 
         serializer = ProtocolSerializer(protocol)
         return Response(serializer.data)
@@ -1208,6 +1284,9 @@ def update_protocol(request, pk):
         if not protocol:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
+        if not user_can_access_protocol(request, protocol):
+            return Response(status=status.HTTP_403_FORBIDDEN)
+
         data = request.data.copy()
         data['user'] = protocol.user_id
 
@@ -1255,6 +1334,9 @@ def start_protocol_editing(request, pk):
 
             if not protocol:
                 return Response(status=status.HTTP_404_NOT_FOUND)
+
+            if not user_can_access_protocol(request, protocol):
+                return Response(status=status.HTTP_403_FORBIDDEN)
 
             if protocol.status == 'completed':
                 return Response(
@@ -1320,6 +1402,9 @@ def protocol_heartbeat(request, pk):
             if not protocol:
                 return Response(status=status.HTTP_404_NOT_FOUND)
 
+            if not user_can_access_protocol(request, protocol):
+                return Response(status=status.HTTP_403_FORBIDDEN)
+
             if protocol.status != 'in_progress':
                 return Response(
                     {'detail': 'Протокол не находится в работе.'},
@@ -1353,6 +1438,9 @@ def return_protocol_to_draft(request, pk):
 
             if not protocol:
                 return Response(status=status.HTTP_404_NOT_FOUND)
+
+            if not user_can_access_protocol(request, protocol):
+                return Response(status=status.HTTP_403_FORBIDDEN)
 
             protocol.status = 'draft'
             protocol.locked_by = None
@@ -1509,6 +1597,9 @@ def delete_protocol(request, pk):
         if not protocol:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
+        if not user_can_access_protocol(request, protocol):
+            return Response(status=status.HTTP_403_FORBIDDEN)
+
         protocol.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
     except Exception as e:
@@ -1540,6 +1631,9 @@ def create_protocol_measurement(request, protocol_id):
         protocol = Protocol.objects.filter(pk=protocol_id).first()
         if not protocol:
             return Response(status=status.HTTP_404_NOT_FOUND)
+
+        if not user_can_access_protocol(request, protocol):
+            return Response(status=status.HTTP_403_FORBIDDEN)
 
         existing = ProtocolMeasurement.objects.filter(protocol_id=protocol_id).first()
         if existing:
@@ -2198,6 +2292,9 @@ def get_full_protocol(request, protocol_id):
         if not protocol:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
+        if not user_can_access_protocol(request, protocol):
+            return Response(status=status.HTTP_403_FORBIDDEN)
+
         serializer = ProtocolFullSerializer(
             protocol,
             context={'request': request}
@@ -2411,6 +2508,9 @@ def generate_protocol_docx_file(request, protocol_id):
                 {'error': 'Protocol not found'},
                 status=status.HTTP_404_NOT_FOUND
             )
+
+        if not user_can_access_protocol(request, protocol):
+            return Response(status=status.HTTP_403_FORBIDDEN)
 
         file_path = generate_protocol_docx(protocol)
 

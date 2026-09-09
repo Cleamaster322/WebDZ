@@ -65,69 +65,69 @@ urlpatterns = [
     # =========================================================
     path('protocols/', get_all_protocols),
     path('protocols/create/', create_protocol),
-    path('protocols/<int:pk>/', get_protocol),
-    path('protocols/<int:pk>/update/', update_protocol),
+    path('protocols/<int:pk>/', protocol_access_required(get_protocol)),
+    path('protocols/<int:pk>/update/', protocol_access_required(update_protocol)),
 
-    path('protocols/<int:pk>/start-editing/', start_protocol_editing),
-    path('protocols/<int:pk>/heartbeat/', protocol_heartbeat),
-    path('protocols/<int:pk>/return-to-draft/', return_protocol_to_draft),
-    path('protocols/<int:pk>/manager-release-lock/', manager_release_protocol_lock),
-    path('protocols/<int:pk>/approve/', approve_protocol),
-    path('protocols/<int:pk>/cancel/', cancel_protocol),
+    path('protocols/<int:pk>/start-editing/', protocol_access_required(start_protocol_editing)),
+    path('protocols/<int:pk>/heartbeat/', protocol_access_required(protocol_heartbeat)),
+    path('protocols/<int:pk>/return-to-draft/', protocol_access_required(return_protocol_to_draft)),
+    path('protocols/<int:pk>/manager-release-lock/', protocol_access_required(manager_release_protocol_lock)),
+    path('protocols/<int:pk>/approve/', protocol_access_required(approve_protocol)),
+    path('protocols/<int:pk>/cancel/', protocol_access_required(cancel_protocol)),
 
-    path('protocols/<int:pk>/delete/', delete_protocol),
-    path('protocols/<int:protocol_id>/full/', get_full_protocol),
-    path('protocols/<int:protocol_id>/generate-docx/', generate_protocol_docx_file),
+    path('protocols/<int:pk>/delete/', protocol_access_required(delete_protocol)),
+    path('protocols/<int:protocol_id>/full/', protocol_access_required(get_full_protocol)),
+    path('protocols/<int:protocol_id>/generate-docx/', protocol_access_required(generate_protocol_docx_file)),
 
     # =========================================================
     # --- MEASUREMENT ---
     # =========================================================
-    path('protocols/<int:protocol_id>/measurement/', get_protocol_measurement),
-    path('protocols/<int:protocol_id>/measurement/create/', create_protocol_measurement),
-    path('protocols/<int:protocol_id>/measurement/update/', update_protocol_measurement),
+    path('protocols/<int:protocol_id>/measurement/', protocol_access_required(get_protocol_measurement)),
+    path('protocols/<int:protocol_id>/measurement/create/', protocol_access_required(create_protocol_measurement)),
+    path('protocols/<int:protocol_id>/measurement/update/', protocol_access_required(update_protocol_measurement)),
 
     # =========================================================
     # --- BRAKE ---
     # =========================================================
-    path('protocols/<int:protocol_id>/brake/', get_protocol_brake),
-    path('protocols/<int:protocol_id>/brake/create/', create_protocol_brake),
-    path('protocols/<int:protocol_id>/brake/update/', update_protocol_brake),
+    path('protocols/<int:protocol_id>/brake/', protocol_access_required(get_protocol_brake)),
+    path('protocols/<int:protocol_id>/brake/create/', protocol_access_required(create_protocol_brake)),
+    path('protocols/<int:protocol_id>/brake/update/', protocol_access_required(update_protocol_brake)),
 
     # =========================================================
     # --- LIGHT ---
     # =========================================================
-    path('protocols/<int:protocol_id>/light/', get_protocol_light),
-    path('protocols/<int:protocol_id>/light/create/', create_protocol_light),
-    path('protocols/<int:protocol_id>/light/update/', update_protocol_light),
+    path('protocols/<int:protocol_id>/light/', protocol_access_required(get_protocol_light)),
+    path('protocols/<int:protocol_id>/light/create/', protocol_access_required(create_protocol_light)),
+    path('protocols/<int:protocol_id>/light/update/', protocol_access_required(update_protocol_light)),
 
     # =========================================================
     # --- TEST CONDITIONS ---
     # =========================================================
-    path('protocols/<int:protocol_id>/test-conditions/', get_protocol_test_conditions),
-    path('protocols/<int:protocol_id>/test-conditions/create/', create_protocol_test_conditions),
-    path('protocols/<int:protocol_id>/test-conditions/update/', update_protocol_test_conditions),
+    path('protocols/<int:protocol_id>/test-conditions/', protocol_access_required(get_protocol_test_conditions)),
+    path('protocols/<int:protocol_id>/test-conditions/create/', protocol_access_required(create_protocol_test_conditions)),
+    path('protocols/<int:protocol_id>/test-conditions/update/', protocol_access_required(update_protocol_test_conditions)),
 
     # =========================================================
     # --- ROAD CONDITIONS ---
     # =========================================================
-    path('protocols/<int:protocol_id>/road-conditions/', get_protocol_road_conditions),
-    path('protocols/<int:protocol_id>/road-conditions/create/', create_protocol_road_conditions),
-    path('protocols/<int:protocol_id>/road-conditions/update/', update_protocol_road_conditions),
+    path('protocols/<int:protocol_id>/road-conditions/', protocol_access_required(get_protocol_road_conditions)),
+    path('protocols/<int:protocol_id>/road-conditions/create/', protocol_access_required(create_protocol_road_conditions)),
+    path('protocols/<int:protocol_id>/road-conditions/update/', protocol_access_required(update_protocol_road_conditions)),
 
     # =========================================================
     # --- POWER SUPPLY ---
     # =========================================================
-    path('protocols/<int:protocol_id>/power-supply/', get_protocol_power_supply),
-    path('protocols/<int:protocol_id>/power-supply/create/', create_protocol_power_supply),
-    path('protocols/<int:protocol_id>/power-supply/update/', update_protocol_power_supply),
+    path('protocols/<int:protocol_id>/power-supply/', protocol_access_required(get_protocol_power_supply)),
+    path('protocols/<int:protocol_id>/power-supply/create/', protocol_access_required(create_protocol_power_supply)),
+    path('protocols/<int:protocol_id>/power-supply/update/', protocol_access_required(update_protocol_power_supply)),
 
     # =========================================================
     # --- PHOTOS ---
     # =========================================================
-    path('protocols/<int:protocol_id>/photos/', get_protocol_photos),
-    path('protocols/<int:protocol_id>/photos/create/', create_protocol_photo),
-    path('protocol-photos/<int:photo_id>/update/', update_protocol_photo),
-    path('protocol-photos/<int:photo_id>/delete/', delete_protocol_photo),
+    path('protocols/<int:protocol_id>/photos/', protocol_access_required(get_protocol_photos)),
+    path('protocols/<int:protocol_id>/photos/create/', protocol_access_required(create_protocol_photo)),
+    path('protocol-photos/<int:photo_id>/update/', protocol_access_required(update_protocol_photo)),
+    path('protocol-photos/<int:photo_id>/delete/', protocol_access_required(delete_protocol_photo)),
 
     # =========================================================
     # --- USERS ---
