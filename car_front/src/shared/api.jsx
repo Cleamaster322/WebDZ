@@ -42,6 +42,7 @@ class ApiClient {
         }
 
         this.isRefreshing = false;
+        this.refreshPromise = null;
         this.failedRequests = [];
 
         this.client.interceptors.response.use(
@@ -83,22 +84,8 @@ class ApiClient {
                         return Promise.reject(error);
                     }
 
-                    return axios
-                        .post(`${baseURL}/cars/token/refresh/`, {
-                            refresh: refreshToken,
-                        })
-                        .then((response) => {
-                            const newAccessToken = response.data.access;
-                            const newRefreshToken = response.data.refresh;
-
-                            localStorage.setItem("accessToken", newAccessToken);
-
-                            if (newRefreshToken) {
-                                localStorage.setItem("refreshToken", newRefreshToken);
-                            }
-
-                            this.client.defaults.headers.common["Authorization"] = `Bearer ${newAccessToken}`;
-
+                    return this.refreshAccessToken()
+                        .then((newAccessToken) => {
                             originalRequest.headers = originalRequest.headers || {};
                             originalRequest.headers["Authorization"] = `Bearer ${newAccessToken}`;
 
@@ -130,7 +117,53 @@ class ApiClient {
         this.setCsrfToken();
     }
 
-    logout() {
+    async refreshAccessToken() {
+        if (this.refreshPromise) {
+            return this.refreshPromise;
+        }
+
+        const refreshToken = localStorage.getItem("refreshToken");
+
+        if (!refreshToken) {
+            this.logout();
+            throw new Error("Refresh token is missing");
+        }
+
+        this.refreshPromise = axios
+            .post(`${baseURL}/cars/token/refresh/`, {refresh: refreshToken})
+            .then((response) => {
+                const newAccessToken = response.data.access;
+                const newRefreshToken = response.data.refresh;
+
+                localStorage.setItem("accessToken", newAccessToken);
+
+                if (newRefreshToken) {
+                    localStorage.setItem("refreshToken", newRefreshToken);
+                }
+
+                this.client.defaults.headers.common["Authorization"] = `Bearer ${newAccessToken}`;
+                window.dispatchEvent(new CustomEvent("auth:token-refreshed"));
+
+                return newAccessToken;
+            })
+            .finally(() => {
+                this.refreshPromise = null;
+            });
+
+        return this.refreshPromise;
+    }
+
+    async logout() {
+        const refreshToken = localStorage.getItem("refreshToken");
+
+        if (refreshToken) {
+            try {
+                await axios.post(`${baseURL}/cars/logout/`, {refresh: refreshToken});
+            } catch (error) {
+                console.warn("Не удалось отозвать refresh-токен:", error);
+            }
+        }
+
         localStorage.removeItem("accessToken");
         localStorage.removeItem("refreshToken");
         delete this.client.defaults.headers.common["Authorization"];

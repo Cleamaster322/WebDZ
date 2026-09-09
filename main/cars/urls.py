@@ -46,6 +46,7 @@ from .views import (
     get_protocol_road_conditions,
     get_protocol_test_conditions,
     get_user,
+    logout,
     manager_release_protocol_lock,
     protocol_access_required,
     protocol_heartbeat,
@@ -78,6 +79,7 @@ from .views import (
 urlpatterns = [
     # --- CSRF ---
     path('get_csrf_token/', get_csrf_token),
+    path('logout/', logout),
 
     # =========================================================
     # --- BRANDS ---

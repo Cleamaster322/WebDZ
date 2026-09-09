@@ -417,63 +417,122 @@ function ProtocolList({
     }, []);
 
     useEffect(() => {
-        const socket = createProtocolWebSocket();
+        let socket = null;
+        let reconnectTimer = null;
+        let reconnectDelay = 1000;
+        let stopped = false;
 
-        if (!socket) {
-            return undefined;
-        }
+        const scheduleReconnect = (delay = reconnectDelay) => {
+            if (stopped || reconnectTimer) {
+                return;
+            }
 
-        socket.onopen = () => {
-            console.log("Protocols WebSocket connected");
+            reconnectTimer = setTimeout(() => {
+                reconnectTimer = null;
+                connect();
+            }, delay);
+            reconnectDelay = Math.min(reconnectDelay * 2, 10000);
         };
 
-        socket.onmessage = (event) => {
-            try {
-                const data = JSON.parse(event.data);
+        const connect = () => {
+            if (stopped || socket) {
+                return;
+            }
 
-                if (data.type !== "protocol_status_changed") {
+            const nextSocket = createProtocolWebSocket();
+            if (!nextSocket) {
+                return;
+            }
+
+            socket = nextSocket;
+
+            nextSocket.onopen = () => {
+                reconnectDelay = 1000;
+                console.log("Protocols WebSocket connected");
+            };
+
+            nextSocket.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+
+                    if (data.type !== "protocol_status_changed") {
+                        return;
+                    }
+
+                    const updatedProtocol = data.protocol;
+
+                    setProtocols((prevProtocols) =>
+                        prevProtocols.map((protocol) =>
+                            protocol.id === updatedProtocol.id
+                                ? {
+                                    ...protocol,
+                                    status: updatedProtocol.status,
+                                    locked_by: updatedProtocol.locked_by,
+                                    locked_by_id: updatedProtocol.locked_by_id,
+                                    locked_by_username: updatedProtocol.locked_by_username,
+                                    locked_by_full_name: updatedProtocol.locked_by_full_name,
+                                    returned_for_revision: updatedProtocol.returned_for_revision,
+                                    revision_comment: updatedProtocol.revision_comment,
+                                    cancelled_at: updatedProtocol.cancelled_at,
+                                    cancelled_by: updatedProtocol.cancelled_by,
+                                    cancelled_by_id: updatedProtocol.cancelled_by_id,
+                                    cancelled_by_username: updatedProtocol.cancelled_by_username,
+                                    cancelled_by_full_name: updatedProtocol.cancelled_by_full_name,
+                                }
+                                : protocol
+                        )
+                    );
+                } catch (error) {
+                    console.error("Protocols WebSocket message error:", error);
+                }
+            };
+
+            nextSocket.onerror = (error) => {
+                console.error("Protocols WebSocket error:", error);
+            };
+
+            nextSocket.onclose = async (event) => {
+                if (socket !== nextSocket) {
                     return;
                 }
 
-                const updatedProtocol = data.protocol;
+                socket = null;
 
-                setProtocols((prevProtocols) =>
-                    prevProtocols.map((protocol) =>
-                        protocol.id === updatedProtocol.id
-                            ? {
-                                ...protocol,
-                                status: updatedProtocol.status,
-                                locked_by: updatedProtocol.locked_by,
-                                locked_by_id: updatedProtocol.locked_by_id,
-                                locked_by_username: updatedProtocol.locked_by_username,
-                                locked_by_full_name: updatedProtocol.locked_by_full_name,
+                if (stopped) {
+                    return;
+                }
 
-                                returned_for_revision: updatedProtocol.returned_for_revision,
-                                revision_comment: updatedProtocol.revision_comment,
-                                cancelled_at: updatedProtocol.cancelled_at,
-                                cancelled_by: updatedProtocol.cancelled_by,
-                                cancelled_by_id: updatedProtocol.cancelled_by_id,
-                                cancelled_by_username: updatedProtocol.cancelled_by_username,
-                                cancelled_by_full_name: updatedProtocol.cancelled_by_full_name,
-                            }
-                            : protocol
-                    )
-                );
-            } catch (error) {
-                console.error("Protocols WebSocket message error:", error);
+                if (event.code === 4401) {
+                    try {
+                        await api.refreshAccessToken();
+                        reconnectDelay = 1000;
+                    } catch {
+                        return;
+                    }
+                }
+
+                scheduleReconnect(event.code === 4401 ? 0 : reconnectDelay);
+            };
+        };
+
+        const handleTokenRefresh = () => {
+            if (socket) {
+                socket.close(4001, "access token refreshed");
+            } else {
+                connect();
             }
         };
 
-        socket.onerror = (error) => {
-            console.error("Protocols WebSocket error:", error);
-        };
-
-        socket.onclose = () => {
-            console.log("Protocols WebSocket disconnected");
-        };
+        window.addEventListener("auth:token-refreshed", handleTokenRefresh);
+        connect();
 
         return () => {
-            socket.close();
+            stopped = true;
+            window.removeEventListener("auth:token-refreshed", handleTokenRefresh);
+            clearTimeout(reconnectTimer);
+            reconnectTimer = null;
+            socket?.close(1000, "component unmounted");
+            socket = null;
         };
     }, []);
 

@@ -83,24 +83,12 @@ function AppHeader({beforeNavigate}) {
 
             await runBeforeNavigate();
 
-            localStorage.removeItem("accessToken");
-            localStorage.removeItem("refreshToken");
-
-            if (api.client?.defaults?.headers?.common) {
-                delete api.client.defaults.headers.common["Authorization"];
-            }
-
+            await api.logout();
             navigate("/");
         } catch (error) {
             console.error("Ошибка при выходе:", error);
 
-            localStorage.removeItem("accessToken");
-            localStorage.removeItem("refreshToken");
-
-            if (api.client?.defaults?.headers?.common) {
-                delete api.client.defaults.headers.common["Authorization"];
-            }
-
+            await api.logout();
             navigate("/");
         } finally {
             setLeaving(false);
