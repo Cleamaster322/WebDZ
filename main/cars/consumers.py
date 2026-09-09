@@ -5,6 +5,10 @@ from channels.generic.websocket import AsyncWebsocketConsumer
 
 class ProtocolConsumer(AsyncWebsocketConsumer):
     async def connect(self):
+        if not self.scope.get("user") or not self.scope["user"].is_authenticated:
+            await self.close(code=4401)
+            return
+
         self.group_name = "protocols"
 
         await self.channel_layer.group_add(
@@ -12,7 +16,7 @@ class ProtocolConsumer(AsyncWebsocketConsumer):
             self.channel_name,
         )
 
-        await self.accept()
+        await self.accept(subprotocol="jwt")
 
     async def disconnect(self, close_code):
         await self.channel_layer.group_discard(

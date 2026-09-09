@@ -370,6 +370,25 @@ class ProtocolSerializer(DashFieldsSerializerMixin, serializers.ModelSerializer)
     class Meta:
         model = Protocol
         fields = '__all__'
+        read_only_fields = [
+            'id',
+            'protocol_number',
+            'user',
+            'locked_by',
+            'locked_at',
+            'cancelled_by',
+            'cancelled_at',
+            'created_at',
+            'updated_at',
+        ]
+
+    def validate_status(self, value):
+        if value in {'approved', 'cancelled'}:
+            raise serializers.ValidationError(
+                'Этот статус устанавливается только специальным действием.'
+            )
+
+        return value
 
     def get_locked_by_full_name(self, obj):
         if not obj.locked_by:
@@ -642,7 +661,14 @@ class ProtocolCreateSerializer(DashFieldsSerializerMixin, serializers.ModelSeria
             'created_at',
             'updated_at',
         ]
-        read_only_fields = ['id', 'created_at', 'updated_at']
+        read_only_fields = [
+            'id',
+            'protocol_number',
+            'status',
+            'user',
+            'created_at',
+            'updated_at',
+        ]
 
     def normalize_body_mark(self, value):
         return normalize_body_mark_value(value)

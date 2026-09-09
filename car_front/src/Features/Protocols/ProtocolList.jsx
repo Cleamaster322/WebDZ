@@ -83,6 +83,16 @@ function getWebSocketUrl() {
     return `${wsProtocol}://${window.location.hostname}:8000/ws/protocols/`;
 }
 
+function createProtocolWebSocket() {
+    const accessToken = localStorage.getItem("accessToken");
+
+    if (!accessToken) {
+        return null;
+    }
+
+    return new WebSocket(getWebSocketUrl(), ["jwt", accessToken]);
+}
+
 function getProtocolTitle(protocol) {
     const brand = protocol.brand_name || "";
     const model = protocol.commercial_name || "";
@@ -407,7 +417,11 @@ function ProtocolList({
     }, []);
 
     useEffect(() => {
-        const socket = new WebSocket(getWebSocketUrl());
+        const socket = createProtocolWebSocket();
+
+        if (!socket) {
+            return undefined;
+        }
 
         socket.onopen = () => {
             console.log("Protocols WebSocket connected");

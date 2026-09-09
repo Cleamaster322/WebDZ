@@ -345,7 +345,7 @@ def configuration_matches_year(configuration, year):
 
 
 # =========================================================
-# --- TEST / CSRF FUNCTIONS ---
+# --- CSRF ---
 # =========================================================
 
 @api_view(['GET'])
@@ -353,25 +353,6 @@ def configuration_matches_year(configuration, year):
 def get_csrf_token(request):
     token = get_token(request)
     return Response({'csrf_token': token})
-
-
-@api_view(['GET'])
-@permission_classes([AllowAny])
-def test(request):
-    return Response({'test': 123321})
-
-
-@api_view(['POST'])
-@permission_classes([AllowAny])
-def test1(request):
-    name = request.data.get('name', 'default value')
-    return Response({'name': name})
-
-
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def test2(request):
-    return Response({'test': 123321})
 
 
 # =========================================================
@@ -1254,13 +1235,12 @@ def create_protocol(request):
         if not data.get('owner_type'):
             data['owner_type'] = 'individual'
 
-        if not data.get('status'):
-            data['status'] = 'draft'
+        data['status'] = 'draft'
 
         serializer = ProtocolCreateSerializer(data=data)
 
         if serializer.is_valid():
-            protocol = serializer.save()
+            protocol = serializer.save(user=request.user)
 
             protocol.protocol_number = str(protocol.id).zfill(5)
             protocol.save(update_fields=['protocol_number'])
@@ -2478,9 +2458,6 @@ def create_word(request):
     try:
         data = request.data
         word_file = create_car_word_doc(data)
-
-        # если потом понадобится websocket-уведомление — слой уже доступен
-        _channel_layer = get_channel_layer()
 
         response = HttpResponse(
             word_file.getvalue(),

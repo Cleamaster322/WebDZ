@@ -1430,64 +1430,6 @@ def build_photo_values(protocol):
     }
 
 
-def debug_docx_context(context, protocol):
-    print("\n========== DEBUG DOCX ==========")
-    print(f"protocol_id: {protocol.id}")
-
-    keys = [
-        "brand_name",
-        "commercial_name",
-
-        "parking_light_present",
-        "parking_light_color_value",
-        "parking_light_count_value",
-        "light_device_conclusion",
-
-        "fog_light_left_distance_8_10_1",
-        "fog_light_right_distance_8_10_1",
-        "fog_light_lower_point_8_10_2",
-        "fog_light_upper_point_8_10_2",
-        "full_result_a_8_10_1",
-        "full_result_a_8_10_2",
-        "result_a_8_10_3_status",
-        "result_a_8_10_3_conclusion",
-
-        "tire_season_label",
-        "tire_depth_fl_10_7_2",
-        "tire_depth_fr_10_7_2",
-        "tire_depth_rl_10_7_2",
-        "tire_depth_rr_10_7_2",
-        "tire_depth_fl_10_7_3",
-        "tire_depth_fr_10_7_3",
-        "tire_depth_rl_10_7_3",
-        "tire_depth_rr_10_7_3",
-
-        "mileage_21_9",
-        "co_min_21_7_with_unit",
-        "co_max_21_7_with_unit",
-        "full_result_a_21_7",
-        "light_absorption_avg_21_8_with_unit",
-        "light_absorption_result_21_8",
-        "full_result_a_21_8",
-        "result_a_21_7_status",
-        "result_a_21_7_conclusion",
-        "result_a_21_8_status",
-        "result_a_21_8_conclusion",
-        "result_a_21_9_status",
-        "result_a_21_9_conclusion",
-
-        "exhaust_noise_constant_db",
-        "u_exhaust_noise_constant_db",
-        "exhaust_noise_deceleration_db",
-        "u_exhaust_noise_deceleration_db",
-    ]
-
-    for key in keys:
-        print(f"{key}: {context.get(key)}")
-
-    print("================================\n")
-
-
 # =========================
 # Главная сборка context для DOCX
 # =========================
@@ -1957,7 +1899,5 @@ def build_protocol_docx_context(protocol):
     context.update(build_calculated_values(protocol))
     context.update(build_uncertainty_values(protocol))
     context.update(build_photo_values(protocol))
-
-    debug_docx_context(context, protocol)
 
     return context
