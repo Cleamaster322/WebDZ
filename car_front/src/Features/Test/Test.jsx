@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
 
-import axios from 'axios'
 import api from "../../shared/api.jsx";
 
 function Test() {
